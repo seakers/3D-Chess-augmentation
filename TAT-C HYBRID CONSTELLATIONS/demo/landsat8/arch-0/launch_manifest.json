@@ -1,0 +1,19 @@
+{
+  "Plane 1": {
+    "Orbit": {
+      "inclination": 0,
+      "semimajorAxis": 0,
+      "eccentricity": 0,
+      "periapsisArgument": 0,
+      "rightAscensionAscendingNode": 0,
+      "trueAnomaly": 0,
+      "polar": false
+    },
+    "Launch 1": {
+      "Rocket Name": "",
+      "Satellites on Rocket": [],
+      "Individual Rocket Cost": 0
+    },
+    "Plane 1 Cost": 0
+  }
+}

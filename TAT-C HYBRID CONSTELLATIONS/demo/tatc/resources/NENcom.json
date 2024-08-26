@@ -1,0 +1,81 @@
+{
+  "@id": "NENcom",
+  "@type": "GroundNetwork",
+  "name": "Near Earth Network (Commerical)",
+  "acronym": "NENcom",
+  "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+  "groundStations": [
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": 65.1,
+      "longitude": -148.4,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": 65.1,
+      "longitude": -148.4,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": 64.8,
+      "longitude": -147.4,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": 64.8,
+      "longitude": -147.4,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": 64,
+      "longitude": -147,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": 64,
+      "longitude": -147,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": -29,
+      "longitude": 115.3,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": 19,
+      "longitude": -155.7,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "COMMERCIAL"},
+      "latitude": 19,
+      "longitude": -155.7,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    }
+  ]
+}

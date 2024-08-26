@@ -1,0 +1,2 @@
+Time [s],,POI,[deg],[deg],[km],AccessTime [s],,,RevisitTime [s],,,TimeToCoverage [s],Number of Passes
+t0,t1,POI,lat,lon,alt,ATavg,ATmin,ATmax,RvTavg,RvTmin,RvTmax,TCcov,numPass
