@@ -1,7 +1,0 @@
-README.md
-setup.py
-bin/tse.py
-tatc_tse.egg-info/PKG-INFO
-tatc_tse.egg-info/SOURCES.txt
-tatc_tse.egg-info/dependency_links.txt
-tatc_tse.egg-info/top_level.txt
