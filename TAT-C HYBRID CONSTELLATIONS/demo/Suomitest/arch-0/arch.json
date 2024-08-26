@@ -1,0 +1,108 @@
+{
+  "constellation": [
+    {
+      "constellationType": "DELTA_HOMOGENEOUS",
+      "numberSatellites": 1,
+      "numberPlanes": 1,
+      "relativeSpacing": 0,
+      "orbit": {
+        "orbitType": "SUN_SYNCHRONOUS",
+        "altitude": 825,
+        "inclination": 98.70892021503393,
+        "eccentricity": 0.0,
+        "@type": "Orbit"
+      },
+      "satellites": [
+        {
+          "name": "Suomi NPP",
+          "acronym": "Suomi NPP",
+          "mass": 2128,
+          "dryMass": 2128,
+          "volume": 7.098,
+          "power": 2285,
+          "commBand": [
+            "X"
+          ],
+          "payload": [
+            {
+              "scanTechnique": "MATRIX_IMAGER",
+              "numberOfDetectorsRowsAlongTrack": 16,
+              "numberOfDetectorsColsCrossTrack": 2048,
+              "operatingWavelength": 4.88e-07,
+              "bandwidth": 1e-08,
+              "opticsSysEff": 0.8,
+              "name": "Visible/Infrared Imager Radiometer Suite,VIIRS",
+              "acronym": "VIIRS band M3",
+              "agency": {
+                "agencyType": "GOVERNMENT",
+                "@type": "Agency"
+              },
+              "mass": 275,
+              "power": 240,
+              "orientation": {
+                "convention": "SIDE_LOOK",
+                "sideLookAngle": 0,
+                "@type": "Orientation"
+              },
+              "fieldOfView": {
+                "sensorGeometry": "RECTANGULAR",
+                "alongTrackFieldOfView": 0.8264,
+                "crossTrackFieldOfView": 122.38,
+                "@type": "FieldOfView"
+              },
+              "dataRate": 5.9,
+              "bitsPerPixel": 12,
+              "techReadinessLevel": 9,
+              "mountType": "BODY",
+              "@type": "Passive Optical Scanner"
+            }
+          ],
+          "orbit": {
+            "orbitType": "KEPLERIAN",
+            "inclination": 98.70892021503393,
+            "semimajorAxis": 7203.14,
+            "eccentricity": 0.0,
+            "periapsisArgument": 0.0,
+            "rightAscensionAscendingNode": 0.0,
+            "trueAnomaly": 0.0,
+            "epoch": "2011-10-28T13:30:00Z",
+            "@type": "Orbit"
+          },
+          "techReadinessLevel": 9,
+          "isGroundCommand": true,
+          "isSpare": false,
+          "propellantType": "MONO_PROP",
+          "stabilizationType": "AXIS_3",
+          "@id": "sat-0",
+          "@type": "Satellite"
+        }
+      ],
+      "@id": "con-0",
+      "@type": "Constellation"
+    }
+  ],
+  "groundNetwork": [
+    {
+      "numberStations": 1,
+      "groundStations": [
+        {
+          "latitude": 78.229772,
+          "longitude": 15.407786,
+          "elevation": 459,
+          "commBand": [
+            "X",
+            "X",
+            "L",
+            "S",
+            "C"
+          ],
+          "@id": "gs-0",
+          "@type": "GroundStation"
+        }
+      ],
+      "@type": "GroundNetwork"
+    }
+  ],
+  "@id": "arch-0",
+  "@type": "Architecture"
+}

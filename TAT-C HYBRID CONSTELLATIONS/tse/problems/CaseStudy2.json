@@ -1,0 +1,490 @@
+{
+  "mission": {
+    "name": "TROPICS",
+    "acronym": "TROPICS",
+    "agency": {
+      "agencyType": "GOVERNMENT",
+      "@type": "Agency"
+    },
+    "start": "2019-08-01T00:00:00Z",
+    "duration": "P0Y0M07D",
+    "target": [
+	  {
+      "latitude": {
+        "minValue": -30,
+        "maxValue": 31,
+        "@type": "QuantitativeValue"
+      },
+      "longitude": {
+        "minValue": -180,
+        "maxValue": 180,
+        "@type": "QuantitativeValue"
+      },
+      "@type": "Region"
+      }
+	],
+    "objectives":[
+      {
+        "objectiveName": "MeanRevisitTime",
+        "objectiveType": "MIN"
+      },
+      {
+        "objectiveName": "MeanResponseTime",
+        "objectiveType": "MIN"
+      },
+      {
+        "objectiveName": "lifecycleCost",
+        "objectiveType": "MIN"
+      },
+      {
+        "objectiveName": "Coverage",
+        "objectiveType": "MAX"
+      }
+    ],
+    "@type": "MissionConcept"
+  },
+  "designSpace": {
+    "spaceSegment": [
+      {
+        "constellationType": "DELTA_HOMOGENEOUS",
+        "numberSatellites": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "numberPlanes": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "orbit": {
+          "orbitType": "CIRCULAR",
+          "altitude": [
+            400,
+            500,
+            600,
+            700,
+            800
+          ],
+          "inclination": [
+            0,
+			10,
+			20,
+			30
+          ],
+          "eccentricity": 0.0,
+          "@type": "Orbit"
+        },
+        "satellites": [
+          {
+            "name": "MicroMAS-2",
+            "acronym": "MicroMAS-2",
+            "mass": 4,
+            "dryMass": 2.5,
+            "volume": 0.003,
+            "power": 9.1,
+            "commBand": [
+              "X"
+            ],
+            "payload": [
+              {
+                "scanTechnique": "PUSHBROOM",
+                "numberOfDetectorsRowsAlongTrack": 1,
+                "numberOfDetectorsColsCrossTrack": 6146,
+                "Fnum": 6.4,
+                "focalLength": 0.8451,
+                "apertureDia": 0.132,
+                "operatingWavelength": 4.85e-07,
+                "bandwidth": 6.5e-08,
+                "opticsSysEff": 0.8,
+                "quantumEff": 0.9,
+                "numOfReadOutE": 20,
+                "targetBlackBodyTemp": 290,
+                "detectorWidth": 3.6e-05,
+                "maxDetectorExposureTime": 0.0036,
+                "snrThreshold": 25,
+                "name": "Landsat 10 Blue Band",
+                "acronym": "Landsat 10 Blue Band",
+                "mass": 1,
+                "volume": 0.0001,
+                "power": 1,
+                "orientation": {
+                  "convention": "SIDE_LOOK",
+                  "sideLookAngle": 0,
+                  "@type": "Orientation"
+                },
+                "fieldOfView": {
+                  "sensorGeometry": "RECTANGULAR",
+                  "fullConeAngle": 30,
+                  "alongTrackFieldOfView": 40,
+                  "crossTrackFieldOfView": 114,
+                  "@type": "FieldOfView"
+                },
+                "dataRate": 384,
+                "bitsPerPixel": 12,
+                "techReadinessLevel": 9,
+                "mountType": "BODY",
+                "@type": "Passive Optical Scanner"
+              }
+            ],
+            "techReadinessLevel": 9,
+            "isGroundCommand": true,
+            "isSpare": false,
+            "propellantType": "MONO_PROP",
+            "stabilizationType": "AXIS_3",
+            "@type": "Satellite"
+          }
+        ],
+        "@type": "Constellation"
+      },
+      {
+        "constellationType": "DELTA_HOMOGENEOUS",
+        "numberSatellites": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "numberPlanes": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "orbit": {
+          "orbitType": "CIRCULAR",
+          "altitude": [
+            400,
+            500,
+            600,
+            700,
+            800
+          ],
+          "inclination": [
+			51.6,
+			90,
+            "SSO"
+          ],
+          "eccentricity": 0.0,
+          "@type": "Orbit"
+        },
+        "satellites": [
+          {
+            "name": "MicroMAS-2",
+            "acronym": "MicroMAS-2",
+            "mass": 4,
+            "dryMass": 2.5,
+            "volume": 0.003,
+            "power": 9.1,
+            "commBand": [
+              "X"
+            ],
+            "payload": [
+              {
+                "scanTechnique": "PUSHBROOM",
+                "numberOfDetectorsRowsAlongTrack": 1,
+                "numberOfDetectorsColsCrossTrack": 6146,
+                "Fnum": 6.4,
+                "focalLength": 0.8451,
+                "apertureDia": 0.132,
+                "operatingWavelength": 4.85e-07,
+                "bandwidth": 6.5e-08,
+                "opticsSysEff": 0.8,
+                "quantumEff": 0.9,
+                "numOfReadOutE": 20,
+                "targetBlackBodyTemp": 290,
+                "detectorWidth": 3.6e-05,
+                "maxDetectorExposureTime": 0.0036,
+                "snrThreshold": 25,
+                "name": "Landsat 10 Blue Band",
+                "acronym": "Landsat 10 Blue Band",
+                "mass": 1,
+                "volume": 0.0001,
+                "power": 1,
+                "orientation": {
+                  "convention": "SIDE_LOOK",
+                  "sideLookAngle": 0,
+                  "@type": "Orientation"
+                },
+                "fieldOfView": {
+                  "sensorGeometry": "RECTANGULAR",
+                  "fullConeAngle": 30,
+                  "alongTrackFieldOfView": 40,
+                  "crossTrackFieldOfView": 114,
+                  "@type": "FieldOfView"
+                },
+                "dataRate": 384,
+                "bitsPerPixel": 12,
+                "techReadinessLevel": 9,
+                "mountType": "BODY",
+                "@type": "Passive Optical Scanner"
+              }
+            ],
+            "techReadinessLevel": 9,
+            "isGroundCommand": true,
+            "isSpare": false,
+            "propellantType": "MONO_PROP",
+            "stabilizationType": "AXIS_3",
+            "@type": "Satellite"
+          }
+        ],
+        "@type": "Constellation"
+      },
+	  {
+        "constellationType": "DELTA_HETEROGENEOUS",
+        "numberSatellites": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "numberPlanes": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "orbit": {
+          "orbitType": "CIRCULAR",
+          "altitude": [
+            400,
+            500,
+            600,
+            700,
+            800
+          ],
+          "inclination": [
+		    0,
+            10,
+            20,
+			30,
+            51.6,
+            90,
+            "SSO"
+          ],
+          "eccentricity": 0.0,
+          "@type": "Orbit"
+        },
+        "satellites": [
+          {
+            "name": "MicroMAS-2",
+            "acronym": "MicroMAS-2",
+            "mass": 4,
+            "dryMass": 2.5,
+            "volume": 0.003,
+            "power": 9.1,
+            "commBand": [
+              "X"
+            ],
+            "payload": [
+              {
+                "scanTechnique": "PUSHBROOM",
+                "numberOfDetectorsRowsAlongTrack": 1,
+                "numberOfDetectorsColsCrossTrack": 6146,
+                "Fnum": 6.4,
+                "focalLength": 0.8451,
+                "apertureDia": 0.132,
+                "operatingWavelength": 4.85e-07,
+                "bandwidth": 6.5e-08,
+                "opticsSysEff": 0.8,
+                "quantumEff": 0.9,
+                "numOfReadOutE": 20,
+                "targetBlackBodyTemp": 290,
+                "detectorWidth": 3.6e-05,
+                "maxDetectorExposureTime": 0.0036,
+                "snrThreshold": 25,
+                "name": "Landsat 10 Blue Band",
+                "acronym": "Landsat 10 Blue Band",
+                "mass": 1,
+                "volume": 0.0001,
+                "power": 1,
+                "orientation": {
+                  "convention": "SIDE_LOOK",
+                  "sideLookAngle": 0,
+                  "@type": "Orientation"
+                },
+                "fieldOfView": {
+                  "sensorGeometry": "RECTANGULAR",
+                  "fullConeAngle": 30,
+                  "alongTrackFieldOfView": 40,
+                  "crossTrackFieldOfView": 114,
+                  "@type": "FieldOfView"
+                },
+                "dataRate": 384,
+                "bitsPerPixel": 12,
+                "techReadinessLevel": 9,
+                "mountType": "BODY",
+                "@type": "Passive Optical Scanner"
+              }
+            ],
+            "techReadinessLevel": 9,
+            "isGroundCommand": true,
+            "isSpare": false,
+            "propellantType": "MONO_PROP",
+            "stabilizationType": "AXIS_3",
+            "@type": "Satellite"
+          }
+        ],
+        "@type": "Constellation"
+      },
+	  {
+        "constellationType": "TRAIN",
+        "numberSatellites": [
+		  0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "orbit": {
+          "orbitType": "SUN_SYNCHRONOUS",
+          "altitude": [
+		    600,
+            700,
+			800],
+          "eccentricity": 0.0,
+          "localSolarTimeAscendingNode": [
+		    "10:30:00",
+		    "13:30:00"],
+          "@type": "Orbit"
+        },
+        "satelliteInterval": [
+		  "PT30S",
+		  "PT1M",
+		  "PT2M"],
+        "satellites": [
+			{
+            "name": "MicroMAS-2",
+            "acronym": "MicroMAS-2",
+            "mass": 4,
+            "dryMass": 2.5,
+            "volume": 0.003,
+            "power": 9.1,
+            "commBand": [
+              "X"
+            ],
+            "payload": [
+              {
+                "scanTechnique": "PUSHBROOM",
+                "numberOfDetectorsRowsAlongTrack": 1,
+                "numberOfDetectorsColsCrossTrack": 6146,
+                "Fnum": 6.4,
+                "focalLength": 0.8451,
+                "apertureDia": 0.132,
+                "operatingWavelength": 4.85e-07,
+                "bandwidth": 6.5e-08,
+                "opticsSysEff": 0.8,
+                "quantumEff": 0.9,
+                "numOfReadOutE": 20,
+                "targetBlackBodyTemp": 290,
+                "detectorWidth": 3.6e-05,
+                "maxDetectorExposureTime": 0.0036,
+                "snrThreshold": 25,
+                "name": "Landsat 10 Blue Band",
+                "acronym": "Landsat 10 Blue Band",
+                "mass": 1,
+                "volume": 0.0001,
+                "power": 1,
+                "orientation": {
+                  "convention": "SIDE_LOOK",
+                  "sideLookAngle": 0,
+                  "@type": "Orientation"
+                },
+                "fieldOfView": {
+                  "sensorGeometry": "RECTANGULAR",
+                  "fullConeAngle": 30,
+                  "alongTrackFieldOfView": 40,
+                  "crossTrackFieldOfView": 114,
+                  "@type": "FieldOfView"
+                },
+                "dataRate": 384,
+                "bitsPerPixel": 12,
+                "techReadinessLevel": 9,
+                "mountType": "BODY",
+                "@type": "Passive Optical Scanner"
+              }
+            ],
+            "techReadinessLevel": 9,
+            "isGroundCommand": true,
+            "isSpare": false,
+            "propellantType": "MONO_PROP",
+            "stabilizationType": "AXIS_3",
+            "@type": "Satellite"
+          }
+
+        ],
+        "@type": "Constellation"
+      }
+    ],
+    "groundSegment": [
+      {
+        "name": "TROPICS ground network",
+        "acronym": "TROPICS GN",
+        "numberStations": 1,
+        "groundStations": [
+          {
+            "name": "Wallops",
+            "acronym": "Wallops",
+            "agency": {
+              "agencyType": "GOVERNMENT",
+              "@type": "Agency"
+            },
+            "latitude": 37.940194,
+            "longitude": -75.466389,
+            "elevation": 1570,
+            "commBand": [
+              "UHF"
+            ],
+            "@type": "GroundStation"
+          }
+        ],
+        "@type": "GroundNetwork"
+      }
+    ],
+    "@type": "DesignSpace"
+  },
+  "settings": {
+    "includePropulsion": false,
+    "outputs": {
+      "obsTimeStep": true,
+      "keepLowLevelData": false,
+      "@type": "AnalysisOutputs",
+      "orbits.global": true,
+      "orbits.local": true,
+      "orbits.states": true,
+      "orbits.access": true,
+      "orbits.instrumentAccess": true
+    },
+    "searchStrategy": "MOEA",
+    "proxyInstrument": true,
+    "proxyCostRisk": false,
+    "proxyLaunch": false,
+    "proxyOrbits": false,
+    "proxyValue": true,
+	"proxyMaintenance": true,
+	"useCache": true,
+	"useThreading": true,
+    "@type": "AnalysisSettings",
+    "searchParameters": {
+      "@type": "SearchParameters",
+      "maxNFE": 5000,
+      "populationSize": 500,
+      "epsilons": 0.05,
+      "sizeTournament": 2,
+      "pCrossover": 0.9,
+      "pMutation": 0.2,
+      "alpha": 0.8,
+      "beta": 0.7,
+      "pmin": 0.03,
+      "dOperators": [],
+      "iOperators": ["TwoPointCrossover","IntegerUM"],
+      "NFEtriggerDM": 20,
+      "nOperRepl": 2
+    }
+  },
+  "@type": "TradespaceSearch"
+}

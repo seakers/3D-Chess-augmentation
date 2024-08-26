@@ -1,0 +1,148 @@
+{
+  "mission": {
+    "name": "Polar Operational Environmental Satellites",
+    "acronym": "POES",
+    "agency": {
+      "name": "National Oceanic and Atmospheric Administration",
+      "acronym": "NOAA",
+      "agencyType": "GOVERNMENT",
+      "@type": "Agency"
+    },
+    "start": "2015-01-24T13:51:02Z",
+    "duration": "P0Y0M90D",
+    "target": {
+      "latitude": {
+        "minValue": 35,
+        "maxValue": 45,
+        "@type": "QuantitativeValue"
+      },
+      "longitude": {
+        "minValue": -115,
+        "maxValue": -100,
+        "@type": "QuantitativeValue"
+      },
+      "@type": "Region"
+    },
+    "@type": "MissionConcept"
+  },
+  "designSpace": {
+    "spaceSegment": [
+      {
+        "constellationType": "DELTA_HOMOGENEOUS",
+        "numberSatellites": 1,
+        "numberPlanes": 1,
+        "relativeSpacing": 0,
+        "orbit": {
+          "orbitType": "SUN_SYNCHRONOUS",
+          "altitude": 833,
+          "inclination": 98.74308557130566,
+          "eccentricity": 0.0,
+          "@type": "Orbit"
+        },
+        "satellites": [
+          {
+            "name": "NOAA-15",
+            "acronym": "NOAA-15",
+            "mass": 1457,
+            "dryMass": 1457,
+            "volume": 7.098,
+            "power": 830,
+            "commBand": [
+              "S",
+              "X"
+            ],
+            "payload": [
+              {
+                "scanTechnique": "WHISKBROOM",
+                "numberOfDetectorsRowsAlongTrack": 6,
+                "numberOfDetectorsColsCrossTrack": 1,
+                "operatingWavelength": 0.63,
+                "bandwidth": 0.1,
+                "opticsSysEff": 0.8,
+                "name": "Advanced Very High Resolution Radiometer",
+                "acronym": "AVHRR/3",
+                "agency": {
+                  "name": "National Aeronautics and Space Administration",
+                  "acronym": "NASA",
+                  "agencyType": "GOVERNMENT",
+                  "@type": "Agency"
+                },
+                "mass": 33,
+                "power": 27,
+                "orientation": {
+                  "convention": "SIDE_LOOK",
+                  "sideLookAngle": 0,
+                  "@type": "Orientation"
+                },
+                "fieldOfView": {
+                  "sensorGeometry": "RECTANGULAR",
+                  "alongTrackFieldOfView": 0.0745,
+                  "crossTrackFieldOfView": 120.24,
+                  "@type": "FieldOfView"
+                },
+                "dataRate": 0.6213,
+                "techReadinessLevel": 9,
+                "mountType": "BODY",
+                "@type": "Passive Optical Scanner"
+              }
+            ],
+            "techReadinessLevel": 9,
+            "isGroundCommand": true,
+            "isSpare": false,
+            "propellantType": "MONO_PROP",
+            "stabilizationType": "AXIS_3",
+            "@type": "Satellite"
+          }
+        ],
+        "@type": "Constellation"
+      }
+    ],
+    "groundSegment": [
+      {
+        "numberStations": 2,
+        "@type": "GroundNetwork"
+      }
+    ],
+    "groundStations": [
+      {
+        "latitude": 37.93861111,
+        "longitude": -75.45722222,
+        "elevation": 3,
+        "commBand": [
+          "S",
+          "X"
+        ],
+        "@type": "GroundStation"
+      },
+      {
+        "latitude": 64.858875394,
+        "longitude": -147.854115119,
+        "elevation": 186,
+        "commBand": [
+          "S",
+          "X"
+        ],
+        "@type": "GroundStation"
+      }
+    ],
+    "@type": "DesignSpace"
+  },
+  "settings": {
+    "includePropulsion": false,
+    "outputs": {
+      "obsTimeStep": true,
+      "keepLowLevelData": true,
+      "@type": "AnalysisOutputs"
+    },
+    "searchStrategy": "FF",
+    "proxyInstrument": true,
+    "proxyCostRisk": true,
+    "proxyLaunch": true,
+    "proxyOrbits": true,
+    "proxyValue": true,
+    "proxyMaintenance": true,
+    "useCache": true,
+    "@type": "AnalysisSettings"
+  },
+  "@type": "TradespaceSearch"
+}

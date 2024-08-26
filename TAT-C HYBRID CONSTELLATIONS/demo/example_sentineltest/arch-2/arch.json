@@ -1,0 +1,187 @@
+{
+  "spaceSegment": [
+    {
+      "constellationType": "DELTA_HOMOGENEOUS",
+      "numberSatellites": 2,
+      "numberPlanes": 2,
+      "relativeSpacing": 1,
+      "orbit": {
+        "orbitType": "SUN_SYNCHRONOUS",
+        "altitude": 705,
+        "inclination": 98.20807124037059,
+        "eccentricity": 0.0,
+        "@type": "Orbit"
+      },
+      "satellites": [
+        {
+          "name": "Landsat 8",
+          "acronym": "Landsat 8",
+          "mass": 2750,
+          "dryMass": 2750,
+          "volume": 43.2,
+          "power": 1550,
+          "commBand": [
+            "X"
+          ],
+          "payload": [
+            {
+              "scanTechnique": "PUSHBROOM",
+              "numberOfDetectorsRowsAlongTrack": 1,
+              "numberOfDetectorsColsCrossTrack": 1850,
+              "Fnum": 1.64,
+              "focalLength": 0.178,
+              "apertureDia": 0.1085366,
+              "operatingWavelength": 1.09e-05,
+              "bandwidth": 6e-07,
+              "opticsSysEff": 0.8,
+              "quantumEff": 0.025,
+              "numOfReadOutE": 20,
+              "targetBlackBodyTemp": 290,
+              "detectorWidth": 2.5e-05,
+              "maxDetectorExposureTime": 0.00349,
+              "snrThreshold": 25,
+              "name": "Thermal Infrared Sensor Band 1",
+              "acronym": "TIRS Band 1",
+              "agency": {
+                "agencyType": "GOVERNMENT",
+                "@type": "Agency"
+              },
+              "mass": 236,
+              "volume": 0.261,
+              "power": 380,
+              "orientation": {
+                "convention": "SIDE_LOOK",
+                "sideLookAngle": 0,
+                "@type": "Orientation"
+              },
+              "fieldOfView": {
+                "sensorGeometry": "RECTANGULAR",
+                "alongTrackFieldOfView": 0.0081,
+                "crossTrackFieldOfView": 15,
+                "@type": "FieldOfView"
+              },
+              "dataRate": 384,
+              "bitsPerPixel": 12,
+              "techReadinessLevel": 9,
+              "mountType": "BODY",
+              "@type": "Passive Optical Scanner"
+            }
+          ],
+          "orbit": {
+            "orbitType": "KEPLERIAN",
+            "inclination": 98.20807124037059,
+            "semimajorAxis": 7083.14,
+            "eccentricity": 0.0,
+            "periapsisArgument": 0.0,
+            "rightAscensionAscendingNode": 0.0,
+            "trueAnomaly": 0.0,
+            "epoch": "2017-08-01T00:00:00Z",
+            "@type": "Orbit"
+          },
+          "techReadinessLevel": 9,
+          "isGroundCommand": true,
+          "isSpare": false,
+          "propellantType": "MONO_PROP",
+          "stabilizationType": "AXIS_3",
+          "@id": "sat-0",
+          "@type": "Satellite"
+        },
+        {
+          "name": "Landsat 8",
+          "acronym": "Landsat 8",
+          "mass": 2750,
+          "dryMass": 2750,
+          "volume": 43.2,
+          "power": 1550,
+          "commBand": [
+            "X"
+          ],
+          "payload": [
+            {
+              "scanTechnique": "PUSHBROOM",
+              "numberOfDetectorsRowsAlongTrack": 1,
+              "numberOfDetectorsColsCrossTrack": 1850,
+              "Fnum": 1.64,
+              "focalLength": 0.178,
+              "apertureDia": 0.1085366,
+              "operatingWavelength": 1.09e-05,
+              "bandwidth": 6e-07,
+              "opticsSysEff": 0.8,
+              "quantumEff": 0.025,
+              "numOfReadOutE": 20,
+              "targetBlackBodyTemp": 290,
+              "detectorWidth": 2.5e-05,
+              "maxDetectorExposureTime": 0.00349,
+              "snrThreshold": 25,
+              "name": "Thermal Infrared Sensor Band 1",
+              "acronym": "TIRS Band 1",
+              "agency": {
+                "agencyType": "GOVERNMENT",
+                "@type": "Agency"
+              },
+              "mass": 236,
+              "volume": 0.261,
+              "power": 380,
+              "orientation": {
+                "convention": "SIDE_LOOK",
+                "sideLookAngle": 0,
+                "@type": "Orientation"
+              },
+              "fieldOfView": {
+                "sensorGeometry": "RECTANGULAR",
+                "alongTrackFieldOfView": 0.0081,
+                "crossTrackFieldOfView": 15,
+                "@type": "FieldOfView"
+              },
+              "dataRate": 384,
+              "bitsPerPixel": 12,
+              "techReadinessLevel": 9,
+              "mountType": "BODY",
+              "@type": "Passive Optical Scanner"
+            }
+          ],
+          "orbit": {
+            "orbitType": "KEPLERIAN",
+            "inclination": 98.20807124037059,
+            "semimajorAxis": 7083.14,
+            "eccentricity": 0.0,
+            "periapsisArgument": 0.0,
+            "rightAscensionAscendingNode": 180.0,
+            "trueAnomaly": 180.0,
+            "epoch": "2017-08-01T00:00:00Z",
+            "@type": "Orbit"
+          },
+          "techReadinessLevel": 9,
+          "isGroundCommand": true,
+          "isSpare": false,
+          "propellantType": "MONO_PROP",
+          "stabilizationType": "AXIS_3",
+          "@id": "sat-1",
+          "@type": "Satellite"
+        }
+      ],
+      "@id": "con-0",
+      "@type": "Constellation"
+    }
+  ],
+  "groundSegment": [
+    {
+      "numberStations": 1,
+      "groundStations": [
+        {
+          "latitude": 40.5974791834978,
+          "longitude": -104.83875274658203,
+          "elevation": 1570,
+          "commBand": [
+            "X"
+          ],
+          "@id": "gs-0",
+          "@type": "GroundStation"
+        }
+      ],
+      "@type": "GroundNetwork"
+    }
+  ],
+  "@id": "arch-2",
+  "@type": "Architecture"
+}

@@ -1,0 +1,2 @@
+arch_id,constellation_type,num_satellites,num_planes,sat_ids,num_stations,gs_ids,exec_time [s]
+arch-0,DELTA_HOMOGENEOUS,1,1,sat-0,2,gs-0 gs-1,0.00533604621887207

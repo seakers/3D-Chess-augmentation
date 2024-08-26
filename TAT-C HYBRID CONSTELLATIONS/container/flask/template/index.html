@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <title>TAT-C</title>
+  <link href="{{url_for('static', filename='bootstrap/dist/css/bootstrap.min.css')}}" rel="stylesheet">
+  <link href="{{url_for('static', filename='json-viewer/jquery.json-viewer.css')}}" rel="stylesheet">
+  <link href="{{url_for('static', filename='open-iconic/font/css/open-iconic-bootstrap.min.css')}}" rel="stylesheet">
+  <link href="{{url_for('static', filename='tempusdominus-bootstrap-4/dist/css/tempusdominus-bootstrap-4.min.css')}}" rel="stylesheet">
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-sm bg-dark navbar-dark sticky-top py-2">
+    <a class="navbar-brand" href="">Tradespace Analysis Tool</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ml-auto">
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container p-4">
+    <h1>Tradespace Search Request</h1>
+    <ul class="nav nav-tabs" id="selectUI-tabs" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" id="simpleUI-tab" data-toggle="tab" href="#simpleUI" role="tab" aria-controls="simpleUI" aria-selected="true">Simple</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link disabled" id="advancedUI-tab" data-toggle="tab" href="#advancedUI" role="tab" aria-controls="advancedUI" aria-selected="false">Advanced</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="rawUI-tab" data-toggle="tab" href="#rawUI" role="tab" aria-controls="rawUI" aria-selected="false">Raw JSON</a>
+      </li>
+    </ul>
+    <div class="tab-content p-3" id="selectUI-content">
+      <div class="tab-pane fade show active" id="simpleUI" role="tabpanel" aria-labelledby="simpleUI-tab">
+        <form>
+
+          <div class="form-row" style="padding-bottom: 10px">
+            <div class="col-1"></div>
+            <div class="col-5" style="text-align: center">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="cacheSwitch">
+                <label class="custom-control-label" for="cacheSwitch">Satellite Caching</label>
+              </div>
+            </div>
+            <div class="col-5" style="text-align: center">
+              <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="multithreadingSwitch">
+                <label class="custom-control-label" for="multithreadingSwitch">Multi-threading</label>
+              </div>
+            </div>
+            <div class="col-1"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="col-2 text-right"><label class="mr-2" for="missionStartText">Mission Start Date:</label></div>
+            <div class="col-4">
+              <div class="form-group">
+                  <div class="input-group date" id="missionStart" data-target-input="nearest">
+                      <input type="text" class="form-control datetimepicker-input" data-target="#missionStart" id="missionStartText"/>
+                      <div class="input-group-append" data-target="#missionStart" data-toggle="datetimepicker">
+                          <div class="input-group-text"><i class="oi oi-calendar"></i></div>
+                      </div>
+                  </div>
+              </div>
+            </div>
+            <div class="col-2 text-right"><label class="mr-2" for="missionDuration">Nominal Duration:</label></div>
+            <div class="col-4">
+              <div class="input-group range-number">
+                <input type="range" class="form-control custom-range py-3" value="7" min="1" max="365">
+                <input type="number" class="form-control" value="7" min="1" id="missionDuration">
+                <div class="input-group-append"><div class="input-group-text units-plural">Days</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-row min-max-range">
+            <div class="col-2 text-right"><label class="mr-2">Mission Latitudes:</label></div>
+            <div class="col-10">
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="missionLatitudeMin">Min:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="-30" min="-90" max="90" step="0.1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control min-range" value="-30" min="-90" max="90" step="0.1" id="missionLatitudeMin">
+                  <div class="input-group-text">&deg;</div>
+                </div>
+              </div>
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="missionLatitudeMax">Max:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="30" min="-90" max="90" step="0.1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control max-range" value="30" min="-90" max="90" step="0.1" id="missionLatitudeMax">
+                  <div class="input-group-text">&deg;</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-row min-max-range">
+            <div class="col-2 text-right"><label class="mr-2">Mission Longitudes:</label></div>
+            <div class="col-10">
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="missionLongitudeMin">Min:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="-115" min="-180" max="180" step="0.1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control min-range" value="-115" min="-180" max="180" step="0.1" id="missionLongitudeMin">
+                  <div class="input-group-text">&deg;</div>
+                </div>
+              </div>
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="missionLongitudeMax">Max:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="-110" min="-180" max="180" step="0.1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control max-range" value="-110" min="-180" max="180" step="0.1" id="missionLongitudeMax">
+                  <div class="input-group-text">&deg;</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-row min-max-range">
+            <div class="col-2 text-right"><label class="mr-2">Constellation Size:</label></div>
+            <div class="col-8">
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="constellationSizeMin">Min:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="1" min="1" max="10" step="1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control min-range" value="1" min="1" id="constellationSizeMin">
+                  <div class="input-group-text units-plural">Satellite</div>
+                </div>
+              </div>
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="constellationSizeMax">Max:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="1" min="1" max="10" step="1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control max-range" value="1" min="1" id="constellationSizeMax">
+                  <div class="input-group-text units-plural">Satellite</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-2">
+              <label for="constellationSizeNum">Number Alternatives:</label>
+              <input type="number" class="form-control num-alternatives" value="1" min="1" max="10" step="1" id="constellationSizeNum">
+            </div>
+          </div>
+          <div class="form-row min-max-range">
+            <div class="col-2 text-right"><label class="mr-2">Orbital Planes:</label></div>
+            <div class="col-8">
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="orbitalPlanesMin">Min:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="1" min="1" max="4" step="1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control min-range" value="1" min="1" step="1" id="orbitalPlanesMin">
+                  <div class="input-group-text units-plural">Plane</div>
+                </div>
+              </div>
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="orbitalPlanesMax">Max:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="1" min="1" max="4" step="1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control max-range" value="1" min="1" step="1" id="orbitalPlanesMax">
+                  <div class="input-group-text units-plural">Plane</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-2">
+              <label for="orbitalPlanesNum">Number Alternatives:</label>
+              <input type="number" class="form-control num-alternatives" value="1" min="1" max="10" step="1" id="orbitalPlanesNum">
+            </div>
+          </div>
+          <div class="form-row min-max-range">
+            <div class="col-2 text-right"><label class="mr-2">Orbital Altitude:</label></div>
+            <div class="col-8">
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="orbitalAltitudeMin">Min:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="400" min="150" max="2000" step="5">
+                <div class="input-group-append">
+                  <input type="number" class="form-control min-range" value="400" min="150" step="5" id="orbitalAltitudeMin">
+                  <div class="input-group-text">km</div>
+                </div>
+              </div>
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="orbitalAltitudeMax">Max:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="400" min="150" max="2000" step="5">
+                <div class="input-group-append">
+                  <input type="number" class="form-control max-range" value="400" min="150" step="5" id="orbitalAltitudeMax">
+                  <div class="input-group-text">km</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-2">
+              <label for="orbitalAltitudeNum">Number Alternatives:</label>
+              <input type="number" class="form-control num-alternatives" value="1" min="1" max="10" step="1" id="orbitalAltitudeNum">
+            </div>
+          </div>
+          <div class="form-row min-max-range">
+            <div class="col-2 text-right"><label class="mr-2">Orbital Inclination:</label></div>
+            <div class="col-8">
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="orbitalInclinationMin">Min:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="51.6" min="0.0" max="180.0" step="0.1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control min-range"  value="51.6" min="0.0" max="180.0" step="0.1" id="orbitalInclinationMin">
+                  <div class="input-group-text">&deg;</div>
+                </div>
+              </div>
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="orbitalInclinationMax">Max:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="51.6" min="0.0" max="180.0" step="0.1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control max-range" value="51.6" min="0.0" max="180.0" step="0.1" id="orbitalInclinationMax">
+                  <div class="input-group-text">&deg;</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-2">
+              <label for="orbitalInclinationNum">Number Alternatives:</label>
+              <input type="number" class="form-control num-alternatives" value="1" min="1" max="10" step="1" id="orbitalInclinationNum">
+              <!--<div class="form-check form-check-inline my-1">
+                <input class="form-check-input" type="checkbox" id="orbitalInclinationSSO" value="SSO">
+                <label class="form-check-label" for="orbitalInclinationSSO">Sun-synchronous Orbit (SSO)</label>
+              </div>-->
+            </div>
+          </div>
+          <div class="form-row mb-3">
+            <div class="col-2 text-right"><label class="mr-2" for="satelliteTemplate">Satellite Template:</label></div>
+            <div class="col-4">
+              <select class="form-control" id="satelliteTemplate">
+                <option value="">(Default)</option>
+              </select>
+            </div>
+            <div class="col-2 text-right"><label class="mr-2" for="instrumentTemplate">Instrument Template:</label></div>
+            <div class="col-4">
+              <select class="form-control" id="instrumentTemplate">
+                <option value="">(Default)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row min-max-range">
+            <div class="col-2 text-right"><label class="mr-2">Instrument<br />Field of View:</label></div>
+            <div class="col-8">
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="instrumentFieldOfViewMin">Min:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="10.0" min="0.1" max="150.0" step="0.1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control min-range" value="10.0" min="0.1" max="180.0" step="0.1" id="instrumentFieldOfViewMin">
+                  <div class="input-group-text">&deg;</div>
+                </div>
+              </div>
+              <div class="input-group mb-3 range-number">
+                <div class="input-group-prepend"><div class="input-group-text"><label class="m-0" for="instrumentFieldOfViewMax">Max:</label></div></div>
+                <input type="range" class="form-control custom-range py-3" value="10.0" min="0.1" max="150.0" step="0.1">
+                <div class="input-group-append">
+                  <input type="number" class="form-control max-range" value="10.0" min="0.1" max="180.0" step="0.1" id="instrumentFieldOfViewMax">
+                  <div class="input-group-text">&deg;</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-2">
+              <label for="instrumentFieldOfViewNum">Number Alternatives:</label>
+              <input type="number" class="form-control num-alternatives" value="1" min="1" max="10" step="1" id="instrumentFieldOfViewNum">
+            </div>
+          </div>
+          <div class="text-right"><button type="button" class="btn btn-lg btn-primary" id="runSimple">Execute</button></div>
+        </form>
+      </div>
+      <div class="tab-pane fade" id="advancedUI" role="tabpanel" aria-labelledby="advancedUI-tab">
+        <!--TODO: add advanced graphical user interface -->
+        <p>...</p>
+      </div>
+      <div class="tab-pane fade" id="rawUI" role="tabpanel" aria-labelledby="rawUI-tab">
+        <div class="input-group mb-3">
+          <div class="input-group-prepend">
+            <span class="input-group-text">Upload</span>
+          </div>
+          <div class="custom-file">
+            <input type="file" class="custom-file-input" id="fileUpload">
+            <label class="custom-file-label" for="fileUpload">Upload File</label>
+          </div>
+        </div>
+        <div class="overflow-auto" style="height:40vh">
+          <pre id="jsonViewer"></pre>
+        </div>
+        <div class="text-right"><button type="button" class="btn btn-lg btn-primary" id="runRaw">Execute</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='jquery/dist/jquery.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='popper.js/dist/umd/popper.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='json-viewer/jquery.json-viewer.js') }}"></script>
+  <script src="{{ url_for('static', filename='bootstrap/dist/js/bootstrap.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='momentjs/dist/js/moment-with-locales.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='tempusdominus-bootstrap-4/dist/js/tempusdominus-bootstrap-4.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='simpleUI.js')}}"></script>
+  <script src="{{ url_for('static', filename='advancedUI.js')}}"></script>
+  <script src="{{ url_for('static', filename='rawUI.js')}}"></script>
+</body>
+</html>

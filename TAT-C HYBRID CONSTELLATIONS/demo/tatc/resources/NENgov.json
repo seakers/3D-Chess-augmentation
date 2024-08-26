@@ -1,0 +1,169 @@
+{
+  "@id": "NENgov",
+  "@type": "GroundNetwork",
+  "name": "Near Earth Network (Government)",
+  "acronym": "NENgov",
+  "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+  "groundStations": [
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 78,
+      "longitude": 15,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 78,
+      "longitude": 15,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 78,
+      "longitude": 15,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": -78,
+      "longitude": -193,
+      "elevation": 0,
+      "commBand": ["S","X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 68,
+      "longitude": 21,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 48,
+      "longitude": 11,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 38,
+      "longitude": -75,
+      "elevation": 0,
+      "commBand": ["S", "X"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 38,
+      "longitude": -75,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 38,
+      "longitude": -75,
+      "elevation": 0,
+      "commBand": ["VHF"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 38,
+      "longitude": -75,
+      "elevation": 0,
+      "commBand": ["UHF"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": -33,
+      "longitude": -70,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": -33,
+      "longitude": -70,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": -33,
+      "longitude": -70,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 32,
+      "longitude": -106,
+      "elevation": 0,
+      "commBand": ["VHF"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 32,
+      "longitude": -106,
+      "elevation": 0,
+      "commBand": ["VHF"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 32,
+      "longitude": -106,
+      "elevation": 0,
+      "commBand": ["S", "K"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 29,
+      "longitude": -81,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 29,
+      "longitude": -81,
+      "elevation": 0,
+      "commBand": ["UHF"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 29,
+      "longitude": -81,
+      "elevation": 0,
+      "commBand": ["S"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": -25,
+      "longitude": 27,
+      "elevation": 0,
+      "commBand": ["S", "X", "Ku"]
+    }
+  ]
+}

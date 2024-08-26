@@ -1,0 +1,32 @@
+{
+  "@id": "DSN",
+  "@type": "GroundNetwork",
+  "name": "Deep Space Network",
+  "acronym": "DSN",
+  "groundStations": [
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 35.4,
+      "longitude": -116.9,
+      "elevation": 0,
+      "commBand": ["S","X", "Ka"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": 40.4,
+      "longitude": -4.9,
+      "elevation": 0,
+      "commBand": ["S","X", "Ka"]
+    },
+    {
+      "@type": "GroundStation",
+      "agency": { "@type": "Agency", "agencyType": "GOVERNMENT"},
+      "latitude": -35.4,
+      "longitude": 149,
+      "elevation": 0,
+      "commBand": ["S","X", "Ka"]
+    }
+  ]
+}

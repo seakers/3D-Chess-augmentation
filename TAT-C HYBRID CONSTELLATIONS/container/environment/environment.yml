@@ -1,0 +1,33 @@
+name: python3_tatc
+
+dependencies:
+- python=3.7
+- ConfigArgParse
+- configobj
+- cycler
+- decorator
+- flask
+- Jinja2
+- kiwisolver
+- numpy
+- pandas
+- parsedatetime
+- perf
+- Pillow
+- ply
+- pyasn1
+- pycparser
+- pycurl
+- pyparsing
+- pyproj
+- pyserial
+- python-dateutil
+- pytz
+- PyYAML
+- scipy
+- plotly
+- zeus1942::dash
+- zeus1942::dash-daq
+- conda-forge::dash-bootstrap-components
+- conda-forge::pygmo
+- anaconda::redis-py
