@@ -1,0 +1,5 @@
+arch_id,constellation_type,num_satellites,num_planes,sat_ids,num_stations,gs_ids,exec_time[s],objective_1,objective_2,objective_3,objective_4
+arch-0,DELTA_HOMOGENEOUS DELTA_HOMOGENEOUS DELTA_HETEROGENEOUS TRAIN,16,8,sat-0 sat-1 sat-2 sat-3 sat-4 sat-5 sat-6 sat-7 sat-8 sat-9 sat-10 sat-11 sat-12 sat-13 sat-14 sat-15,1,gs-0,0.5438348,0.0,0.0,0.0,-0.0
+arch-1,DELTA_HOMOGENEOUS DELTA_HETEROGENEOUS TRAIN,5,4,sat-0 sat-1 sat-2 sat-3 sat-4,1,gs-0,0.5398418,0.0,0.0,0.0,-0.0
+arch-2,DELTA_HOMOGENEOUS DELTA_HETEROGENEOUS TRAIN,9,2,sat-0 sat-1 sat-2 sat-3 sat-4 sat-5 sat-6 sat-7 sat-8,1,gs-0,0.5237316,0.0,0.0,0.0,-0.0
+arch-3,DELTA_HOMOGENEOUS DELTA_HETEROGENEOUS TRAIN,10,3,sat-0 sat-1 sat-2 sat-3 sat-4 sat-5 sat-6 sat-7 sat-8 sat-9,1,gs-0,0.5206144,0.0,0.0,0.0,-0.0

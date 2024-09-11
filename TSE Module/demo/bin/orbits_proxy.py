@@ -32,7 +32,7 @@ def execute(in_file, arch_dir):
     in_file.seek(0) # reset reading from start of file
     search = tatc.TradespaceSearch.from_json(in_file)
     arch_path = os.path.join(arch_dir, 'arch.json')
-
+    print(arch_path)
     with open(arch_path, 'r') as arch_file:
         arch = tatc.Architecture.from_json(arch_file)
     if hasattr(search.settings, 'proxyOrbits') and search.settings.proxyOrbits:

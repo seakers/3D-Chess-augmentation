@@ -10,6 +10,8 @@ package tatc;
  */
 
 import tatc.tradespaceiterator.TradespaceSearchExecutive;
+
+import java.nio.file.Paths;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,6 +27,18 @@ public class TSE {
      */
     public static void main(String[] args) {
         //setup logger
+        if (args == null || args.length == 0) {
+            args = new String[2]; 
+            // args[0] = "tse\\problems\\CaseStudy1.json";
+            // args[1] = "tse\\results";
+            // args[0] = "C:\Users\dfornos\Desktop\tat-c\tse\problems\CaseStudy1.json";
+            // args[1] = "C:\Users\dfornos\Desktop\tat-c\tse\results";
+            args[0] = "TSE Module\\tse\\problems\\CaseStudy1.json";
+            args[1] = "TSE Module\\tse\\results";
+            
+        }
+        String fullPathArg0 = Paths.get(args[0]).toAbsolutePath().toString();      
+        String fullPathArg1 = Paths.get(args[1]).toAbsolutePath().toString();
         Level level = Level.FINEST;
         Logger.getGlobal().setLevel(level);
         ConsoleHandler handler = new ConsoleHandler();
@@ -32,7 +46,7 @@ public class TSE {
         Logger.getGlobal().addHandler(handler);
 
         long startTime = System.nanoTime();
-        TradespaceSearchExecutive tse = new TradespaceSearchExecutive(args[0],args[1]);
+        TradespaceSearchExecutive tse = new TradespaceSearchExecutive(fullPathArg0,fullPathArg1);
         tse.run();
         long endTime = System.nanoTime();
         Logger.getGlobal().finest(String.format("Took %.4f sec", (endTime - startTime) / Math.pow(10, 9)));

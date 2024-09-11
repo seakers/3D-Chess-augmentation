@@ -413,6 +413,7 @@ public class ResultIO implements Serializable {
      * @return the value of the objective
      */
     public static double readReductionMetricsObjective(File file, String objectiveName) {
+        //TODO: Where results are actually read from the output json files
         Gbl glb = JSONIO.readJSON( file, Gbl.class);
         if (objectiveName.equals("MinTime")){
             return glb.getTime().getMin();
@@ -686,7 +687,7 @@ public class ResultIO implements Serializable {
         List<TLESatellite> planetSats = new ArrayList<>();
         try {
             String fileName = "planet_mc.tle";
-            String resourcePath = System.getProperty("tatc.root") + File.separator + "tse" + File.separator + "resources";
+            String resourcePath = System.getProperty("tatc.root") + File.separator + "TSE Module" +File.separator + "tse" + File.separator + "resources";
             File file = new File(resourcePath,fileName);
             FileReader reader = new FileReader(file);
             BufferedReader br = new BufferedReader(reader);

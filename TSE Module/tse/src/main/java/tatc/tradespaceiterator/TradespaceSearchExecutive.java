@@ -73,12 +73,17 @@ public class TradespaceSearchExecutive {
 
         String inputPath = System.getProperty("tatc.input");
         String outputPath = System.getProperty("tatc.output")+ File.separator + arch.get_id();
+        //String pathArchEvaluator = System.getProperty("tatc.archevalPath");
         String pathArchEvaluator = System.getProperty("tatc.archevalPath");
 
+        // builder.command("python", pathArchEvaluator, inputPath, outputPath);
+
+
+        // builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "TSE Module"+File.separator + "demo"));
+        
         builder.command("python", pathArchEvaluator, inputPath, outputPath);
 
-
-        builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "demo"));
+        builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "Evaluator Module"+File.separator + "SPA_DES"+File.separator));
 
         try {
 
@@ -183,8 +188,9 @@ public class TradespaceSearchExecutive {
      * Sets some system properties for easy access of root, input, output and arch_eval.py paths
      */
     private void setDirectories() {
+        //TODO: Here is where the system variables are created
         File mainPath = new File(System.getProperty("user.dir"));
-        while(!mainPath.getName().equals("tat-c")){
+        while(!mainPath.getName().equals("3D-CHESS augmentation")){
             mainPath=mainPath.getParentFile();
         }
 
@@ -207,7 +213,8 @@ public class TradespaceSearchExecutive {
         if (!file.exists()) {
             file.mkdirs();
         }
-        System.setProperty("tatc.archevalPath", System.getProperty("tatc.root")+File.separator + "demo" + File.separator + "bin" + File.separator + "arch_eval.py");
+        System.setProperty("tatc.archevalPath", System.getProperty("tatc.root")+File.separator + "TSE Module"+File.separator + "demo" + File.separator + "bin" + File.separator + "arch_eval.py");
+        System.setProperty("tatc.costEvalPath", System.getProperty("tatc.root")+File.separator + "Evaluator Module" +File.separator + "SPA_DES" + File.separator + "");
         System.setProperty("tatc.numThreads", "16");
     }
 }
