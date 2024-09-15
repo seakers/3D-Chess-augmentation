@@ -1,0 +1,139 @@
+{
+    "groundCost": {
+        "estimate": 0,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "hardwareCost": {
+        "estimate": 0,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "iatCost": {
+        "estimate": 0,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "launchCost": {
+        "estimate": 0,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "lifecycleCost": {
+        "estimate": 111.0490525513657,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "nonRecurringCost": {
+        "estimate": 0,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "operationsCost": {
+        "estimate": 0,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "programCost": {
+        "estimate": 0,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "recurringCost": {
+        "estimate": 0,
+        "fiscalYear": 0,
+        "standardError": 0
+    },
+    "systemRisk": [
+        {
+            "category": "Configuration Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of unforseen risk arising due to lack of flight heritage"
+        },
+        {
+            "category": "Configuration Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of 'infant mortality' significantly reducing science return (due to extended on orbit checkouts, assuming a catastrophic failure does not occur)"
+        },
+        {
+            "category": "Configuration Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk that constellation does not observe intended coverage area following loss of one or more spacecraft"
+        },
+        {
+            "category": "Configuration Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of collision with orbital debris"
+        },
+        {
+            "category": "Configuration Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of interrupted installation"
+        },
+        {
+            "category": "Configuration Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of constellation formation change due to atmospheric drag"
+        },
+        {
+            "category": "Configuration Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of improper spacing between adjacent spacecraft due to atmospheric drag"
+        },
+        {
+            "category": "Satellite Performance Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of instrument design flaw"
+        },
+        {
+            "category": "Satellite Performance Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of instrument deployment failure"
+        },
+        {
+            "category": "Satellite Performance Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of premature instrument failure"
+        },
+        {
+            "category": "Spacecraft Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of radiation damage to spacecraft instrumentation"
+        },
+        {
+            "category": "Power Subsystem Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of excessive power subsystem degradation over lifetime"
+        },
+        {
+            "category": "Attitude Determination and Control Subsystem Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of improper attitude alignment"
+        },
+        {
+            "category": "Propulsion Subsystem Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of fuel related accident (e.g. propellant tank rupture, propulsion subsystem failure)"
+        },
+        {
+            "category": "Thermal Subsystem Risks",
+            "consequence": 0,
+            "likelihood": 0,
+            "risk": "Risk of thermal subsystem failure"
+        }
+    ]
+}

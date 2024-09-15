@@ -75,15 +75,15 @@ public class TradespaceSearchExecutive {
         String outputPath = System.getProperty("tatc.output")+ File.separator + arch.get_id();
         //String pathArchEvaluator = System.getProperty("tatc.archevalPath");
         String pathArchEvaluator = System.getProperty("tatc.archevalPath");
-
+        String costEvalPath = System.getProperty("tatc.costEvalPath");
         // builder.command("python", pathArchEvaluator, inputPath, outputPath);
 
 
         // builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "TSE Module"+File.separator + "demo"));
         
-        builder.command("python", pathArchEvaluator, inputPath, outputPath);
+        builder.command("python3.10", costEvalPath, inputPath);
 
-        builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "Evaluator Module"+File.separator + "SPA_DES"+File.separator));
+        builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "Evaluator Module"+File.separator + "SpaDes"));
 
         try {
 
@@ -214,7 +214,7 @@ public class TradespaceSearchExecutive {
             file.mkdirs();
         }
         System.setProperty("tatc.archevalPath", System.getProperty("tatc.root")+File.separator + "TSE Module"+File.separator + "demo" + File.separator + "bin" + File.separator + "arch_eval.py");
-        System.setProperty("tatc.costEvalPath", System.getProperty("tatc.root")+File.separator + "Evaluator Module" +File.separator + "SPA_DES" + File.separator + "");
+        System.setProperty("tatc.costEvalPath", System.getProperty("tatc.root")+File.separator + "Evaluator Module" +File.separator + "SpaDes" + File.separator + "ConstellationDesignMain.py");
         System.setProperty("tatc.numThreads", "16");
     }
 }
