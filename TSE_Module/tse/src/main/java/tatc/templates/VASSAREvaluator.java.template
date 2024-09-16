@@ -1,0 +1,6 @@
+// VASSAREvaluator.java.template
+public double evaluateVASSAR(Architecture arch) {
+    // VASSAR evaluation logic
+    VASSAR vassar = new VASSAR();
+    return vassar.evaluate(arch);
+}

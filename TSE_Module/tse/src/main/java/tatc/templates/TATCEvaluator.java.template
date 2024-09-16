@@ -1,0 +1,12 @@
+// TATCEvaluator.java.template
+public double evaluateTATC(Architecture arch) {
+    try (Jep jep = new Jep()) {
+        jep.eval("import tatc_module");
+        jep.set("architecture", arch.toJson());
+        jep.eval("result = tatc_module.evaluate(architecture)");
+        return (Double) jep.getValue("result");
+    } catch (JepException e) {
+        e.printStackTrace();
+        return Double.NaN;
+    }
+}

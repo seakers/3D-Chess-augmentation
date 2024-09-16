@@ -27,7 +27,7 @@ public class Factor {
     private Factor() {
         System.out.print("Loading divisors...");
         String fileName = "1-1000_divisors.txt";
-        String resourcePath = System.getProperty("tatc.root") + File.separator + "TSE Module" + File.separator +"tse" + File.separator + "resources";
+        String resourcePath = System.getProperty("tatc.root") + File.separator + "TSE_Module" + File.separator +"tse" + File.separator + "resources";
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(new File(resourcePath, fileName)));

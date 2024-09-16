@@ -77,13 +77,13 @@ public class TradespaceSearchExecutive {
         String pathArchEvaluator = System.getProperty("tatc.archevalPath");
         String costEvalPath = System.getProperty("tatc.costEvalPath");
         // builder.command("python", pathArchEvaluator, inputPath, outputPath);
+        String costFilePath = System.getProperty("tatc.costFilePath");
 
-
-        // builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "TSE Module"+File.separator + "demo"));
+        // builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "TSE_Module"+File.separator + "demo"));
         
-        builder.command("python3.10", costEvalPath, inputPath);
+        builder.command("python", costEvalPath, architectureJSONFile.getParent());
 
-        builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "Evaluator Module"+File.separator + "SpaDes"));
+        builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "Evaluator_Module"+File.separator + "SpaDes"));
 
         try {
 
@@ -213,8 +213,10 @@ public class TradespaceSearchExecutive {
         if (!file.exists()) {
             file.mkdirs();
         }
-        System.setProperty("tatc.archevalPath", System.getProperty("tatc.root")+File.separator + "TSE Module"+File.separator + "demo" + File.separator + "bin" + File.separator + "arch_eval.py");
-        System.setProperty("tatc.costEvalPath", System.getProperty("tatc.root")+File.separator + "Evaluator Module" +File.separator + "SpaDes" + File.separator + "ConstellationDesignMain.py");
+        System.setProperty("tatc.archevalPath", System.getProperty("tatc.root")+File.separator + "TSE_Module"+File.separator + "demo" + File.separator + "bin" + File.separator + "arch_eval.py");
+        System.setProperty("tatc.costEvalPath", System.getProperty("tatc.root")+File.separator + "Evaluator_Module" +File.separator + "SpaDes" + File.separator + "ConstellationDesignMain.py");
+        System.setProperty("tatc.costFilePath", System.getProperty("tatc.root")+File.separator + "TSE_Module"+File.separator + "tse" + File.separator + "results" + File.separator+"arch-0" + File.separator + "CostRisk_output.json");
         System.setProperty("tatc.numThreads", "16");
     }
+
 }

@@ -1,0 +1,12 @@
+// SpaDesEvaluator.java.template
+public double evaluateSpaDes(Architecture arch) {
+    try (Jep jep = new Jep()) {
+        jep.eval("import spades_module");
+        jep.set("architecture_json", arch.toJson());
+        jep.eval("result = spades_module.evaluate(architecture_json)");
+        return (Double) jep.getValue("result");
+    } catch (JepException e) {
+        e.printStackTrace();
+        return Double.NaN;
+    }
+}
