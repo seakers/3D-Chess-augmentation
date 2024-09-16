@@ -33,8 +33,8 @@ public class TSE {
             // args[1] = "tse\\results";
             // args[0] = "C:\Users\dfornos\Desktop\tat-c\tse\problems\CaseStudy1.json";
             // args[1] = "C:\Users\dfornos\Desktop\tat-c\tse\results";
-            args[0] = "TSE Module\\tse\\problems\\CaseStudy1.json";
-            args[1] = "TSE Module\\tse\\results";
+            args[0] = "TSE_Module\\tse\\problems\\landsat8.json";
+            args[1] = "TSE_Module\\tse\\results";
             
         }
         String fullPathArg0 = Paths.get(args[0]).toAbsolutePath().toString();      

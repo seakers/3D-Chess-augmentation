@@ -687,7 +687,7 @@ public class ResultIO implements Serializable {
         List<TLESatellite> planetSats = new ArrayList<>();
         try {
             String fileName = "planet_mc.tle";
-            String resourcePath = System.getProperty("tatc.root") + File.separator + "TSE Module" +File.separator + "tse" + File.separator + "resources";
+            String resourcePath = System.getProperty("tatc.root") + File.separator + "TSE_Module" +File.separator + "tse" + File.separator + "resources";
             File file = new File(resourcePath,fileName);
             FileReader reader = new FileReader(file);
             BufferedReader br = new BufferedReader(reader);
