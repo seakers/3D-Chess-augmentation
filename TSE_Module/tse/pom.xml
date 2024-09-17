@@ -27,6 +27,17 @@
             <version>2.8.0</version>
         </dependency>
         <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20210307</version>
+        </dependency>
+        <dependency>            
+            <groupId>black.ninia</groupId>
+            <artifactId>jep</artifactId>
+            <version>4.0.3</version>
+            <scope>compile</scope>        
+        </dependency>
+        <dependency>
             <groupId>seakers</groupId>
             <artifactId>mopAOS</artifactId>
             <version>1.0</version>
