@@ -11,11 +11,17 @@ package tatc;
 
 import tatc.tradespaceiterator.TradespaceSearchExecutive;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import tatc.PythonServerManager;
+import org.json.JSONObject;
 
+import tatc.tradespaceiterator.TSERequestParser;
 /**
  * Main class of the Tradespace Search Executive
  */
@@ -33,7 +39,7 @@ public class TSE {
             // args[1] = "tse\\results";
             // args[0] = "C:\Users\dfornos\Desktop\tat-c\tse\problems\CaseStudy1.json";
             // args[1] = "C:\Users\dfornos\Desktop\tat-c\tse\results";
-            args[0] = "TSE_Module\\tse\\problems\\landsat8.json";
+            args[0] = "TSE_Module\\tse\\problems\\CaseStudy1.json";
             args[1] = "TSE_Module\\tse\\results";
             
         }
@@ -44,7 +50,6 @@ public class TSE {
         ConsoleHandler handler = new ConsoleHandler();
         handler.setLevel(level);
         Logger.getGlobal().addHandler(handler);
-
         long startTime = System.nanoTime();
         TradespaceSearchExecutive tse = new TradespaceSearchExecutive(fullPathArg0,fullPathArg1);
         tse.run();

@@ -15,6 +15,7 @@ import tatc.util.*;
 import tatc.architecture.StandardFormArchitecture;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -228,7 +229,13 @@ public class ProblemGA extends AbstractProblem {
             File architectureJsonFile = architecture.toJSON(this.getCounter());
             // 3. Evaluate architecture
             long startTime = System.nanoTime();
-            TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
+            try{
+                TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
+            }catch(IOException e){
+            System.out.println("Error reading the JSON file: " + e.getMessage());
+            e.printStackTrace();
+
+            };
             long endTime = System.nanoTime();
             execTime = (endTime - startTime) / Math.pow(10, 9);
         }

@@ -1,12 +1,18 @@
 package tatc.tradespaceiterator;
-
+import tatc.PythonServerManager;
 import tatc.ResultIO;
 import tatc.architecture.specifications.Architecture;
 import tatc.architecture.specifications.TradespaceSearch;
 import tatc.util.JSONIO;
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
-
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import tatc.tradespaceiterator.TSERequestParser;
+import org.json.JSONObject;
 /**
  * TradespaceSearchExecutive class which reads TradespaceSearchRequest.json, creates the problem properties,
  * and calls a search strategy (e.g. Full Factorial or Genetic Algorithm).
@@ -42,8 +48,25 @@ public class TradespaceSearchExecutive {
      * @throws IllegalArgumentException
      */
     public void run() throws IllegalArgumentException {
-
         this.setDirectories();
+        TSERequestParser parser = new TSERequestParser();
+        String jsonFilePath = "TSERequestExample.json";
+        try{
+            String content = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
+            JSONObject tseRequest = new JSONObject(content);
+            List<String> costEvaluators = parser.getCostEvaluators(tseRequest);
+            // if (costEvaluators.contains("SpaDes")) {
+            //     System.out.println("SpaDes is in the list of cost evaluators.");
+            //     // You can start the Python server here if needed
+            //     PythonServerManager.startServer();
+            // } else {
+            //     System.out.println("SpaDes is not in the list of cost evaluators.");
+            // }
+        } catch (IOException e) {
+            System.out.println("Error reading the JSON file: " + e.getMessage());
+            e.printStackTrace();
+        }
+
 
         TradespaceSearch tsr = JSONIO.readJSON( new File(System.getProperty("tatc.input")),
                 TradespaceSearch.class);
@@ -66,86 +89,199 @@ public class TradespaceSearchExecutive {
      * the demo folder. In this method we are calling python from java.
      * @param architectureJSONFile the architecture file that needs to be evaluated
      */
-    public static void evaluateArchitecture(File architectureJSONFile, ProblemProperties properties) {
-        Architecture arch = JSONIO.readJSON( architectureJSONFile, Architecture.class);
+    // public static void evaluateArchitecture(File architectureJSONFile, ProblemProperties properties) throws IOException{
+    //     Architecture arch = JSONIO.readJSON( architectureJSONFile, Architecture.class);
+    //     try{
+    //     URL url = new URL("http://localhost:5000/evaluate");
+    //     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
-        ProcessBuilder builder = new ProcessBuilder();
+    //     // Set request properties
+    //     conn.setRequestMethod("POST");
+    //     conn.setRequestProperty("Content-Type", "application/json; utf-8");
+    //     conn.setDoOutput(true);
 
-        String inputPath = System.getProperty("tatc.input");
-        String outputPath = System.getProperty("tatc.output")+ File.separator + arch.get_id();
-        //String pathArchEvaluator = System.getProperty("tatc.archevalPath");
-        String pathArchEvaluator = System.getProperty("tatc.archevalPath");
-        String costEvalPath = System.getProperty("tatc.costEvalPath");
-        // builder.command("python", pathArchEvaluator, inputPath, outputPath);
-        String costFilePath = System.getProperty("tatc.costFilePath");
+    //     // Write JSON data to request body
+    //     try (OutputStream os = conn.getOutputStream()) {
+    //         byte[] input = architectureJSONFile.toString().getBytes("utf-8");
+    //         os.write(input, 0, input.length);
+    //     }
 
-        // builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "TSE_Module"+File.separator + "demo"));
+    //     // Check response code
+    //     int responseCode = conn.getResponseCode();
+    //     if (responseCode != HttpURLConnection.HTTP_OK) {
+    //         throw new IOException("HTTP error code: " + responseCode);
+    //     }
+
+    //     // Read the response
+    //     try (BufferedReader br = new BufferedReader(
+    //             new InputStreamReader(conn.getInputStream(), "utf-8"))) {
+
+    //         StringBuilder response = new StringBuilder();
+    //         String responseLine;
+    //         while ((responseLine = br.readLine()) != null) {
+    //             response.append(responseLine.trim());
+    //         }
+
+    //         // Parse the response JSON
+    //         JSONObject responseJson = new JSONObject(response.toString());
+    //         double cost = responseJson.getDouble("cost");
+    //     ProcessBuilder builder = new ProcessBuilder();
+
+    //     String inputPath = System.getProperty("tatc.input");
+    //     String outputPath = System.getProperty("tatc.output")+ File.separator + arch.get_id();
+    //     //String pathArchEvaluator = System.getProperty("tatc.archevalPath");
+    //     String pathArchEvaluator = System.getProperty("tatc.archevalPath");
+    //     String costEvalPath = System.getProperty("tatc.costEvalPath");
+    //     // builder.command("python", pathArchEvaluator, inputPath, outputPath);
+    //     String costFilePath = System.getProperty("tatc.costFilePath");
+
+    //     // builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "TSE_Module"+File.separator + "demo"));
         
-        builder.command("python", costEvalPath, architectureJSONFile.getParent());
+    //     builder.command("python", costEvalPath);
 
-        builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "Evaluator_Module"+File.separator + "SpaDes"));
+    //     builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "Evaluator_Module"+File.separator + "SpaDes"));
 
+    //     try {
+
+    //         Process process = builder.start();
+
+    //         StringBuilder output = new StringBuilder();
+
+    //         BufferedReader reader = new BufferedReader(
+    //                 new InputStreamReader(process.getInputStream()));
+
+    //         String line;
+    //         while ((line = reader.readLine()) != null) {
+    //             output.append(line + "\n");
+    //         }
+
+    //         int exitVal = process.waitFor();
+    //         if (exitVal == 0) {
+    //             //System.out.println(output);
+    //         } else {
+    //             InputStream error = process.getErrorStream();
+    //             ByteArrayOutputStream result = new ByteArrayOutputStream();
+    //             byte[] buffer = new byte[1024];
+    //             int length;
+    //             while ((length = error.read(buffer)) != -1) {
+    //                 result.write(buffer, 0, length);
+    //             }
+    //             System.out.println(result.toString(StandardCharsets.UTF_8.name()));
+    //         }
+
+    //     } catch (IOException e) {
+    //         e.printStackTrace();
+    //     } catch (InterruptedException e) {
+    //         e.printStackTrace();
+    //     }
+
+    //     if(!new File(outputPath + File.separator + "gbl.json").isFile()){
+    //         evaluateArchitecture(architectureJSONFile, properties);
+    //     }
+
+    //     boolean keepLowLevelData = properties.getTradespaceSearch().getSettings().getOutputs().isKeepLowLevelData();
+    //     if (!keepLowLevelData){
+    //         // Directory containing files to delete.
+    //         String directory = outputPath;
+
+    //         // Extension.
+    //         String extension1 = "accessInfo.csv";
+    //         String extension2 = "accessInfo.json";
+    //         String extension3 = "level0_data_metrics.csv";
+    //         String starting1 = "obs";
+
+    //         try {
+    //             ResultIO.deleteFileWithExtension(directory, extension1);
+    //             ResultIO.deleteFileWithExtension(directory, extension2);
+    //             ResultIO.deleteFileWithExtension(directory, extension3);
+    //             ResultIO.deleteFileWithStarting(directory, starting1);
+    //         } catch (IOException e) {
+    //             System.out.println("Problem occurs when deleting files");
+    //             e.printStackTrace();
+    //         }
+    //     }
+
+    // }
+    public static void evaluateArchitecture(File architectureJsonFile, ProblemProperties properties) throws IOException {
+        // Read the JSON content from the architecture file
+        String jsonContent;
         try {
-
-            Process process = builder.start();
-
-            StringBuilder output = new StringBuilder();
-
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()));
-
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line + "\n");
-            }
-
-            int exitVal = process.waitFor();
-            if (exitVal == 0) {
-                //System.out.println(output);
-            } else {
-                InputStream error = process.getErrorStream();
-                ByteArrayOutputStream result = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = error.read(buffer)) != -1) {
-                    result.write(buffer, 0, length);
-                }
-                System.out.println(result.toString(StandardCharsets.UTF_8.name()));
-            }
-
+            jsonContent = new String(Files.readAllBytes(architectureJsonFile.toPath()), StandardCharsets.UTF_8);
+            //System.out.println("Read JSON content: " + jsonContent);
         } catch (IOException e) {
+            System.err.println("Error reading the JSON file: " + e.getMessage());
             e.printStackTrace();
-        } catch (InterruptedException e) {
+            throw e;
+        }
+    
+        // Prepare the request JSON with architecture and folder path
+        JSONObject architectureJson = new JSONObject(jsonContent);
+        JSONObject requestJson = new JSONObject();
+        requestJson.put("architecture", architectureJson);
+        requestJson.put("folderPath", architectureJsonFile.getParent()); // Add folder path
+        //System.out.println("Prepared request JSON: " + requestJson.toString());
+    
+        // Send HTTP POST request to the Python server
+        URL url = new URL("http://localhost:5000/evaluate");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    
+        // Set request properties
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json; utf-8");
+        conn.setDoOutput(true);
+    
+        // Write JSON data to request body
+        try (OutputStream os = conn.getOutputStream()) {
+            byte[] input = requestJson.toString().getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+            System.out.println("Sent JSON data to server.");
+        } catch (IOException e) {
+            System.err.println("Error writing to the output stream: " + e.getMessage());
             e.printStackTrace();
+            throw e;
         }
-
-        if(!new File(outputPath + File.separator + "gbl.json").isFile()){
-            evaluateArchitecture(architectureJSONFile, properties);
-        }
-
-        boolean keepLowLevelData = properties.getTradespaceSearch().getSettings().getOutputs().isKeepLowLevelData();
-        if (!keepLowLevelData){
-            // Directory containing files to delete.
-            String directory = outputPath;
-
-            // Extension.
-            String extension1 = "accessInfo.csv";
-            String extension2 = "accessInfo.json";
-            String extension3 = "level0_data_metrics.csv";
-            String starting1 = "obs";
-
-            try {
-                ResultIO.deleteFileWithExtension(directory, extension1);
-                ResultIO.deleteFileWithExtension(directory, extension2);
-                ResultIO.deleteFileWithExtension(directory, extension3);
-                ResultIO.deleteFileWithStarting(directory, starting1);
+    
+        // Check response code
+        int responseCode = conn.getResponseCode();
+        System.out.println("Received HTTP response code: " + responseCode);
+    
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            // Read error stream for more details
+            String errorResponse = "";
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+                StringBuilder response = new StringBuilder();
+                String responseLine;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+                errorResponse = response.toString();
+                System.err.println("Error response: " + errorResponse);
             } catch (IOException e) {
-                System.out.println("Problem occurs when deleting files");
-                e.printStackTrace();
+                // Ignore, as we already have the response code
             }
-
+            throw new IOException("HTTP error code: " + responseCode + ". Error response: " + errorResponse);
+        }
+    
+        // Read the response
+        double cost;
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+    
+            StringBuilder response = new StringBuilder();
+            String responseLine;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+    
+            // Parse the response JSON
+            System.out.println("Received response: " + response.toString());
+            JSONObject responseJson = new JSONObject(response.toString());
+            cost = responseJson.getDouble("cost");
+            System.out.println("Extracted cost: " + cost);
         }
     }
+    
 
     /**
      * Creates the search strategy (FF, MOEA, AOS or KDO)
@@ -168,7 +304,7 @@ public class TradespaceSearchExecutive {
             case "AOS":
                 return new TradespaceSearchStrategyAOS(searchProperties);
             case "KDO":
-//                return new TradespaceSearchStrategyKDO(searchProperties);
+            //                return new TradespaceSearchStrategyKDO(searchProperties);
             default:
                 throw new IllegalArgumentException("Search Strategy has to be either FF, MOEA, AOS or KDO.");
         }
@@ -187,7 +323,7 @@ public class TradespaceSearchExecutive {
     /**
      * Sets some system properties for easy access of root, input, output and arch_eval.py paths
      */
-    private void setDirectories() {
+    public void setDirectories() {
         //TODO: Here is where the system variables are created
         File mainPath = new File(System.getProperty("user.dir"));
         while(!mainPath.getName().equals("3D-CHESS augmentation")){
@@ -214,7 +350,7 @@ public class TradespaceSearchExecutive {
             file.mkdirs();
         }
         System.setProperty("tatc.archevalPath", System.getProperty("tatc.root")+File.separator + "TSE_Module"+File.separator + "demo" + File.separator + "bin" + File.separator + "arch_eval.py");
-        System.setProperty("tatc.costEvalPath", System.getProperty("tatc.root")+File.separator + "Evaluator_Module" +File.separator + "SpaDes" + File.separator + "ConstellationDesignMain.py");
+        System.setProperty("tatc.costEvalPath", System.getProperty("tatc.root")+File.separator + "Evaluator_Module" +File.separator + "SpaDes" + File.separator + "server.py");
         System.setProperty("tatc.costFilePath", System.getProperty("tatc.root")+File.separator + "TSE_Module"+File.separator + "tse" + File.separator + "results" + File.separator+"arch-0" + File.separator + "CostRisk_output.json");
         System.setProperty("tatc.numThreads", "16");
     }

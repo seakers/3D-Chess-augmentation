@@ -12,6 +12,7 @@ import tatc.util.Enumeration;
 import tatc.util.Utilities;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -158,7 +159,13 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
                     File architectureJsonFile = architecture.toJSON(this.getCounter());
                     // Evaluate architecture
                     long startTime = System.nanoTime();
-                    TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
+                    try{
+                        TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
+                    }catch(IOException e){
+                    System.out.println("Error reading the JSON file: " + e.getMessage());
+                    e.printStackTrace();
+
+                    };      
                     long endTime = System.nanoTime();
                     double execTime = (endTime - startTime) / Math.pow(10, 9);
                     // Add line in summaryData
