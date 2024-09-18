@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.List;
 import tatc.tradespaceiterator.TSERequestParser;
 import org.json.JSONObject;
+import java.util.Random;
 /**
  * TradespaceSearchExecutive class which reads TradespaceSearchRequest.json, creates the problem properties,
  * and calls a search strategy (e.g. Full Factorial or Genetic Algorithm).
@@ -266,6 +267,7 @@ public class TradespaceSearchExecutive {
     
         // Read the response
         double cost;
+        Random random = new Random();
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
     
@@ -282,9 +284,14 @@ public class TradespaceSearchExecutive {
             System.out.println("Extracted cost: " + cost);
             String folder_path = architectureJsonFile.getParent();
             modifyLifecycleCost(folder_path,cost);
-            double[] revisitTime = {20, 2, 8};
-            double[] responseTime = {20, 2, 8};
-            double coverage = 90.54;
+            double[] revisitTime = new double[3];
+            double[] responseTime = new double[3];
+            for (int i = 0; i < 3; i++) {
+                revisitTime[i] = 10 + (90 * random.nextDouble()); // Random between 10 and 100
+                responseTime[i] = 10 + (90 * random.nextDouble()); // Random between 10 and 100
+            }
+    
+            double coverage = random.nextDouble()*100;
             modifyCoverageMetrics(folder_path, revisitTime, responseTime, coverage);
         }
     }
@@ -355,8 +362,8 @@ public class TradespaceSearchExecutive {
             Files.write(path, data.toString(4).getBytes(StandardCharsets.UTF_8));
 
             System.out.println("Revisit Time updated with avg value: " + revisitTime[0]);
-            System.out.println("Response Time updated with avg value: " + revisitTime[0]);
-            System.out.println("Coverage Time updated with avg value: " + revisitTime[0]);
+            System.out.println("Response Time updated with avg value: " + responseTime[0]);
+            System.out.println("Coverage updated with avg value: " + coverage);
 
         } catch (IOException e) {
             System.err.println("Error while reading or writing JSON file: " + e.getMessage());

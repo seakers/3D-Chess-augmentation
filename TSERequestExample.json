@@ -1,11 +1,7 @@
 {
   "evaluator": {
-    "science_score": {
-      "workflow": ["TAT-C", "VASSAR"]
-    },
-    "lifecycle_cost": {
-      "workflow": ["SpaDes"]
-    }
+    "science_score": ["VASSAR", "TAT-C"],
+    "lifecycle_cost": ["SpaDes"]
   },
   "mission": {
     "name": "TROPICS",
@@ -204,8 +200,8 @@
     "@type": "AnalysisSettings",
     "searchParameters": {
       "@type": "SearchParameters",
-      "maxNFE": 5000,
-      "populationSize": 500,
+      "maxNFE": 500,
+      "populationSize": 10,
       "epsilons": 0.05,
       "sizeTournament": 2,
       "pCrossover": 0.9,

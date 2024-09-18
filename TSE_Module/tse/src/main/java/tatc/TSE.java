@@ -44,6 +44,8 @@ public class TSE {
             args[1] = "TSE_Module\\tse\\results";
             
         }
+        args[0] = "TSERequestExample.json";
+        args[1] = "TSE_Module\\tse\\results";
         String fullPathArg0 = Paths.get(args[0]).toAbsolutePath().toString();      
         String fullPathArg1 = Paths.get(args[1]).toAbsolutePath().toString();
         Level level = Level.FINEST;
@@ -54,9 +56,6 @@ public class TSE {
         long startTime = System.nanoTime();
         TradespaceSearchExecutive tse = new TradespaceSearchExecutive(fullPathArg0,fullPathArg1);
         tse.run();
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            PythonServerManager.stopServer();
-        }));
         long endTime = System.nanoTime();
         Logger.getGlobal().finest(String.format("Took %.4f sec", (endTime - startTime) / Math.pow(10, 9)));
     }
