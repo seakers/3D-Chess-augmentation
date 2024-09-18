@@ -2,6 +2,8 @@ package tatc;
 import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.URL;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 
 public class PythonServerManager {
@@ -14,12 +16,12 @@ public class PythonServerManager {
         if (isServerRunning()) {
             System.out.println("Python server is already running.");
             isServerStartedByJava = false; // Server was not started by this Java process
-            stopServer();
-            //return;
+            //stopServer();
+            return;
         }
 
         String tatcRoot = System.getProperty("tatc.root");
-        String evaluatorModulePath = tatcRoot + File.separator + "Evaluator_Module" + File.separator + "SpaDes";
+        String evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "SpaDes";
         String serverScriptPath = evaluatorModulePath + File.separator + "server.py";
 
         ProcessBuilder builder = new ProcessBuilder("python", serverScriptPath);
@@ -38,13 +40,23 @@ public class PythonServerManager {
     }
 
     private static boolean isServerRunning() {
-        try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress(SERVER_HOST, SERVER_PORT), 1000);
-            return true;
+        try {
+            URL url = new URL("http://" + SERVER_HOST + ":" + SERVER_PORT + "/health");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(1000);
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                // Optionally check the response content to ensure it's your server
+                System.out.println("Server has responded");
+                return true;
+            }
         } catch (IOException e) {
-            return false;
+            // Server is not running
         }
+        return false;
     }
+
 
     private static void waitForServerToStart() throws IOException {
         int maxRetries = 10;

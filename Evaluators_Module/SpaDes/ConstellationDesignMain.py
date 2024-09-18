@@ -64,31 +64,15 @@ import os
 logging.basicConfig(level=logging.DEBUG, filename='debug.log', filemode='w',
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-def modify_lifecycle_cost(json_file_path, total_mission_costs):
-    # Open the JSON file
-    with open(json_file_path, 'r') as file:
-        data = json.load(file)
-    
-    # Update the lifecycleCost estimate with the total mission cost
-    data['lifecycleCost']['estimate'] = total_mission_costs
-    data['lifecycleCost']['fiscalYear'] = 2024
-    
-    # Save the updated JSON back to the file
-    with open(json_file_path, 'w') as file:
-        json.dump(data, file, indent=4)
-    
-    print("Lifecycle cost updated with total mission costs:", total_mission_costs)
-
 def evaluate_architecture(arch_json, arch_folder_path):
     arch_path = os.path.join(arch_folder_path, 'arch.json')
-    cost_risk_path = os.path.join(arch_folder_path, 'CostRisk_output.json')
+    #cost_risk_path = os.path.join(arch_folder_path, 'CostRisk_output.json')
     #logging.debug(f"Architecture JSON path: {arch_path}")    
     
     # Call the function with the file path (string), not the file object
     sc_masses, subs_masses, const_components, cost_estimation_json_file = loadJSONConst(arch_json)
     
     total_mission_costs = loadJSONCostEstimation(cost_estimation_json_file)
-    modify_lifecycle_cost(cost_risk_path, sum(total_mission_costs))
     print("Total Mission Costs: ", total_mission_costs)
     # Return any results if needed
     return sum(total_mission_costs)

@@ -2,8 +2,12 @@ from flask import Flask, request, jsonify
 import os
 from ConstellationDesignMain import evaluate_architecture
 import logging
+logging.basicConfig(level=logging.DEBUG, filename='debug.log', filemode='w',
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 app = Flask(__name__)
-
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'running'}), 200
 @app.route('/evaluate', methods=['POST'])
 def evaluate():
     data = request.get_json()
@@ -22,7 +26,7 @@ def evaluate():
     cost = evaluate_architecture(architecture, folder_path)
 
     # Return the result
-    return jsonify({'cost': cost}), 200
+    return jsonify({'cost': float(cost)}), 200
 
 if __name__ == '__main__':
     print("Server running...")

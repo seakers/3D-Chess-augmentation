@@ -39,7 +39,8 @@ public class TSE {
             // args[1] = "tse\\results";
             // args[0] = "C:\Users\dfornos\Desktop\tat-c\tse\problems\CaseStudy1.json";
             // args[1] = "C:\Users\dfornos\Desktop\tat-c\tse\results";
-            args[0] = "TSE_Module\\tse\\problems\\CaseStudy1.json";
+            //args[0] = "TSE_Module\\tse\\problems\\CaseStudy1.json";
+            args[0] = "TSERequestExample.json";
             args[1] = "TSE_Module\\tse\\results";
             
         }
@@ -53,6 +54,9 @@ public class TSE {
         long startTime = System.nanoTime();
         TradespaceSearchExecutive tse = new TradespaceSearchExecutive(fullPathArg0,fullPathArg1);
         tse.run();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            PythonServerManager.stopServer();
+        }));
         long endTime = System.nanoTime();
         Logger.getGlobal().finest(String.format("Took %.4f sec", (endTime - startTime) / Math.pow(10, 9)));
     }

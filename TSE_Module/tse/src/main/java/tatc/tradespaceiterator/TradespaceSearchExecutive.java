@@ -10,6 +10,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.List;
 import tatc.tradespaceiterator.TSERequestParser;
 import org.json.JSONObject;
@@ -55,13 +56,13 @@ public class TradespaceSearchExecutive {
             String content = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
             JSONObject tseRequest = new JSONObject(content);
             List<String> costEvaluators = parser.getCostEvaluators(tseRequest);
-            // if (costEvaluators.contains("SpaDes")) {
-            //     System.out.println("SpaDes is in the list of cost evaluators.");
-            //     // You can start the Python server here if needed
-            //     PythonServerManager.startServer();
-            // } else {
-            //     System.out.println("SpaDes is not in the list of cost evaluators.");
-            // }
+            if (costEvaluators.contains("SpaDes")) {
+                System.out.println("SpaDes is in the list of cost evaluators.");
+                // You can start the Python server here if needed
+                PythonServerManager.startServer();
+            } else {
+                System.out.println("SpaDes is not in the list of cost evaluators.");
+            }
         } catch (IOException e) {
             System.out.println("Error reading the JSON file: " + e.getMessage());
             e.printStackTrace();
@@ -279,6 +280,87 @@ public class TradespaceSearchExecutive {
             JSONObject responseJson = new JSONObject(response.toString());
             cost = responseJson.getDouble("cost");
             System.out.println("Extracted cost: " + cost);
+            String folder_path = architectureJsonFile.getParent();
+            modifyLifecycleCost(folder_path,cost);
+            double[] revisitTime = {20, 2, 8};
+            double[] responseTime = {20, 2, 8};
+            double coverage = 90.54;
+            modifyCoverageMetrics(folder_path, revisitTime, responseTime, coverage);
+        }
+    }
+    public static void modifyLifecycleCost(String jsonFilePath, double totalMissionCosts) {
+        String costRiskFilePath = jsonFilePath + File.separator + "CostRisk_output.json";
+        JSONObject data;
+        try {
+            Path path = Paths.get(costRiskFilePath);
+            if (Files.exists(path)) {
+                // Read the JSON file content into a String
+                String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+                // Parse the JSON content into a JSONObject
+                data = new JSONObject(content);
+            } else {
+                // File does not exist, create a new JSONObject
+                data = new JSONObject();
+                // Initialize the lifecycleCost object
+                data.put("lifecycleCost", new JSONObject());
+                System.out.println("CostRisk_output.json does not exist. Created a new file.");
+            }
+
+            // Update the lifecycleCost estimate with the total mission cost
+            JSONObject lifecycleCost = data.getJSONObject("lifecycleCost");
+            lifecycleCost.put("estimate", totalMissionCosts);
+            lifecycleCost.put("fiscalYear", 2024);
+
+            // Save the updated JSON back to the file
+            Files.write(path, data.toString(4).getBytes(StandardCharsets.UTF_8));
+
+            System.out.println("Lifecycle cost updated with total mission costs: " + totalMissionCosts);
+
+        } catch (IOException e) {
+            System.err.println("Error while reading or writing JSON file: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    public static void modifyCoverageMetrics(String jsonFilePath, double[] revisitTime, double[] responseTime, double coverage) {
+        String costRiskFilePath = jsonFilePath + File.separator + "gbl.json";
+        JSONObject data;
+        try {
+            Path path = Paths.get(costRiskFilePath);
+            if (Files.exists(path)) {
+                // Read the JSON file content into a String
+                String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+                // Parse the JSON content into a JSONObject
+                data = new JSONObject(content);
+            } else {
+                // File does not exist, create a new JSONObject
+                data = new JSONObject();
+                // Initialize the lifecycleCost object
+                data.put("RevisitTime", new JSONObject());
+                data.put("ResponseTime", new JSONObject());
+                data.put("Coverage", new JSONObject());
+                System.out.println("gbl.json does not exist. Created a new file.");
+            }
+
+            // Update the lifecycleCost estimate with the total mission cost
+            JSONObject revTime = data.getJSONObject("RevisitTime");
+            revTime.put("avg", revisitTime[0]);
+            revTime.put("max", revisitTime[1]);
+            revTime.put("min", revisitTime[2]);
+            JSONObject resTime = data.getJSONObject("ResponseTime");
+            resTime.put("avg", responseTime[0]);
+            resTime.put("max", responseTime[1]);
+            resTime.put("min", responseTime[2]);
+            data.put("Coverage", coverage);
+            // Save the updated JSON back to the file
+            Files.write(path, data.toString(4).getBytes(StandardCharsets.UTF_8));
+
+            System.out.println("Revisit Time updated with avg value: " + revisitTime[0]);
+            System.out.println("Response Time updated with avg value: " + revisitTime[0]);
+            System.out.println("Coverage Time updated with avg value: " + revisitTime[0]);
+
+        } catch (IOException e) {
+            System.err.println("Error while reading or writing JSON file: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
