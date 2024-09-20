@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
             "type": "java",
             "name": "Current File",
             "request": "launch",
@@ -24,8 +31,8 @@
             "mainClass": "tatc.TSE",
             "projectName": "tatc-ml-tse",
             "args": [
-                "C:/Users/dfornos/Desktop/3D-CHESS augmentation/TSE Module/tse/problems/CaseStudy1.json",
-                "C:/Users/dfornos/Desktop/3D-CHESS augmentation/TSE Module/tse/results"
+                "C:/Users/dfornos/Desktop/3D-CHESS augmentation/TSE_Module/tse/problems/CaseStudy1.json",
+                "C:/Users/dfornos/Desktop/3D-CHESS augmentation/TSE_Module/tse/results"
             ]
         }
     ]

@@ -2,31 +2,34 @@ package tatc;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-
 public class PythonServerManager {
     private static Process pythonServerProcess = null;
-    private static final int SERVER_PORT = 5000;
+    //private static int serverPort = 5000;
     private static final String SERVER_HOST = "localhost";
     private static boolean isServerStartedByJava = false;
+    private int server_port;
 
-    public static synchronized void startServer() throws IOException {
-        killProcessesOnPort(SERVER_PORT);
+    public synchronized void startServer(int server_port,String serverScriptPath) throws IOException {
+        this.server_port = server_port;
+        killProcessesOnPort(server_port);
         if (isServerRunning()) {
             System.out.println("Python server is already running.");
             isServerStartedByJava = false; // Server was not started by this Java process
             return;
         }
-
-        String tatcRoot = System.getProperty("tatc.root");
-        String evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "SpaDes";
-        String serverScriptPath = evaluatorModulePath + File.separator + "server.py";
-
-        // Specify the full path to the Python interpreter
-        //String pythonExecutable = "C:\\Users\\dfornos\\Python310\\python.exe"; // Update this path accordingly
         String pythonExecutable = "python";
+        // Specify the full path to the Python interpreter
+        // Convert the string path to a Path object
+        Path path = Paths.get(serverScriptPath);
+        // Get the parent directory of the path
+        Path parentDirectory = path.getParent();
+        // Convert the parent directory to a string
+        String evaluatorModulePath = parentDirectory.toString();
         ProcessBuilder builder = new ProcessBuilder(pythonExecutable, serverScriptPath);
         builder.directory(new File(evaluatorModulePath));
         builder.redirectErrorStream(true); // Combine stdout and stderr
@@ -47,9 +50,9 @@ public class PythonServerManager {
         }
     }
 
-    private static boolean isServerRunning() {
+    private boolean isServerRunning() {
         try {
-            URL url = new URL("http://" + SERVER_HOST + ":" + SERVER_PORT + "/health");
+            URL url = new URL("http://" + SERVER_HOST + ":" + this.server_port + "/health");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(1000);
@@ -65,11 +68,11 @@ public class PythonServerManager {
         return false;
     }
 
-    private static void waitForServerToStart() throws IOException {
+    private void waitForServerToStart() throws IOException {
         int maxRetries = 10;
         int waitTime = 1000; // milliseconds
         for (int i = 0; i < maxRetries; i++) {
-            if (isServerRunning()) {
+            if (this.isServerRunning()) {
                 return;
             }
             try {

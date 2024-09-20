@@ -11,10 +11,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import tatc.tradespaceiterator.TSERequestParser;
 import org.json.JSONObject;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 /**
  * TradespaceSearchExecutive class which reads TradespaceSearchRequest.json, creates the problem properties,
  * and calls a search strategy (e.g. Full Factorial or Genetic Algorithm).
@@ -53,16 +60,37 @@ public class TradespaceSearchExecutive {
         this.setDirectories();
         TSERequestParser parser = new TSERequestParser();
         String jsonFilePath = "TSERequestExample.json";
+        PythonServerManager serverManager = new PythonServerManager();
         try{
+            String evaluatorModulePath;
+            String serverScriptPath;
             String content = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
             JSONObject tseRequest = new JSONObject(content);
+            String tatcRoot = System.getProperty("tatc.root");
             List<String> costEvaluators = parser.getCostEvaluators(tseRequest);
+            List<String> scienceEvaluators = parser.getScienceEvaluators(tseRequest);
             if (costEvaluators.contains("SpaDes")) {
+                evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "SpaDes";
+                serverScriptPath = evaluatorModulePath + File.separator + "server.py";
                 System.out.println("SpaDes is in the list of cost evaluators.");
                 // You can start the Python server here if needed
-                PythonServerManager.startServer();
+                serverManager.startServer(5000, serverScriptPath);
+            
             } else {
                 System.out.println("SpaDes is not in the list of cost evaluators.");
+            }
+
+            if (scienceEvaluators.contains("TAT-C")) {
+                evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "TAT-C";
+                serverScriptPath = evaluatorModulePath + File.separator + "tatc_server.py";
+                System.out.println("TAT-C is in the list of science evaluators.");
+                evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "TAT-C";
+                serverScriptPath = evaluatorModulePath + File.separator + "tatc_server.py";
+                // You can start the Python server here if needed
+                serverManager.startServer(5001, serverScriptPath);
+            
+            } else {
+                System.out.println("TAT-C is not in the list of cost evaluators.");
             }
         } catch (IOException e) {
             System.out.println("Error reading the JSON file: " + e.getMessage());
@@ -85,125 +113,102 @@ public class TradespaceSearchExecutive {
             System.out.println("Problem occurs when deleting the cache directory");
         }
     }
-
-    /**
-     * Method that evaluates an arch.json file using the architecture evaluator (arch_eval.py) located in
-     * the demo folder. In this method we are calling python from java.
-     * @param architectureJSONFile the architecture file that needs to be evaluated
-     */
-    // public static void evaluateArchitecture(File architectureJSONFile, ProblemProperties properties) throws IOException{
-    //     Architecture arch = JSONIO.readJSON( architectureJSONFile, Architecture.class);
-    //     try{
+    // public static void evaluateArchitecture(File architectureJsonFile, ProblemProperties properties) throws IOException {
+    //     // Read the JSON content from the architecture file
+    //     String jsonContent;
+    //     try {
+    //         jsonContent = new String(Files.readAllBytes(architectureJsonFile.toPath()), StandardCharsets.UTF_8);
+    //         //System.out.println("Read JSON content: " + jsonContent);
+    //     } catch (IOException e) {
+    //         System.err.println("Error reading the JSON file: " + e.getMessage());
+    //         e.printStackTrace();
+    //         throw e;
+    //     }
+    
+    //     // Prepare the request JSON with architecture and folder path
+    //     JSONObject architectureJson = new JSONObject(jsonContent);
+    //     JSONObject requestJson = new JSONObject();
+    //     requestJson.put("architecture", architectureJson);
+    //     requestJson.put("folderPath", architectureJsonFile.getParent()); // Add folder path
+    //     //System.out.println("Prepared request JSON: " + requestJson.toString());
+    
+    //     // Send HTTP POST request to the Python server
     //     URL url = new URL("http://localhost:5000/evaluate");
     //     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-
+    
     //     // Set request properties
     //     conn.setRequestMethod("POST");
     //     conn.setRequestProperty("Content-Type", "application/json; utf-8");
     //     conn.setDoOutput(true);
-
+    
     //     // Write JSON data to request body
     //     try (OutputStream os = conn.getOutputStream()) {
-    //         byte[] input = architectureJSONFile.toString().getBytes("utf-8");
+    //         byte[] input = requestJson.toString().getBytes(StandardCharsets.UTF_8);
     //         os.write(input, 0, input.length);
+    //         System.out.println("Sent JSON data to server.");
+    //     } catch (IOException e) {
+    //         System.err.println("Error writing to the output stream: " + e.getMessage());
+    //         e.printStackTrace();
+    //         throw e;
     //     }
-
+    
     //     // Check response code
     //     int responseCode = conn.getResponseCode();
+    //     System.out.println("Received HTTP response code: " + responseCode);
+    
     //     if (responseCode != HttpURLConnection.HTTP_OK) {
-    //         throw new IOException("HTTP error code: " + responseCode);
+    //         // Read error stream for more details
+    //         String errorResponse = "";
+    //         try (BufferedReader br = new BufferedReader(
+    //                 new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+    //             StringBuilder response = new StringBuilder();
+    //             String responseLine;
+    //             while ((responseLine = br.readLine()) != null) {
+    //                 response.append(responseLine.trim());
+    //             }
+    //             errorResponse = response.toString();
+    //             System.err.println("Error response: " + errorResponse);
+    //         } catch (IOException e) {
+    //             // Ignore, as we already have the response code
+    //         }
+    //         throw new IOException("HTTP error code: " + responseCode + ". Error response: " + errorResponse);
     //     }
-
+    
     //     // Read the response
+    //     double cost;
+    //     Random random = new Random();
     //     try (BufferedReader br = new BufferedReader(
-    //             new InputStreamReader(conn.getInputStream(), "utf-8"))) {
-
+    //             new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+    
     //         StringBuilder response = new StringBuilder();
     //         String responseLine;
     //         while ((responseLine = br.readLine()) != null) {
     //             response.append(responseLine.trim());
     //         }
-
+    
     //         // Parse the response JSON
+    //         System.out.println("Received response: " + response.toString());
     //         JSONObject responseJson = new JSONObject(response.toString());
-    //         double cost = responseJson.getDouble("cost");
-    //     ProcessBuilder builder = new ProcessBuilder();
-
-    //     String inputPath = System.getProperty("tatc.input");
-    //     String outputPath = System.getProperty("tatc.output")+ File.separator + arch.get_id();
-    //     //String pathArchEvaluator = System.getProperty("tatc.archevalPath");
-    //     String pathArchEvaluator = System.getProperty("tatc.archevalPath");
-    //     String costEvalPath = System.getProperty("tatc.costEvalPath");
-    //     // builder.command("python", pathArchEvaluator, inputPath, outputPath);
-    //     String costFilePath = System.getProperty("tatc.costFilePath");
-
-    //     // builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "TSE_Module"+File.separator + "demo"));
-        
-    //     builder.command("python", costEvalPath);
-
-    //     builder.directory(new File(System.getProperty("tatc.root")+ File.separator + "Evaluator_Module"+File.separator + "SpaDes"));
-
-    //     try {
-
-    //         Process process = builder.start();
-
-    //         StringBuilder output = new StringBuilder();
-
-    //         BufferedReader reader = new BufferedReader(
-    //                 new InputStreamReader(process.getInputStream()));
-
-    //         String line;
-    //         while ((line = reader.readLine()) != null) {
-    //             output.append(line + "\n");
+    //         cost = responseJson.getDouble("cost");
+    //         System.out.println("Extracted cost: " + cost);
+    //         String folder_path = architectureJsonFile.getParent();
+    //         modifyLifecycleCost(folder_path,cost);
+    //         double[] revisitTime = new double[3];
+    //         double[] responseTime = new double[3];
+    //         for (int i = 0; i < 3; i++) {
+    //             revisitTime[i] = 10 + (90 * random.nextDouble()); // Random between 10 and 100
+    //             responseTime[i] = 10 + (90 * random.nextDouble()); // Random between 10 and 100
     //         }
-
-    //         int exitVal = process.waitFor();
-    //         if (exitVal == 0) {
-    //             //System.out.println(output);
-    //         } else {
-    //             InputStream error = process.getErrorStream();
-    //             ByteArrayOutputStream result = new ByteArrayOutputStream();
-    //             byte[] buffer = new byte[1024];
-    //             int length;
-    //             while ((length = error.read(buffer)) != -1) {
-    //                 result.write(buffer, 0, length);
-    //             }
-    //             System.out.println(result.toString(StandardCharsets.UTF_8.name()));
-    //         }
-
-    //     } catch (IOException e) {
-    //         e.printStackTrace();
-    //     } catch (InterruptedException e) {
-    //         e.printStackTrace();
+    
+    //         double coverage = random.nextDouble()*100;
+    //         modifyCoverageMetrics(folder_path, revisitTime, responseTime, coverage);
     //     }
-
-    //     if(!new File(outputPath + File.separator + "gbl.json").isFile()){
-    //         evaluateArchitecture(architectureJSONFile, properties);
-    //     }
-
-    //     boolean keepLowLevelData = properties.getTradespaceSearch().getSettings().getOutputs().isKeepLowLevelData();
-    //     if (!keepLowLevelData){
-    //         // Directory containing files to delete.
-    //         String directory = outputPath;
-
-    //         // Extension.
-    //         String extension1 = "accessInfo.csv";
-    //         String extension2 = "accessInfo.json";
-    //         String extension3 = "level0_data_metrics.csv";
-    //         String starting1 = "obs";
-
-    //         try {
-    //             ResultIO.deleteFileWithExtension(directory, extension1);
-    //             ResultIO.deleteFileWithExtension(directory, extension2);
-    //             ResultIO.deleteFileWithExtension(directory, extension3);
-    //             ResultIO.deleteFileWithStarting(directory, starting1);
-    //         } catch (IOException e) {
-    //             System.out.println("Problem occurs when deleting files");
-    //             e.printStackTrace();
-    //         }
-    //     }
-
     // }
+    /**
+     * Method that evaluates an arch.json file using the architecture evaluator (arch_eval.py) located in
+     * the demo folder. In this method we are calling python from java.
+     * @param architectureJSONFile the architecture file that needs to be evaluated
+     */
     public static void evaluateArchitecture(File architectureJsonFile, ProblemProperties properties) throws IOException {
         // Read the JSON content from the architecture file
         String jsonContent;
@@ -215,84 +220,183 @@ public class TradespaceSearchExecutive {
             e.printStackTrace();
             throw e;
         }
-    
+
         // Prepare the request JSON with architecture and folder path
         JSONObject architectureJson = new JSONObject(jsonContent);
         JSONObject requestJson = new JSONObject();
         requestJson.put("architecture", architectureJson);
         requestJson.put("folderPath", architectureJsonFile.getParent()); // Add folder path
         //System.out.println("Prepared request JSON: " + requestJson.toString());
-    
-        // Send HTTP POST request to the Python server
-        URL url = new URL("http://localhost:5000/evaluate");
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-    
-        // Set request properties
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/json; utf-8");
-        conn.setDoOutput(true);
-    
-        // Write JSON data to request body
-        try (OutputStream os = conn.getOutputStream()) {
-            byte[] input = requestJson.toString().getBytes(StandardCharsets.UTF_8);
-            os.write(input, 0, input.length);
-            System.out.println("Sent JSON data to server.");
-        } catch (IOException e) {
-            System.err.println("Error writing to the output stream: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
-        }
-    
-        // Check response code
-        int responseCode = conn.getResponseCode();
-        System.out.println("Received HTTP response code: " + responseCode);
-    
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            // Read error stream for more details
-            String errorResponse = "";
+
+        // Create an ExecutorService to run tasks in parallel
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        // Task for SpaDes server (cost evaluation)
+        Callable<Double> costTask = () -> {
+            // Send HTTP POST request to the SpaDes server
+            URL url = new URL("http://localhost:5000/evaluate");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+            // Set request properties
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; utf-8");
+            conn.setDoOutput(true);
+
+            // Write JSON data to request body
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = requestJson.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+                System.out.println("Sent JSON data to SpaDes server.");
+            } catch (IOException e) {
+                System.err.println("Error writing to the SpaDes server output stream: " + e.getMessage());
+                e.printStackTrace();
+                throw e;
+            }
+
+            // Check response code
+            int responseCode = conn.getResponseCode();
+            System.out.println("Received HTTP response code from SpaDes server: " + responseCode);
+
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                // Read error stream for more details
+                String errorResponse = "";
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder response = new StringBuilder();
+                    String responseLine;
+                    while ((responseLine = br.readLine()) != null) {
+                        response.append(responseLine.trim());
+                    }
+                    errorResponse = response.toString();
+                    System.err.println("Error response from SpaDes server: " + errorResponse);
+                } catch (IOException e) {
+                    // Ignore, as we already have the response code
+                }
+                throw new IOException("HTTP error code from SpaDes server: " + responseCode + ". Error response: " + errorResponse);
+            }
+
+            // Read the response
+            double cost;
             try (BufferedReader br = new BufferedReader(
-                    new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+
                 StringBuilder response = new StringBuilder();
                 String responseLine;
                 while ((responseLine = br.readLine()) != null) {
                     response.append(responseLine.trim());
                 }
-                errorResponse = response.toString();
-                System.err.println("Error response: " + errorResponse);
+
+                // Parse the response JSON
+                System.out.println("Received response from SpaDes server: " + response.toString());
+                JSONObject responseJson = new JSONObject(response.toString());
+                cost = responseJson.getDouble("cost");
+                System.out.println("Extracted cost: " + cost);
+                return cost;
+            }
+        };
+
+        // Task for TAT-C server (coverage evaluation)
+        Callable<Map<String, Object>> coverageTask = () -> {
+            // Send HTTP POST request to the TAT-C server
+            URL url = new URL("http://localhost:5001/evaluate");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+            // Set request properties
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; utf-8");
+            conn.setDoOutput(true);
+
+            // Write JSON data to request body
+            try (OutputStream os = conn.getOutputStream()) {
+                byte[] input = requestJson.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+                System.out.println("Sent JSON data to TAT-C server.");
             } catch (IOException e) {
-                // Ignore, as we already have the response code
+                System.err.println("Error writing to the TAT-C server output stream: " + e.getMessage());
+                e.printStackTrace();
+                throw e;
             }
-            throw new IOException("HTTP error code: " + responseCode + ". Error response: " + errorResponse);
-        }
-    
-        // Read the response
-        double cost;
-        Random random = new Random();
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-    
-            StringBuilder response = new StringBuilder();
-            String responseLine;
-            while ((responseLine = br.readLine()) != null) {
-                response.append(responseLine.trim());
+
+            // Check response code
+            int responseCode = conn.getResponseCode();
+            System.out.println("Received HTTP response code from TAT-C server: " + responseCode);
+
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                // Read error stream for more details
+                String errorResponse = "";
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+                    StringBuilder response = new StringBuilder();
+                    String responseLine;
+                    while ((responseLine = br.readLine()) != null) {
+                        response.append(responseLine.trim());
+                    }
+                    errorResponse = response.toString();
+                    System.err.println("Error response from TAT-C server: " + errorResponse);
+                } catch (IOException e) {
+                    // Ignore, as we already have the response code
+                }
+                throw new IOException("HTTP error code from TAT-C server: " + responseCode + ". Error response: " + errorResponse);
             }
-    
-            // Parse the response JSON
-            System.out.println("Received response: " + response.toString());
-            JSONObject responseJson = new JSONObject(response.toString());
-            cost = responseJson.getDouble("cost");
-            System.out.println("Extracted cost: " + cost);
+
+            // Read the response
+            Map<String, Object> coverageMetrics = new HashMap<>();
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+
+                StringBuilder response = new StringBuilder();
+                String responseLine;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+
+                // Parse the response JSON
+                System.out.println("Received response from TAT-C server: " + response.toString());
+                JSONObject responseJson = new JSONObject(response.toString());
+
+                double harmonicMeanRevisitTime = responseJson.getDouble("harmonicMeanRevisitTime");
+                double coverageFraction = responseJson.getDouble("coverageFraction");
+                // If responseTime is provided, extract it here
+                // double responseTime = responseJson.getDouble("responseTime");
+
+                coverageMetrics.put("harmonicMeanRevisitTime", harmonicMeanRevisitTime);
+                coverageMetrics.put("coverageFraction", coverageFraction);
+                // coverageMetrics.put("responseTime", responseTime);
+
+                System.out.println("Extracted coverage metrics: " + coverageMetrics);
+                return coverageMetrics;
+            }
+        };
+
+        try {
+            // Submit both tasks to the executor
+            Future<Double> costFuture = executor.submit(costTask);
+            Future<Map<String, Object>> coverageFuture = executor.submit(coverageTask);
+
+            // Wait for both tasks to complete and get the results
+            double cost = costFuture.get();
+            Map<String, Object> coverageMetrics = coverageFuture.get();
+
+            // Now process the results
             String folder_path = architectureJsonFile.getParent();
-            modifyLifecycleCost(folder_path,cost);
-            double[] revisitTime = new double[3];
-            double[] responseTime = new double[3];
-            for (int i = 0; i < 3; i++) {
-                revisitTime[i] = 10 + (90 * random.nextDouble()); // Random between 10 and 100
-                responseTime[i] = 10 + (90 * random.nextDouble()); // Random between 10 and 100
-            }
-    
-            double coverage = random.nextDouble()*100;
+            modifyLifecycleCost(folder_path, cost);
+
+            // Extract revisitTime, responseTime, and coverage from coverageMetrics
+            double harmonicMeanRevisitTime = (double) coverageMetrics.get("harmonicMeanRevisitTime");
+            double coverageFraction = (double) coverageMetrics.get("coverageFraction");
+
+            // For demonstration, we'll use the harmonic mean revisit time for avg, max, and min
+            double[] revisitTime = {harmonicMeanRevisitTime, harmonicMeanRevisitTime, harmonicMeanRevisitTime};
+            double[] responseTime = {harmonicMeanRevisitTime, harmonicMeanRevisitTime, harmonicMeanRevisitTime};
+            double coverage = coverageFraction; // Assuming coverageFraction is in percentage
+
             modifyCoverageMetrics(folder_path, revisitTime, responseTime, coverage);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IOException("Error during evaluation", e);
+        } finally {
+            executor.shutdown();
         }
     }
     public static void modifyLifecycleCost(String jsonFilePath, double totalMissionCosts) {
