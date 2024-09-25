@@ -57,7 +57,7 @@ def evaluate():
     try:
         # Perform coverage evaluation
         logging.debug('Starting coverage evaluation...')
-        coverage_metrics = evaluate_coverage(architecture, folder_path)
+        coverage_metrics = evaluate_coverage(architecture)
         logging.debug(f'Coverage evaluation completed. Result: {coverage_metrics}')
 
         # Return the result
@@ -67,17 +67,15 @@ def evaluate():
         logging.error(f'Error during evaluation: {str(e)}')
         return jsonify({'error': 'Evaluation failed', 'details': str(e)}), 500
 
-def evaluate_coverage(architecture_json, folder_path):
+def evaluate_coverage(architecture_json):
     # Parse the architecture JSON to extract satellites and targets
     satellites = parse_architecture(architecture_json)
     logging.debug(f'Parsed satellites: {satellites}')
 
-    # Define the analysis parameters
     start = datetime.now(timezone.utc)
     duration = timedelta(days=1)  # Analyze coverage over 1 day
     logging.debug(f'Analysis start time: {start}, duration: {duration}')
 
-    # Define target points (e.g., global grid)
     sample_points = UniformAngularGrid(
         delta_latitude=5, delta_longitude=5, region=mapping(box(-180, -90, 180, 90))
     ).as_targets()
@@ -99,7 +97,7 @@ def evaluate_coverage(architecture_json, folder_path):
         None if response.harmonic_mean_revisit is None else
         response.harmonic_mean_revisit.total_seconds() / 3600  # Convert to hours
     )
-    coverage_fraction = response.coverage_fraction * 100  # Convert to percentage
+    coverage_fraction = response.coverage_fraction
 
     logging.debug(f'Harmonic Mean Revisit Time: {harmonic_mean_revisit} hours')
     logging.debug(f'Coverage Fraction: {coverage_fraction}%')
@@ -136,7 +134,7 @@ def parse_architecture(architecture_json):
                     epoch_datetime.hour,
                     epoch_datetime.minute,
                     epoch_datetime.second,
-                    728000  # Setting microseconds as an example
+                    728000  
                 )
             except ValueError as e:
                 print(f"Error parsing epoch: {epoch} - {e}")

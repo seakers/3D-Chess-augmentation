@@ -20,8 +20,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import tatc.PythonServerManager;
 import org.json.JSONObject;
-
 import tatc.tradespaceiterator.TSERequestParser;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 /**
  * Main class of the Tradespace Search Executive
  */
@@ -40,12 +44,20 @@ public class TSE {
             // args[0] = "C:\Users\dfornos\Desktop\tat-c\tse\problems\CaseStudy1.json";
             // args[1] = "C:\Users\dfornos\Desktop\tat-c\tse\results";
             //args[0] = "TSE_Module\\tse\\problems\\CaseStudy1.json";
-            args[0] = "TSERequestExample.json";
+            args[0] = "TSERequestExample2.json";
             args[1] = "TSE_Module\\tse\\results";
             
         }
-        args[0] = "TSERequestExample.json";
-        args[1] = "TSE_Module\\tse\\results";
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+
+        args[0] = "TSERequestExample2.json";
+        args[1] = "TSE_Module\\tse\\results\\results_"+timestamp;
+        Path path = Paths.get(args[1]);
+        try{
+            Files.createDirectories(path);
+        }catch(IOException e){
+            System.out.println("Directory doesn't exist");
+        }
         String fullPathArg0 = Paths.get(args[0]).toAbsolutePath().toString();      
         String fullPathArg1 = Paths.get(args[1]).toAbsolutePath().toString();
         Level level = Level.FINEST;

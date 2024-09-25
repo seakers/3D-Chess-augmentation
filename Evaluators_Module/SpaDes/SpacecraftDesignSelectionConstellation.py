@@ -150,7 +150,7 @@ def iterativeDesign(payloads, mission, ADCSData, GSData, LVData):
     compInstance = Component("Instance")
 
     # Initailize variables for the while loop
-    thresh = 0.001
+    thresh = 0.01
     newMass = prevMass
     logging.debug("Mass estimates: ")
     print("\nMass Estimates:")

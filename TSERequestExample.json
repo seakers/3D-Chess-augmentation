@@ -34,11 +34,6 @@
         "evaluator": "science_score"
       },
       {
-        "objectiveName": "MeanResponseTime",
-        "objectiveType": "MIN",
-        "evaluator": "science_score"
-      },
-      {
         "objectiveName": "lifecycleCost",
         "objectiveType": "MIN",
         "evaluator": "lifecycle_cost"
@@ -56,11 +51,11 @@
       {
         "constellationType": "DELTA_HOMOGENEOUS",
         "numberSatellites": [
-          0,
           1,
           2,
           3,
-          4
+          4,
+          5
         ],
         "numberPlanes": [
           1,
@@ -200,8 +195,8 @@
     "@type": "AnalysisSettings",
     "searchParameters": {
       "@type": "SearchParameters",
-      "maxNFE": 500,
-      "populationSize": 10,
+      "maxNFE": 100,
+      "populationSize": 5,
       "epsilons": 0.05,
       "sizeTournament": 2,
       "pCrossover": 0.9,
