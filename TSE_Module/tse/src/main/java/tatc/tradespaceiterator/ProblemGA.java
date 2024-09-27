@@ -235,7 +235,11 @@ public class ProblemGA extends AbstractProblem {
             System.out.println("Error reading the JSON file: " + e.getMessage());
             e.printStackTrace();
 
-            };
+            }catch(InterruptedException e){
+                System.out.println("Error reading the JSON file: " + e.getMessage());
+                e.printStackTrace();
+    
+                };
             long endTime = System.nanoTime();
             execTime = (endTime - startTime) / Math.pow(10, 9);
         }

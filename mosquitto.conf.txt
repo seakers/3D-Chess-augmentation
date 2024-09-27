@@ -1,0 +1,61 @@
+# Mosquitto Configuration File
+
+# ======================================================================
+# General Settings
+# ======================================================================
+# Define the listener port (default MQTT port is 1883)
+listener 1883
+
+# Allow anonymous connections (set to false for production use)
+allow_anonymous true
+
+# ======================================================================
+# Logging Settings
+# ======================================================================
+# Set the logging level (debug, info, notice, warning, error)
+log_type all
+
+# Log messages to a file instead of the console
+log_dest file C:/Users/dfornos/Desktop/3D-CHESS-aumentation-MQTT/3D-Chess-augmentation/mosquitto.log
+
+# ======================================================================
+# Persistence Settings
+# ======================================================================
+# Enable persistence to store broker data (persistent sessions, retained messages)
+persistence true
+persistence_location C:/Users/dfornos/Desktop/3D-CHESS-aumentation-MQTT/3D-Chess-augmentation/data/
+
+# ======================================================================
+# Bridge Configuration (Optional)
+# ======================================================================
+# Bridges are used to connect Mosquitto brokers together.
+# If not needed, you can comment out or remove this section.
+
+# Example bridge configuration:
+# connection my_bridge
+# address broker.example.com:1883  # Address of the other broker
+# topic # in 0  # Subscribe to all topics from the remote broker
+# topic # out 0  # Publish all topics to the remote broker
+# remote_username bridge_user
+# remote_password bridge_pass
+
+# Note: Comment out the above bridge settings if not using a bridge.
+
+# ======================================================================
+# Security Settings (Optional)
+# ======================================================================
+# Password file for user authentication (comment if not using authentication)
+# password_file C:/Users/dfornos/Desktop/3D-CHESS-aumentation-MQTT/3D-Chess-augmentation/password.txt
+
+# ======================================================================
+# ACL (Access Control List) Settings (Optional)
+# ======================================================================
+# Control access to topics (comment if not using ACLs)
+# acl_file C:/Users/dfornos/Desktop/3D-CHESS-aumentation-MQTT/3D-Chess-augmentation/acl.txt
+
+# ======================================================================
+# Additional Configuration
+# ======================================================================
+# For additional customization, refer to the official Mosquitto documentation
+# and adjust settings based on your needs.
+

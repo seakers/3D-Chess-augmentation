@@ -14,13 +14,9 @@ import tatc.tradespaceiterator.TradespaceSearchExecutive;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import tatc.PythonServerManager;
-import org.json.JSONObject;
-import tatc.tradespaceiterator.TSERequestParser;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.nio.file.Files;
@@ -50,7 +46,7 @@ public class TSE {
         }
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
-        args[0] = "TSERequestExample2.json";
+        args[0] = "TSERequestExample.json";
         args[1] = "TSE_Module\\tse\\results\\results_"+timestamp;
         Path path = Paths.get(args[1]);
         try{

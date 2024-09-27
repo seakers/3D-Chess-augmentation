@@ -161,11 +161,15 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
                     long startTime = System.nanoTime();
                     try{
                         TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
-                    }catch(IOException e){
+                    }catch(InterruptedException e){
                     System.out.println("Error reading the JSON file: " + e.getMessage());
                     e.printStackTrace();
 
-                    };      
+                    }catch(IOException e){
+                        System.out.println("Error reading the JSON file: " + e.getMessage());
+                        e.printStackTrace();
+    
+                        }; 
                     long endTime = System.nanoTime();
                     double execTime = (endTime - startTime) / Math.pow(10, 9);
                     // Add line in summaryData

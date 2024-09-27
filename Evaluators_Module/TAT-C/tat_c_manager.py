@@ -1,10 +1,15 @@
-from flask import Flask, request, jsonify
-import os
-import logging
 import json
+import logging
+import datetime
 from datetime import datetime, timedelta, timezone
+import os
 import numpy as np
+import pandas as pd
+from scipy.stats import hmean
+from joblib import Parallel, delayed
+from shapely.geometry import box, mapping
 
+# Import your TAT-C specific modules
 from tatc.schemas import Instrument, Satellite as TATC_Satellite, TwoLineElements, Point
 from tatc.analysis import collect_multi_observations, aggregate_observations, reduce_observations
 from tatc.utils import swath_width_to_field_of_regard
@@ -15,71 +20,52 @@ from eose.orbits import GeneralPerturbationsOrbitState
 from eose.satellites import Satellite
 from eose.targets import TargetPoint
 
-from shapely.geometry import box, mapping
-from scipy.stats import hmean
-import pandas as pd
-from joblib import Parallel, delayed
+# Define the directory for logs
+log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG, filename='tatc_server.log', filemode='w',
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+# Check if the log directory exists, if not, create it
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
 
-app = Flask(__name__)
+# Construct the log filename in the logs directory
+log_filename = os.path.join(log_dir, f'debug_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    logging.debug('Health check endpoint called.')
-    return jsonify({'status': 'running'}), 200
+# Create a logger
+logger = logging.getLogger('TAT-C_Evaluator')
+logger.setLevel(logging.DEBUG)
 
-@app.route('/evaluate', methods=['POST'])
-def evaluate():
-    logging.debug('Received request at /evaluate endpoint.')
-    data = request.get_json()
+# Create file handler which logs even debug messages
+fh = logging.FileHandler(log_filename)
+fh.setLevel(logging.DEBUG)
 
-    # Log the received data for debugging purposes
-    logging.debug(f'Request data: {data}')
-    
-    if not data:
-        logging.error('Invalid input data: No JSON body received.')
-        return jsonify({'error': 'Invalid input data'}), 400
+# Create console handler to output to console (optional)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
 
-    # Extract architecture data and folder path
-    architecture = data.get('architecture')
-    folder_path = data.get('folderPath')
+# Create formatter and add it to the handlers
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
 
-    logging.debug(f'Extracted architecture: {architecture}')
-    logging.debug(f'Extracted folder path: {folder_path}')
+# Add the handlers to the logger
+logger.addHandler(fh)
+logger.addHandler(ch)
 
-    if not architecture or not folder_path:
-        logging.error('Missing architecture data or folder path.')
-        return jsonify({'error': 'Missing architecture data or folder path'}), 400
 
-    try:
-        # Perform coverage evaluation
-        logging.debug('Starting coverage evaluation...')
-        coverage_metrics = evaluate_coverage(architecture)
-        logging.debug(f'Coverage evaluation completed. Result: {coverage_metrics}')
-
-        # Return the result
-        return jsonify(coverage_metrics), 200
-
-    except Exception as e:
-        logging.error(f'Error during evaluation: {str(e)}')
-        return jsonify({'error': 'Evaluation failed', 'details': str(e)}), 500
 
 def evaluate_coverage(architecture_json):
     # Parse the architecture JSON to extract satellites and targets
     satellites = parse_architecture(architecture_json)
-    logging.debug(f'Parsed satellites: {satellites}')
+    logger.debug(f'Parsed satellites: {satellites}')
 
     start = datetime.now(timezone.utc)
     duration = timedelta(days=1)  # Analyze coverage over 1 day
-    logging.debug(f'Analysis start time: {start}, duration: {duration}')
+    logger.debug(f'Analysis start time: {start}, duration: {duration}')
 
     sample_points = UniformAngularGrid(
         delta_latitude=5, delta_longitude=5, region=mapping(box(-180, -90, 180, 90))
     ).as_targets()
-    logging.debug(f'Generated {len(sample_points)} target points for coverage analysis.')
+    logger.debug(f'Generated {len(sample_points)} target points for coverage analysis.')
 
     # Create the coverage request
     request = CoverageRequest(
@@ -97,10 +83,10 @@ def evaluate_coverage(architecture_json):
         None if response.harmonic_mean_revisit is None else
         response.harmonic_mean_revisit.total_seconds() / 3600  # Convert to hours
     )
-    coverage_fraction = response.coverage_fraction
+    coverage_fraction = response.coverage_fraction * 100  # Convert to percentage
 
-    logging.debug(f'Harmonic Mean Revisit Time: {harmonic_mean_revisit} hours')
-    logging.debug(f'Coverage Fraction: {coverage_fraction}%')
+    logger.debug(f'Harmonic Mean Revisit Time: {harmonic_mean_revisit} hours')
+    logger.debug(f'Coverage Fraction: {coverage_fraction}%')
 
     # Return the coverage metrics
     return {
@@ -124,23 +110,13 @@ def parse_architecture(architecture_json):
             true_anomaly = orbit.get('trueAnomaly')
             epoch = orbit.get('epoch')
             try:
-                # Parse the epoch string from format "2019-08-01T00:00:00Z" and set microseconds to 0
-                epoch_datetime = datetime.strptime(epoch, "%Y-%m-%dT%H:%M:%SZ")
-                # Example output: datetime.datetime(2024, 6, 7, 9, 53, 34, 728000)
-                formatted_epoch = datetime(
-                    epoch_datetime.year,
-                    epoch_datetime.month,
-                    epoch_datetime.day,
-                    epoch_datetime.hour,
-                    epoch_datetime.minute,
-                    epoch_datetime.second,
-                    728000  
-                )
+                # Parse the epoch string from format "2019-08-01T00:00:00Z"
+                epoch_datetime = datetime.strptime(epoch, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
             except ValueError as e:
-                print(f"Error parsing epoch: {epoch} - {e}")
-                formatted_epoch = datetime.now(timezone.utc).replace(microsecond=0)
+                logger.error(f"Error parsing epoch: {epoch} - {e}")
+                epoch_datetime = datetime.now(timezone.utc)
             # Compute mean motion
-            mu = 3.986e5  # Earth's gravitational parameter in km^3/s^2
+            mu = 3.986004418e5  # Earth's gravitational parameter in km^3/s^2
             P = 2 * np.pi * np.sqrt((semimajor_axis**3) / mu)  # Orbital period in seconds
             mean_motion = (86400 / P)  # revs per day
 
@@ -149,7 +125,7 @@ def parse_architecture(architecture_json):
                 np.sqrt(1 - eccentricity**2) * np.sin(np.deg2rad(true_anomaly)),
                 eccentricity + np.cos(np.deg2rad(true_anomaly))
             )
-            mean_anomaly = (np.rad2deg(E - eccentricity * np.sin(E))) % 360  # Normalize to [0, 360)
+            mean_anomaly = (np.rad2deg(E) - eccentricity * np.sin(E)) % 360  # Normalize to [0, 360)
 
             # Extract field of view from the payload
             payload = sat.get('payload', [])
@@ -165,7 +141,7 @@ def parse_architecture(architecture_json):
             omm = {
                 "OBJECT_NAME": sat.get('name', 'Satellite'),
                 "OBJECT_ID": "1998-067A",
-                "EPOCH": formatted_epoch, 
+                "EPOCH": epoch_datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
                 "MEAN_MOTION": mean_motion,
                 "ECCENTRICITY": eccentricity,
                 "INCLINATION": inclination,
@@ -188,7 +164,7 @@ def parse_architecture(architecture_json):
             )
 
             satellites.append(sat_obj)
-            logging.debug(f'Created satellite: {sat_obj}')
+            logger.debug(f'Created satellite: {sat_obj}')
 
     return satellites
 
@@ -233,11 +209,13 @@ def coverage_tatc(request: CoverageRequest) -> CoverageResponse:
         )
     )
 
+    observations['revisit'] = observations['revisit'].dt.total_seconds()
+
     records = list(
         observations.apply(
             lambda r: CoverageRecord(
                 target=request.targets[points.index(next(p for p in points if p.id == r["point_id"]))],
-                mean_revisit=None if pd.isnull(r["revisit"]) else timedelta(seconds=r["revisit"].total_seconds()),
+                mean_revisit=None if pd.isnull(r["revisit"]) else timedelta(seconds=r["revisit"]),
                 number_samples=r["samples"]
             ),
             axis=1,
@@ -253,15 +231,13 @@ def coverage_tatc(request: CoverageRequest) -> CoverageResponse:
     ]
     records.sort(key=lambda r: r.target.id)
 
-    return CoverageResponse(
-        records=records,
-        harmonic_mean_revisit=None
-            if observations.dropna(subset="revisit").empty
-            else timedelta(seconds=hmean(observations.dropna(subset="revisit")["revisit"].dt.total_seconds())),
-        coverage_fraction=len(observations.index) / len(points)
+    harmonic_mean_revisit = (
+        None if observations['revisit'].dropna().empty
+        else timedelta(seconds=hmean(observations['revisit'].dropna()))
     )
 
-if __name__ == '__main__':
-    logging.debug('Starting TAT-C server...')
-    print("TAT-C Server running...")
-    app.run(host='localhost', port=5001)  # Running on port 5001 to avoid conflicts
+    return CoverageResponse(
+        records=records,
+        harmonic_mean_revisit=harmonic_mean_revisit,
+        coverage_fraction=len(observations.index) / len(points)
+    )
