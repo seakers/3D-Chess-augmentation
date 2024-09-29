@@ -43,7 +43,7 @@ logger.info("Starting TAT-C MQTT client... Log file is initialized.")
 BROKER_ADDRESS = 'localhost'  # Replace with your broker address
 BROKER_PORT = 1883
 CLIENT_ID = 'TAT-C_Evaluator'
-REQUEST_TOPIC = 'evaluation/requests/coverage'
+REQUEST_TOPIC = 'evaluation/requests'
 RESULT_TOPIC = 'evaluation/results/TAT-C'
 
 # Create a global MQTT client instance

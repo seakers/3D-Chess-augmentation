@@ -110,13 +110,23 @@ def parse_architecture(architecture_json):
             true_anomaly = orbit.get('trueAnomaly')
             epoch = orbit.get('epoch')
             try:
-                # Parse the epoch string from format "2019-08-01T00:00:00Z"
-                epoch_datetime = datetime.strptime(epoch, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                # Parse the epoch string from format "2019-08-01T00:00:00Z" and set microseconds to 0
+                epoch_datetime = datetime.strptime(epoch, "%Y-%m-%dT%H:%M:%SZ")
+                # Example output: datetime.datetime(2024, 6, 7, 9, 53, 34, 728000)
+                formatted_epoch = datetime(
+                    epoch_datetime.year,
+                    epoch_datetime.month,
+                    epoch_datetime.day,
+                    epoch_datetime.hour,
+                    epoch_datetime.minute,
+                    epoch_datetime.second,
+                    728000  
+                )
             except ValueError as e:
-                logger.error(f"Error parsing epoch: {epoch} - {e}")
-                epoch_datetime = datetime.now(timezone.utc)
+                print(f"Error parsing epoch: {epoch} - {e}")
+                formatted_epoch = datetime.now(timezone.utc).replace(microsecond=0)
             # Compute mean motion
-            mu = 3.986004418e5  # Earth's gravitational parameter in km^3/s^2
+            mu = 3.986e5  # Earth's gravitational parameter in km^3/s^2
             P = 2 * np.pi * np.sqrt((semimajor_axis**3) / mu)  # Orbital period in seconds
             mean_motion = (86400 / P)  # revs per day
 
@@ -125,7 +135,7 @@ def parse_architecture(architecture_json):
                 np.sqrt(1 - eccentricity**2) * np.sin(np.deg2rad(true_anomaly)),
                 eccentricity + np.cos(np.deg2rad(true_anomaly))
             )
-            mean_anomaly = (np.rad2deg(E) - eccentricity * np.sin(E)) % 360  # Normalize to [0, 360)
+            mean_anomaly = (np.rad2deg(E - eccentricity * np.sin(E))) % 360  # Normalize to [0, 360)
 
             # Extract field of view from the payload
             payload = sat.get('payload', [])
@@ -141,7 +151,7 @@ def parse_architecture(architecture_json):
             omm = {
                 "OBJECT_NAME": sat.get('name', 'Satellite'),
                 "OBJECT_ID": "1998-067A",
-                "EPOCH": epoch_datetime.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+                "EPOCH": formatted_epoch, 
                 "MEAN_MOTION": mean_motion,
                 "ECCENTRICITY": eccentricity,
                 "INCLINATION": inclination,
@@ -164,7 +174,7 @@ def parse_architecture(architecture_json):
             )
 
             satellites.append(sat_obj)
-            logger.debug(f'Created satellite: {sat_obj}')
+            logging.debug(f'Created satellite: {sat_obj}')
 
     return satellites
 

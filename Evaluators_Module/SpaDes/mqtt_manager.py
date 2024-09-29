@@ -43,8 +43,8 @@ logger.info("Starting SpaDes MQTT client... Log file is initialized.")
 BROKER_ADDRESS = 'localhost'  # Replace with your broker address
 BROKER_PORT = 1883
 CLIENT_ID = 'SpaDes_Evaluator'
-REQUEST_TOPIC = 'evaluation/requests/cost'
-RESULT_TOPIC = 'evaluation/results/cost'
+REQUEST_TOPIC = 'evaluation/requests'
+RESULT_TOPIC = 'evaluation/results/SpaDes'
 
 # Create a global MQTT client instance
 client = mqtt.Client(

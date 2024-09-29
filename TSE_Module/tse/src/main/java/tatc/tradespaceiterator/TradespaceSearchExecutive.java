@@ -83,7 +83,7 @@ public class TradespaceSearchExecutive {
                 serverScriptPath = evaluatorModulePath + File.separator + "mqtt_manager.py";
                 System.out.println("SpaDes is in the list of cost evaluators.");
                 // You can start the Python server here if needed
-                serverManager.startServer(5000, serverScriptPath);
+                //serverManager.startServer(5000, serverScriptPath);
             
             } else {
                 System.out.println("SpaDes is not in the list of cost evaluators.");
@@ -96,7 +96,7 @@ public class TradespaceSearchExecutive {
                 evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "TAT-C";
                 serverScriptPath = evaluatorModulePath + File.separator + "mqtt_manager.py";
                 // You can start the Python server here if needed
-                serverManager.startServer(5001, serverScriptPath);
+                //serverManager.startServer(5001, serverScriptPath);
             
             } else {
                 System.out.println("TAT-C is not in the list of cost evaluators.");
@@ -234,15 +234,16 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
     } catch (MqttException e) {
         e.printStackTrace();
         throw new IOException("MQTT communication error", e);
-    } finally {
-        // Disconnect from the MQTT broker
-        try {
-            publisher.disconnect();
-            subscriber.disconnect();
-        } catch (MqttException e) {
-            e.printStackTrace();
-        }
     }
+    // } finally {
+    //     // Disconnect from the MQTT broker
+    //     try {
+    //         publisher.disconnect();
+    //         subscriber.disconnect();
+    //     } catch (MqttException e) {
+    //         e.printStackTrace();
+    //     }
+    // }
 }
 
     public static void modifyLifecycleCost(String jsonFilePath, double totalMissionCosts) {
