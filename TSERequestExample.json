@@ -1,8 +1,29 @@
 {
-  "evaluator": {
-    "science_score": ["VASSAR", "TAT-C"],
-    "lifecycle_cost": ["SpaDes"]
-  },
+    "evaluator": {
+      "objectives": {
+        "science_score": {
+          "evaluators": [
+            {
+              "name": "VASSAR",
+              "metrics": ["coverageFraction", "harmonicMeanRevisitTime", "MeanResponseTime"]
+            },
+            {
+              "name": "TAT-C",
+              "metrics": ["coverageFraction", "harmonicMeanRevisitTime", "MeanResponseTime"]
+            }
+          ]
+        },
+        "lifecycle_cost": {
+          "evaluators": [
+            {
+              "name": "SpaDes",
+              "metrics": ["cost"]
+            }
+          ]
+        }
+      }
+    },
+  
   "mission": {
     "name": "TROPICS",
     "acronym": "TROPICS",
@@ -195,8 +216,8 @@
     "@type": "AnalysisSettings",
     "searchParameters": {
       "@type": "SearchParameters",
-      "maxNFE": 100,
-      "populationSize": 5,
+      "maxNFE": 500,
+      "populationSize": 50,
       "epsilons": 0.05,
       "sizeTournament": 2,
       "pCrossover": 0.9,

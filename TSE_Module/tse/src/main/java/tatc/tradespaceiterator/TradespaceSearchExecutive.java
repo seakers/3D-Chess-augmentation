@@ -46,6 +46,9 @@ public class TradespaceSearchExecutive {
      */
     private  String oPath;
 
+    private Map<String, List<String>> costEvaluators;
+    private Map<String, List<String>> scienceEvaluators;
+
     /**
      * Constructs the tradespace search executive
      * @param iPath the input path
@@ -76,9 +79,12 @@ public class TradespaceSearchExecutive {
             String content = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
             JSONObject tseRequest = new JSONObject(content);
             String tatcRoot = System.getProperty("tatc.root");
-            List<String> costEvaluators = parser.getCostEvaluators(tseRequest);
-            List<String> scienceEvaluators = parser.getScienceEvaluators(tseRequest);
-            if (costEvaluators.contains("SpaDes")) {
+            Map<String, List<String>> costEvaluators = parser.getCostEvaluators(tseRequest);
+            Map<String, List<String>> scienceEvaluators = parser.getScienceEvaluators(tseRequest);
+            // Store the parsed evaluators and metrics
+            this.costEvaluators = costEvaluators;
+            this.scienceEvaluators = scienceEvaluators;
+            if (costEvaluators.containsKey("SpaDes")) {
                 evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "SpaDes";
                 serverScriptPath = evaluatorModulePath + File.separator + "mqtt_manager.py";
                 System.out.println("SpaDes is in the list of cost evaluators.");
@@ -89,7 +95,7 @@ public class TradespaceSearchExecutive {
                 System.out.println("SpaDes is not in the list of cost evaluators.");
             }
 
-            if (scienceEvaluators.contains("TAT-C")) {
+            if (scienceEvaluators.containsKey("TAT-C")) {
                 evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "TAT-C";
                 serverScriptPath = evaluatorModulePath + File.separator + "tatc_server.py";
                 System.out.println("TAT-C is in the list of science evaluators.");
@@ -101,26 +107,27 @@ public class TradespaceSearchExecutive {
             } else {
                 System.out.println("TAT-C is not in the list of cost evaluators.");
             }
+            TradespaceSearch tsr = JSONIO.readJSON( new File(System.getProperty("tatc.input")),
+            TradespaceSearch.class);
+    
+            ProblemProperties searchProperties = this.createProblemProperties(tsr,tseRequest);
+
+            TradespaceSearchStrategy problem = this.createTradespaceSearchtrategy(tsr, searchProperties);
+
+            problem.start();
+
+            //Delete cache directory after tat-c run
+            String cacheDirectory = System.getProperty("tatc.output")+ File.separator + "cache";
+            if(!ResultIO.deleteDirectory(new File(cacheDirectory))){
+                System.out.println("Problem occurs when deleting the cache directory");
+            }
         } catch (IOException e) {
             System.out.println("Error reading the JSON file: " + e.getMessage());
             e.printStackTrace();
         }
 
 
-        TradespaceSearch tsr = JSONIO.readJSON( new File(System.getProperty("tatc.input")),
-                TradespaceSearch.class);
-        
-        ProblemProperties searchProperties = this.createProblemProperties(tsr);
 
-        TradespaceSearchStrategy problem = this.createTradespaceSearchtrategy(tsr, searchProperties);
-
-        problem.start();
-
-        //Delete cache directory after tat-c run
-        String cacheDirectory = System.getProperty("tatc.output")+ File.separator + "cache";
-        if(!ResultIO.deleteDirectory(new File(cacheDirectory))){
-            System.out.println("Problem occurs when deleting the cache directory");
-        }
     }
     /**
      * Method that evaluates an arch.json file using the architecture evaluator (arch_eval.py) located in
@@ -136,7 +143,8 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
         System.err.println("Error reading the JSON file: " + e.getMessage());
         throw e;
     }
-
+    Map<String, List<String>> costEvaluators = properties.getCostEvaluators();
+    Map<String, List<String>> scienceEvaluators = properties.getScienceEvaluators();
     // Prepare the request JSON with architecture and folder path
     JSONObject architectureJson = new JSONObject(jsonContent);
     JSONObject requestJson = new JSONObject();
@@ -144,7 +152,7 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
     requestJson.put("folderPath", architectureJsonFile.getParent());
     requestJson.put("workflow_id", UUID.randomUUID().toString()); // Unique ID for the workflow
 
-    String brokerUrl = "tcp://localhost:1883"; // Replace with your broker URL
+    String brokerUrl = "tcp://localhost:1883"; 
     String clientId = "TSE_Client";
     int qos = 1;
 
@@ -171,32 +179,41 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
                 JSONObject responseJson = new JSONObject(payload);
                 String evaluator = responseJson.getString("evaluator");
                 String workflowId = responseJson.getString("workflow_id");
-
+        
                 // Check if the response corresponds to our request
                 if (!workflowId.equals(requestJson.getString("workflow_id"))) {
                     return; // Ignore messages not related to our request
                 }
-
-                if (evaluator.equals("SpaDes")) {
-                    double cost = responseJson.getJSONObject("results").getDouble("cost");
-                    synchronized (costResult) {
-                        costResult.put("cost", cost);
-                    }
-                    latch.countDown();
-                } else if (evaluator.equals("TAT-C")) {
+        
+                // Dynamic handling of evaluators based on their metric definitions
+                if (costEvaluators.containsKey(evaluator)) {
                     JSONObject results = responseJson.getJSONObject("results");
-                    double harmonicMeanRevisitTime = results.getDouble("harmonicMeanRevisitTime");
-                    double coverageFraction = results.getDouble("coverageFraction");
-                    synchronized (coverageMetrics) {
-                        coverageMetrics.put("harmonicMeanRevisitTime", harmonicMeanRevisitTime);
-                        coverageMetrics.put("coverageFraction", coverageFraction);
+                    
+                    // Iterate over metrics related to the evaluator in cost objectives
+                    for (String metric : costEvaluators.get(evaluator)) {
+                        double value = results.getDouble(metric);
+                        synchronized (costResult) {
+                            costResult.put(metric, value); // Store each metric dynamically
+                        }
                     }
-                    latch.countDown();
+                    latch.countDown();  // Signal that this evaluator's results have been processed
+                } else if (scienceEvaluators.containsKey(evaluator)) {
+                    JSONObject results = responseJson.getJSONObject("results");
+        
+                    // Iterate over metrics related to the evaluator in science objectives
+                    for (String metric : scienceEvaluators.get(evaluator)) {
+                        double value = results.getDouble(metric);
+                        synchronized (coverageMetrics) {
+                            coverageMetrics.put(metric, value); // Store each metric dynamically
+                        }
+                    }
+                    latch.countDown();  // Signal that this evaluator's results have been processed
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         });
+        
 
         // Publish the evaluation request
         String requestTopic = "evaluation/requests";
@@ -356,8 +373,8 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
      * @return
      * @throws IllegalArgumentException
      */
-    private ProblemProperties createProblemProperties(TradespaceSearch tsr) throws IllegalArgumentException {
-        return new ProblemProperties(tsr);
+    private ProblemProperties createProblemProperties(TradespaceSearch tsr, JSONObject tseRequest) throws IllegalArgumentException {
+        return new ProblemProperties(tsr, tseRequest);
     }
     public static File findProjectRoot(File currentDir, String markerName) {
         File dir = currentDir;

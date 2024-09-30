@@ -16,7 +16,7 @@ public class PythonServerManager {
 
     public synchronized void startServer(int server_port,String serverScriptPath) throws IOException {
         this.server_port = server_port;
-        killProcessesOnPort(server_port);
+        //killProcessesOnPort(server_port);
         if (isServerRunning()) {
             System.out.println("Python server is already running.");
             isServerStartedByJava = false; // Server was not started by this Java process

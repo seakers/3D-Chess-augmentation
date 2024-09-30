@@ -3,46 +3,44 @@ package tatc.tradespaceiterator;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
 
 public class TSERequestParser {
-    public List<String> getScienceEvaluators(JSONObject tseRequest) {
-        JSONArray evaluators = tseRequest.getJSONObject("evaluator").getJSONArray("science_score");
-        return evaluators.toList().stream().map(Object::toString).collect(Collectors.toList());
-    }
+public Map<String, List<String>> getEvaluatorsForObjective(JSONObject tseRequest, String objectiveKey) {
+        Map<String, List<String>> evaluatorsAndMetrics = new HashMap<>();
+        JSONObject objectives = tseRequest.getJSONObject("evaluator").getJSONObject("objectives");
 
-    public List<String> getCostEvaluators(JSONObject tseRequest) {
-        JSONArray evaluators = tseRequest.getJSONObject("evaluator").getJSONArray("lifecycle_cost");
-        return evaluators.toList().stream().map(Object::toString).collect(Collectors.toList());
-    }
-    public static void main(String[] args) {
-        String jsonFilePath = "TSERequestExample.json";
-        try {
-            // Read the JSON file into a String
-            String content = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
+        if (objectives.has(objectiveKey)) {
+            JSONArray evaluators = objectives.getJSONObject(objectiveKey).getJSONArray("evaluators");
 
-            // Parse the String content into a JSONObject
-            JSONObject tseRequest = new JSONObject(content);
+            for (int i = 0; i < evaluators.length(); i++) {
+                JSONObject evaluator = evaluators.getJSONObject(i);
+                String evaluatorName = evaluator.getString("name");
+                List<String> metrics = evaluator.getJSONArray("metrics").toList().stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toList());
 
-            // Create an instance of TSERequestParser
-            TSERequestParser parser = new TSERequestParser();
-
-            // Get science evaluators
-            List<String> scienceEvaluators = parser.getScienceEvaluators(tseRequest);
-            System.out.println("Science Evaluators: " + scienceEvaluators);
-
-            // Get cost evaluators
-            List<String> costEvaluators = parser.getCostEvaluators(tseRequest);
-            System.out.println("Cost Evaluators: " + costEvaluators);
-
-        } catch (IOException e) {
-            System.out.println("Error reading the JSON file: " + e.getMessage());
-            e.printStackTrace();
+                evaluatorsAndMetrics.put(evaluatorName, metrics);
+            }
         }
+
+        return evaluatorsAndMetrics;
+    }
+
+    // To get evaluators and metrics for the science_score objective
+    public Map<String, List<String>> getScienceEvaluators(JSONObject tseRequest) {
+        return getEvaluatorsForObjective(tseRequest, "science_score");
+    }
+
+    // To get evaluators and metrics for the lifecycle_cost objective
+    public Map<String, List<String>> getCostEvaluators(JSONObject tseRequest) {
+        return getEvaluatorsForObjective(tseRequest, "lifecycle_cost");
     }
 }
 

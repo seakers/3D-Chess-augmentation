@@ -5,7 +5,11 @@ import tatc.architecture.specifications.TradespaceSearch;
 import tatc.architecture.variable.Decision;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.json.JSONObject;
+
+import tatc.tradespaceiterator.TSERequestParser;
 /**
  * Class that contains the properties of the constellation design problem.
  */
@@ -24,22 +28,34 @@ public class ProblemProperties {
     private final List<CompoundObjective> objectives;
 
     private static ProblemProperties instance;
-
+    private Map<String, List<String>> costEvaluators;
+    private Map<String, List<String>> scienceEvaluators;
     /**
      * Constructs the problem properties
      * @param tsr the tradespace search request
      */
-    public ProblemProperties(TradespaceSearch tsr) {
+    public ProblemProperties(TradespaceSearch tsr, JSONObject tsrJson) {
         this.tradespaceSearch = tsr;
         decisions = this.tradespaceSearch.TradespaceSearch2Decisions();
         objectives = this.tradespaceSearch.processObjectives();
         instance = this;
+        TSERequestParser parser = new TSERequestParser();
+        costEvaluators = parser.getCostEvaluators(tsrJson);
+        scienceEvaluators = parser.getScienceEvaluators(tsrJson);
+        
     }
 
     /**
      * Gets the tradespace search request
      * @return the tradespace search request
      */
+    public Map<String, List<String>> getCostEvaluators() {
+        return costEvaluators;
+    }
+    public Map<String, List<String>> getScienceEvaluators() {
+        return scienceEvaluators;
+    }
+
     public TradespaceSearch getTradespaceSearch() {
         return tradespaceSearch;
     }
