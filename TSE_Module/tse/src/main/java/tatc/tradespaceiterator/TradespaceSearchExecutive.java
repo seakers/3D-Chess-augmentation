@@ -162,6 +162,9 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
 
     // Create a CountDownLatch to wait for both responses
     CountDownLatch latch = new CountDownLatch(2);
+    // Calculate the total number of evaluators (cost + science)
+    // int totalEvaluators = costEvaluators.size() + scienceEvaluators.size();
+    // CountDownLatch latch = new CountDownLatch(totalEvaluators);
 
     // Maps to store results from evaluators
     Map<String, Double> costResult = new HashMap<>();
