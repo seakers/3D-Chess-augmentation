@@ -4,6 +4,7 @@ import logging
 import datetime
 from ConstellationDesignMain import evaluate_architecture
 import os
+import threading
 
 # Define the directory for logs
 log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
@@ -43,8 +44,8 @@ logger.info("Starting SpaDes MQTT client... Log file is initialized.")
 BROKER_ADDRESS = 'localhost'  # Replace with your broker address
 BROKER_PORT = 1883
 CLIENT_ID = 'SpaDes_Evaluator'
-REQUEST_TOPIC = 'evaluation/requests'
-RESULT_TOPIC = 'evaluation/results/SpaDes'
+REQUEST_TOPIC = 'evaluators/SpaDes'
+RESULT_TOPIC = 'TSE'
 
 # Create a global MQTT client instance
 client = mqtt.Client(
@@ -53,18 +54,8 @@ client = mqtt.Client(
     transport="tcp",
 )
 
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        logger.info("Connected to MQTT Broker!")
-        client.subscribe(REQUEST_TOPIC)
-        logger.info(f"Subscribed to topic: {REQUEST_TOPIC}")
-    else:
-        logger.error(f"Failed to connect, return code {rc}")
-
-def on_message(client, userdata, msg):
-    logger.debug(f"Message received on topic {msg.topic}: {msg.payload.decode()}")
+def process_request(data):
     try:
-        data = json.loads(msg.payload.decode())
         # Check if the message contains the necessary fields
         if 'architecture' in data and 'folderPath' in data and 'workflow_id' in data:
             architecture = data['architecture']
@@ -95,6 +86,23 @@ def on_message(client, userdata, msg):
 
         else:
             logger.error('Missing required fields in the message.')
+    except Exception as e:
+        logger.error(f"Error processing message: {str(e)}")
+
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        logger.info("Connected to MQTT Broker!")
+        client.subscribe(REQUEST_TOPIC)
+        logger.info(f"Subscribed to topic: {REQUEST_TOPIC}")
+    else:
+        logger.error(f"Failed to connect, return code {rc}")
+
+def on_message(client, userdata, msg):
+    logger.debug(f"Message received on topic {msg.topic}: {msg.payload.decode()}")
+    try:
+        data = json.loads(msg.payload.decode())
+        # Start a new thread to process each message
+        threading.Thread(target=process_request, args=(data,)).start()
     except Exception as e:
         logger.error(f"Error processing message: {str(e)}")
 

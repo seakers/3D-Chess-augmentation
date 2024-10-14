@@ -71,7 +71,7 @@ public class TradespaceSearchExecutive {
     public void run() throws IllegalArgumentException {
         this.setDirectories();
         TSERequestParser parser = new TSERequestParser();
-        String jsonFilePath = "TSERequestExample.json";
+        String jsonFilePath = iPath;
         PythonServerManager serverManager = new PythonServerManager();
         try{
             String evaluatorModulePath;
@@ -161,7 +161,7 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
     TSESubscriber subscriber = new TSESubscriber(brokerUrl, clientId + "_Subscriber");
 
     // Create a CountDownLatch to wait for both responses
-    CountDownLatch latch = new CountDownLatch(2);
+    CountDownLatch latch = new CountDownLatch(4);
     // Calculate the total number of evaluators (cost + science)
     // int totalEvaluators = costEvaluators.size() + scienceEvaluators.size();
     // CountDownLatch latch = new CountDownLatch(totalEvaluators);
@@ -176,7 +176,8 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
         subscriber.connect();
 
         // Subscribe to evaluation results
-        String resultTopic = "evaluation/results/#"; // Subscribe to all results
+        //String resultTopic = "evaluation/results/#"; // Subscribe to all results
+        String resultTopic = "TSE"; 
         subscriber.subscribe(resultTopic, qos, (topic, payload) -> {
             try {
                 JSONObject responseJson = new JSONObject(payload);
@@ -218,9 +219,15 @@ public static void evaluateArchitecture(File architectureJsonFile, ProblemProper
         });
         
 
-        // Publish the evaluation request
-        String requestTopic = "evaluation/requests";
-        publisher.publish(requestTopic, requestJson.toString(), qos);
+       // Define the topics for TAT-C and SpaDes evaluators
+        String tatcTopic = "evaluators/TATC";
+        String spadesTopic = "evaluators/SpaDes";
+
+        // Publish the evaluation request to both topics
+        publisher.publish(tatcTopic, requestJson.toString(), qos);
+        publisher.publish(tatcTopic, requestJson.toString(), qos);
+        publisher.publish(spadesTopic, requestJson.toString(), qos);
+        publisher.publish(spadesTopic, requestJson.toString(), qos);
 
         // Wait for responses from both evaluators or timeout after a certain period
         boolean allResponsesReceived = latch.await(300, TimeUnit.SECONDS);

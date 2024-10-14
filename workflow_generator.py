@@ -2,6 +2,7 @@ import json
 from neo4j import GraphDatabase
 
 class TSEWorkflowGenerator:
+    
     def __init__(self, neo4j_uri, neo4j_user, neo4j_password):
         # Initialize Neo4j driver
         self.driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
@@ -10,7 +11,7 @@ class TSEWorkflowGenerator:
         self.function_tool_map = {}      # Maps functions to the tools that will implement them
         self.dependency_graph = {}       # Stores dependencies between functions (for topological sorting)
         self.metric_function_map = {}    # Maps metrics to the functions that calculate them
-
+        self.function_levels = {}        # Stores the level of each function
     def close(self):
         # Close Neo4j driver
         self.driver.close()
@@ -74,21 +75,30 @@ class TSEWorkflowGenerator:
             else:
                 raise ValueError(f"Error: No available tools implement function '{function_name}'.")
 
-    def topological_sort_util(self, function_name, visited, stack):
-        # Utility function for topological sorting
-        visited.add(function_name)
-        for dep in self.dependency_graph.get(function_name, []):
-            if dep not in visited:
-                self.topological_sort_util(dep, visited, stack)
-        stack.append(function_name)
+    def compute_levels(self):
+        # Compute levels of functions based on dependencies
+        def assign_level(function_name, visited):
+            if function_name in visited:
+                return self.function_levels[function_name]
+            visited.add(function_name)
+            deps = self.dependency_graph.get(function_name, [])
+            if not deps:
+                self.function_levels[function_name] = 1
+            else:
+                self.function_levels[function_name] = 1 + max(assign_level(dep, visited) for dep in deps)
+            return self.function_levels[function_name]
+
+        visited = set()
+        for function in self.required_functions:
+            assign_level(function, visited)
 
     def generate_workflow(self, user_request):
         # Main function to generate the workflow
-        desired_metrics = user_request.get("metrics", [])
+        desired_metrics = user_request.get("metrics", {})
         tool_constraints = user_request.get("tool_constraints", {})
 
         # Step 1: Identify required functions
-        for metric in desired_metrics:
+        for metric in desired_metrics.keys():
             functions = self.get_functions_calculating_metric(metric)
             if not functions:
                 raise ValueError(f"Error: No functions calculate the metric '{metric}'.")
@@ -103,68 +113,63 @@ class TSEWorkflowGenerator:
                 user_tool = tool_constraints[function]
             self.assign_tool_to_function(function, user_tool)
 
-        # Step 3: Verify feasibility (additional compatibility checks can be added here)
+        # Step 3: Compute levels
+        self.compute_levels()
 
-        # Step 4: Construct workflow sequence (topological sort)
-        visited = set()
-        stack = []
-        for function in self.required_functions:
-            if function not in visited:
-                self.topological_sort_util(function, visited, stack)
-        # Reverse the stack to get the correct order
-        workflow_order = stack[::-1]
-
-        # Step 5: Build the workflow in the desired format
-        workflow = []
-        evaluator_map = {}  # Maps evaluators to their metrics and subscriptions
+        # Step 4: Construct evaluators
+        evaluator_map = {}  # Maps evaluators to their data
 
         # Map functions to evaluators (tools)
-        for function in workflow_order:
+        for function in self.required_functions:
             tool = self.function_tool_map[function]
             evaluator = tool
             if evaluator not in evaluator_map:
                 evaluator_map[evaluator] = {
                     "evaluator": evaluator,
+                    "level": None,  
                     "metrics": {},
-                    "subscribe": f"evaluators/{evaluator}",
-                    "publish": []
+                    "requiredFunctions": {},
+                    "subscribe": [],
+                    "publish": [],
                 }
 
         # Map metrics to evaluators
         for metric, functions in self.metric_function_map.items():
             for function in functions:
-                tool = self.function_tool_map.get(function)
-                if tool:
-                    evaluator_map[tool]["metrics"][metric] = tool
+                tool = self.function_tool_map[function]
+                evaluator_map[tool]["metrics"][metric] = tool
 
-        # Determine publish and subscribe relationships
+        # Assign required functions and levels for each evaluator
+        for function, tool in self.function_tool_map.items():
+            evaluator = tool
+            level = self.function_levels[function]
+            # Update evaluator level if higher
+            if evaluator_map[evaluator]["level"] is None or level > evaluator_map[evaluator]["level"]:
+                evaluator_map[evaluator]["level"] = level
+
+            # Add direct dependencies as required functions
+            deps = self.dependency_graph.get(function, [])
+            required_functions = {}
+            for dep in deps:
+                dep_tool = self.function_tool_map[dep]
+                required_functions[dep] = {
+                    "requiredTool": f"evaluators/{dep_tool}" if dep_tool != evaluator else "self"
+                }
+                if dep_tool != evaluator:
+                    evaluator_map[evaluator]["subscribe"].append(f"evaluators/{dep_tool}")
+
+            if required_functions:
+                evaluator_map[evaluator]["requiredFunctions"][function] = required_functions
+
         for evaluator in evaluator_map.values():
-            # Determine what this evaluator publishes to
-            if evaluator["evaluator"] == "TSE":
-                evaluator["publish"] = [f"evaluators/{ev}" for ev in evaluator_map if ev != "TSE"]
-            else:
-                evaluator["publish"] = "TSE"
-                # Determine what this evaluator subscribes to
-                dependencies = set()
-                for function in self.dependency_graph:
-                    if self.function_tool_map[function] == evaluator["evaluator"]:
-                        deps = self.dependency_graph.get(function, [])
-                        for dep in deps:
-                            dep_tool = self.function_tool_map.get(dep)
-                            if dep_tool and dep_tool != evaluator["evaluator"]:
-                                dependencies.add(f"evaluators/{dep_tool}")
-                if dependencies:
-                    evaluator["subscribe"] = list(dependencies)
-                else:
-                    evaluator["subscribe"] = f"evaluators/{evaluator['evaluator']}"
+            evaluator["subscribe"] = list(set(evaluator["subscribe"]))
+            evaluator["publish"] = "TSE"
 
-        # Build the workflow list
         workflow = list(evaluator_map.values())
 
-        # Build the evaluation objectives
         objectives = []
-        for metric in desired_metrics:
-            objective_type = "MAX" if "Benefit" in metric or "Score" in metric else "MIN"
+        for metric in desired_metrics.keys():
+            objective_type = desired_metrics[metric]
             objectives.append({
                 "objectiveName": metric,
                 "objectiveType": objective_type
