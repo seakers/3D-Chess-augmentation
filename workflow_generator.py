@@ -126,9 +126,8 @@ class TSEWorkflowGenerator:
             if evaluator not in evaluator_map:
                 evaluator_map[evaluator] = {
                     "evaluator": evaluator,
-                    "level": None,  
                     "metrics": {},
-                    "requiredFunctions": {},
+                    "implementedFunctions": {},
                     "subscribe": [],
                     "publish": [],
                 }
@@ -137,29 +136,32 @@ class TSEWorkflowGenerator:
         for metric, functions in self.metric_function_map.items():
             for function in functions:
                 tool = self.function_tool_map[function]
-                evaluator_map[tool]["metrics"][metric] = tool
+                evaluator_map[tool]["metrics"][metric] = function
 
         # Assign required functions and levels for each evaluator
         for function, tool in self.function_tool_map.items():
             evaluator = tool
-            level = self.function_levels[function]
-            # Update evaluator level if higher
-            if evaluator_map[evaluator]["level"] is None or level > evaluator_map[evaluator]["level"]:
-                evaluator_map[evaluator]["level"] = level
+            if evaluator_map[evaluator]["implementedFunctions"]:
+                implemented_functions = evaluator_map[evaluator]["implementedFunctions"]
+            else:
+                implemented_functions = {}
+            implemented_functions[function] = {
+                "dependencies": {}
+            }
+            dependencies = self.dependency_graph[function]
 
-            # Add direct dependencies as required functions
-            deps = self.dependency_graph.get(function, [])
-            required_functions = {}
-            for dep in deps:
-                dep_tool = self.function_tool_map[dep]
-                required_functions[dep] = {
-                    "requiredTool": f"evaluators/{dep_tool}" if dep_tool != evaluator else "self"
-                }
-                if dep_tool != evaluator:
-                    evaluator_map[evaluator]["subscribe"].append(f"evaluators/{dep_tool}")
+            if len(dependencies)!=0:
+                # Iterate over the dependencies and set their values accordingly
+                for dep_function in dependencies:
+                    dep_tool=self.function_tool_map[dep_function]
+                    implemented_functions[function]["dependencies"][dep_function] = (
+                        f"evaluators/{dep_tool}" if dep_tool != evaluator else "self"
+                    )
+            implemented_functions[function]["level"] = self.function_levels[function]
 
-            if required_functions:
-                evaluator_map[evaluator]["requiredFunctions"][function] = required_functions
+            evaluator_map[evaluator]["subscribe"].append(f"evaluators/{tool}")
+            if implemented_functions:
+                evaluator_map[evaluator]["implementedFunctions"] = implemented_functions
 
         for evaluator in evaluator_map.values():
             evaluator["subscribe"] = list(set(evaluator["subscribe"]))
