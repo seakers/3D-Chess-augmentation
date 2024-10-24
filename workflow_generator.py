@@ -4,9 +4,7 @@ from neo4j import GraphDatabase
 class TSEWorkflowGenerator:
     
     def __init__(self, neo4j_uri, neo4j_user, neo4j_password):
-        # Initialize Neo4j driver
         self.driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
-        # Initialize data structures
         self.required_functions = set()  # Stores all functions required to calculate the desired metrics
         self.function_tool_map = {}      # Maps functions to the tools that will implement them
         self.dependency_graph = {}       # Stores dependencies between functions (for topological sorting)
@@ -17,7 +15,6 @@ class TSEWorkflowGenerator:
         self.driver.close()
 
     def execute_query(self, query, parameters=None):
-        # Execute Cypher query and return results
         with self.driver.session() as session:
             result = session.run(query, parameters)
             return [record.data() for record in result]
@@ -69,7 +66,7 @@ class TSEWorkflowGenerator:
             """
             results = self.execute_query(query, {"function_name": function_name})
             if results:
-                # Select the first available tool (or implement a selection strategy)
+                # Select the first available tool
                 selected_tool = results[0]["tool_name"]
                 self.function_tool_map[function_name] = selected_tool
             else:
@@ -91,13 +88,64 @@ class TSEWorkflowGenerator:
         visited = set()
         for function in self.required_functions:
             assign_level(function, visited)
+    def infer_tool_dependencies_from_workflow(self, workflow):
+        # Initialize the tool dependency graph as a dictionary
+        self.tool_dependency_graph = {}
+        
+        # Loop through each tool (evaluator) in the workflow
+        for evaluator in workflow:
+            tool_name = evaluator['evaluator']
+            self.tool_dependency_graph[tool_name] = []  # Initialize the tool's dependencies
+            
+            # Get the functions implemented by this tool
+            functions = evaluator['implementedFunctions']
+            
+            # Loop through each function to determine its dependencies
+            for function_name, function_data in functions.items():
+                dependencies = function_data['dependencies']  # Function dependencies
+                
+                # Loop through dependencies of this function
+                for dep_function, dep_tool in dependencies.items():
+                    if dep_tool != "self":  # If the dependency comes from another tool
+                        self.tool_dependency_graph[tool_name].append(dep_tool.split("/")[1])  # Extract the dependent tool name
+
+        return self.tool_dependency_graph
+
+    def compute_tool_levels(self, workflow):
+        # Infer tool dependencies from the workflow
+        self.tool_dependency_graph = self.infer_tool_dependencies_from_workflow(workflow)
+
+        # Compute levels of tools based on the inferred dependencies
+        def assign_tool_level(tool_name, visited):
+            if tool_name in visited:
+                return self.tool_levels[tool_name]
+            visited.add(tool_name)
+            
+            # Get dependencies from the inferred tool dependency graph
+            deps = self.tool_dependency_graph.get(tool_name, [])
+            if not deps:
+                self.tool_levels[tool_name] = 1  # If no dependencies, assign level 1
+            else:
+                self.tool_levels[tool_name] = 1 + max(assign_tool_level(dep_tool, visited) for dep_tool in deps)
+            
+            return self.tool_levels[tool_name]
+
+        # Initialize visited set to avoid recomputation and circular dependencies
+        visited = set()
+        self.tool_levels = {}
+
+        # Loop through all tools in the workflow to assign levels
+        for evaluator in workflow:
+            tool_name = evaluator['evaluator']
+            assign_tool_level(tool_name, visited)
+
+        return self.tool_levels
 
     def generate_workflow(self, user_request):
         # Main function to generate the workflow
         desired_metrics = user_request.get("metrics", {})
         tool_constraints = user_request.get("tool_constraints", {})
 
-        # Step 1: Identify required functions
         for metric in desired_metrics.keys():
             functions = self.get_functions_calculating_metric(metric)
             if not functions:
@@ -106,20 +154,16 @@ class TSEWorkflowGenerator:
                 self.required_functions.add(function)
                 self.resolve_dependencies(function)
 
-        # Step 2: Assign tools to functions
         for function in self.required_functions:
             user_tool = None
             if function in tool_constraints:
                 user_tool = tool_constraints[function]
             self.assign_tool_to_function(function, user_tool)
 
-        # Step 3: Compute levels
         self.compute_levels()
 
-        # Step 4: Construct evaluators
         evaluator_map = {}  # Maps evaluators to their data
 
-        # Map functions to evaluators (tools)
         for function in self.required_functions:
             tool = self.function_tool_map[function]
             evaluator = tool
@@ -129,7 +173,7 @@ class TSEWorkflowGenerator:
                     "metrics": {},
                     "implementedFunctions": {},
                     "subscribe": [],
-                    "publish": [],
+                    "publish_metrics": [],
                 }
 
         # Map metrics to evaluators
@@ -165,10 +209,15 @@ class TSEWorkflowGenerator:
 
         for evaluator in evaluator_map.values():
             evaluator["subscribe"] = list(set(evaluator["subscribe"]))
-            evaluator["publish"] = "TSE"
+            evaluator["publish_metrics"] = "TSE"
 
         workflow = list(evaluator_map.values())
-
+        tool_levels = self.compute_tool_levels(workflow)
+        publish_map = {}
+        for metric, function in self.metric_function_map.items():
+            tool = self.function_tool_map[function[0]]
+            # Add the metric-to-tool mapping in the publish dictionary
+            publish_map[metric] = f"evaluators/{tool}/{function.pop()}"
         objectives = []
         for metric in desired_metrics.keys():
             objective_type = desired_metrics[metric]
@@ -176,14 +225,13 @@ class TSEWorkflowGenerator:
                 "objectiveName": metric,
                 "objectiveType": objective_type
             })
-
-        # Final output
         output = {
             "evaluation": {
                 "TSE": {
                     "objectives": objectives,
                     "subscribe": "TSE",
-                    "publish": [f"evaluators/{evaluator}" for evaluator in evaluator_map if evaluator != "TSE"]
+                    "publish_metric_requests": publish_map,
+                    "tool_levels": tool_levels
                 },
                 "workflow": workflow
             }
@@ -192,7 +240,6 @@ class TSEWorkflowGenerator:
         return output
 
 def main():
-    # Read user request from input JSON file
     with open('user_request.json', 'r') as infile:
         user_request = json.load(infile)
 
