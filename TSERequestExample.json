@@ -5,7 +5,7 @@
           "evaluators": [
             {
               "name": "VASSAR",
-              "metrics": ["coverageFraction", "harmonicMeanRevisitTime", "MeanResponseTime"]
+              "metrics": ["InstrumentPerformance"]
             },
             {
               "name": "TAT-C",

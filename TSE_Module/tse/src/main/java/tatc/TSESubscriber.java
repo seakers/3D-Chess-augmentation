@@ -42,13 +42,6 @@ public void subscribe(String topic, int qos, BiConsumer<String, String> messageH
     System.out.println("Subscribed to topic: " + topic);
 }
 
-    // Handle incoming messages
-    private void handleMessage(String topic, String payload) {
-        // Implement your logic to process the message
-        // For example, parse JSON and update the architecture
-        System.out.println("Processing message from topic \"" + topic + "\": " + payload);
-    }
-
     // Disconnect from the MQTT broker
     public void disconnect() throws MqttException {
         mqttClient.disconnect();

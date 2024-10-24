@@ -44,7 +44,7 @@ logger.info("Starting SpaDes MQTT client... Log file is initialized.")
 BROKER_ADDRESS = 'localhost'  # Replace with your broker address
 BROKER_PORT = 1883
 CLIENT_ID = 'SpaDes_Evaluator'
-REQUEST_TOPIC = 'evaluators/SpaDes'
+REQUEST_TOPIC = 'evaluators/SpaDes/CostModel'
 RESULT_TOPIC = 'TSE'
 
 # Create a global MQTT client instance
@@ -57,18 +57,16 @@ client = mqtt.Client(
 def process_request(data):
     try:
         # Check if the message contains the necessary fields
-        if 'architecture' in data and 'folderPath' in data and 'workflow_id' in data:
+        if 'architecture' in data and 'workflow_id' in data:
             architecture = data['architecture']
-            folder_path = data['folderPath']
             workflow_id = data['workflow_id']
 
             logger.debug(f'Processing architecture: {architecture}')
-            logger.debug(f'Folder path: {folder_path}')
             logger.debug(f'Workflow ID: {workflow_id}')
 
             # Perform cost evaluation
             logger.debug('Starting cost evaluation...')
-            cost = evaluate_architecture(architecture, folder_path)
+            cost = evaluate_architecture(architecture)
             logger.debug(f'Cost evaluation completed. Result: {cost}')
 
             # Prepare the result message
@@ -76,10 +74,9 @@ def process_request(data):
                 'evaluator': 'SpaDes',
                 'workflow_id': workflow_id,
                 'results': {
-                    'cost': float(cost)
+                    'LifecycleCost': float(cost)
                 }
             }
-
             # Publish the result
             client.publish(RESULT_TOPIC, json.dumps(result))
             logger.debug(f"Published result to topic {RESULT_TOPIC}: {result}")

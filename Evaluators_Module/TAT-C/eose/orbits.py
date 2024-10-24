@@ -1,9 +1,19 @@
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
 from sgp4 import exporter, omm
 from sgp4.api import Satrec
+
+
+class Propagator(str, Enum):
+    """
+    Enumeration of different orbit propagators.
+    """
+
+    SGP4 = "sgp4"
+    J2 = "j2"
 
 
 class GeneralPerturbationsOrbitState(BaseModel):
@@ -13,7 +23,7 @@ class GeneralPerturbationsOrbitState(BaseModel):
         ..., description="Epoch (time of orbit element specification)."
     )
     mean_motion: float = Field(
-        ..., gt=0, description="Mean motion (revolutions per day)."
+        ..., gt=0, lt=100, description="Mean motion (revolutions per day)."
     )
     eccentricity: float = Field(..., ge=0, lt=1, description="Eccentricity.")
     inclination: float = Field(..., ge=0, le=180, description="Inclination (degrees).")

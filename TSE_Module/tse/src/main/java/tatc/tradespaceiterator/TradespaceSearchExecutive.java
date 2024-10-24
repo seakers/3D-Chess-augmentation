@@ -13,7 +13,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import tatc.TSESubscriber;
@@ -21,6 +23,7 @@ import tatc.TSESubscriber;
 import tatc.tradespaceiterator.TSERequestParser;
 
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.Random;
@@ -48,6 +51,7 @@ public class TradespaceSearchExecutive {
 
     private Map<String, List<String>> costEvaluators;
     private Map<String, List<String>> scienceEvaluators;
+    private Map<String, List<String>> evaluators;
 
     /**
      * Constructs the tradespace search executive
@@ -79,11 +83,11 @@ public class TradespaceSearchExecutive {
             String content = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
             JSONObject tseRequest = new JSONObject(content);
             String tatcRoot = System.getProperty("tatc.root");
-            Map<String, List<String>> costEvaluators = parser.getCostEvaluators(tseRequest);
-            Map<String, List<String>> scienceEvaluators = parser.getScienceEvaluators(tseRequest);
+            Map<String, List<String>> evaluators = parser.getWorkflow(tseRequest);
             // Store the parsed evaluators and metrics
-            this.costEvaluators = costEvaluators;
-            this.scienceEvaluators = scienceEvaluators;
+            this.costEvaluators = evaluators;
+            this.scienceEvaluators = evaluators;
+            this.evaluators = evaluators;
             if (costEvaluators.containsKey("SpaDes")) {
                 evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "SpaDes";
                 serverScriptPath = evaluatorModulePath + File.separator + "mqtt_manager.py";
@@ -113,6 +117,14 @@ public class TradespaceSearchExecutive {
             ProblemProperties searchProperties = this.createProblemProperties(tsr,tseRequest);
 
             TradespaceSearchStrategy problem = this.createTradespaceSearchtrategy(tsr, searchProperties);
+            String brokerUrl = "tcp://localhost:1883"; 
+            String clientId = "TSE_Client";
+            int qos = 1;
+        
+            // Initialize Publisher and Subscriber
+            TSEPublisher publisher = new TSEPublisher(brokerUrl, clientId + "_Publisher");
+            TSESubscriber subscriber = new TSESubscriber(brokerUrl, clientId + "_Subscriber");
+            
 
             problem.start();
 
@@ -134,145 +146,157 @@ public class TradespaceSearchExecutive {
      * the demo folder. In this method we are calling python from java.
      * @param architectureJSONFile the architecture file that needs to be evaluated
      */
-public static void evaluateArchitecture(File architectureJsonFile, ProblemProperties properties) throws IOException, InterruptedException {
-    // Read the JSON content from the architecture file
-    String jsonContent;
-    try {
-        jsonContent = new String(Files.readAllBytes(architectureJsonFile.toPath()), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-        System.err.println("Error reading the JSON file: " + e.getMessage());
-        throw e;
-    }
-    Map<String, List<String>> costEvaluators = properties.getCostEvaluators();
-    Map<String, List<String>> scienceEvaluators = properties.getScienceEvaluators();
-    // Prepare the request JSON with architecture and folder path
-    JSONObject architectureJson = new JSONObject(jsonContent);
-    JSONObject requestJson = new JSONObject();
-    requestJson.put("architecture", architectureJson);
-    requestJson.put("folderPath", architectureJsonFile.getParent());
-    requestJson.put("workflow_id", UUID.randomUUID().toString()); // Unique ID for the workflow
+    public static void evaluateArchitecture(File architectureJsonFile, ProblemProperties properties) throws IOException, InterruptedException {
+        // Read the JSON content from the architecture file
+        String jsonContent;
+        try {
+            jsonContent = new String(Files.readAllBytes(architectureJsonFile.toPath()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            System.err.println("Error reading the JSON file: " + e.getMessage());
+            throw e;
+        }
 
-    String brokerUrl = "tcp://localhost:1883"; 
-    String clientId = "TSE_Client";
-    int qos = 1;
+        // Retrieve metric topics from properties
+        Map<String, String> metricTopics = properties.getMetricTopics();   // Map of metrics to their topics
 
-    // Initialize Publisher and Subscriber
-    TSEPublisher publisher = new TSEPublisher(brokerUrl, clientId + "_Publisher");
-    TSESubscriber subscriber = new TSESubscriber(brokerUrl, clientId + "_Subscriber");
+        // Prepare the architecture JSON and unique workflow ID
+        JSONObject architectureJson = new JSONObject(jsonContent);
+        String workflowId = UUID.randomUUID().toString(); // Unique ID for the workflow
 
-    // Create a CountDownLatch to wait for both responses
-    CountDownLatch latch = new CountDownLatch(4);
-    // Calculate the total number of evaluators (cost + science)
-    // int totalEvaluators = costEvaluators.size() + scienceEvaluators.size();
-    // CountDownLatch latch = new CountDownLatch(totalEvaluators);
+        // Prepare a set to keep track of all expected metrics
+        HashSet<String> expectedMetrics = new HashSet<>(metricTopics.keySet());
 
-    // Maps to store results from evaluators
-    Map<String, Double> costResult = new HashMap<>();
-    Map<String, Object> coverageMetrics = new HashMap<>();
+        // Initialize MQTT Publisher and Subscriber
+        String brokerUrl = "tcp://localhost:1883";
+        String clientId = "TSE_Client_" + UUID.randomUUID();
+        int qos = 1;
 
-    try {
-        // Connect to the MQTT broker
-        publisher.connect();
-        subscriber.connect();
+        TSEPublisher publisher = new TSEPublisher(brokerUrl, clientId + "_Publisher");
+        TSESubscriber subscriber = new TSESubscriber(brokerUrl, clientId + "_Subscriber");
 
-        // Subscribe to evaluation results
-        //String resultTopic = "evaluation/results/#"; // Subscribe to all results
-        String resultTopic = "TSE"; 
-        subscriber.subscribe(resultTopic, qos, (topic, payload) -> {
-            try {
-                JSONObject responseJson = new JSONObject(payload);
-                String evaluator = responseJson.getString("evaluator");
-                String workflowId = responseJson.getString("workflow_id");
-        
-                // Check if the response corresponds to our request
-                if (!workflowId.equals(requestJson.getString("workflow_id"))) {
-                    return; // Ignore messages not related to our request
-                }
-        
-                // Dynamic handling of evaluators based on their metric definitions
-                if (costEvaluators.containsKey(evaluator)) {
+        // Map to store results from evaluators
+        Map<String, Double> metricResults = new HashMap<>();
+
+        // Create a CountDownLatch to wait for all metric results
+        CountDownLatch latch = new CountDownLatch(expectedMetrics.size());
+
+        try {
+            // Connect to the MQTT broker
+            publisher.connect();
+            subscriber.connect();
+
+            // Subscribe to the result topic
+            String resultTopic = "TSE";
+            subscriber.subscribe(resultTopic, qos, (topic, payload) -> {
+                try {
+                    JSONObject responseJson = new JSONObject(payload);
+                    String responseWorkflowId = responseJson.getString("workflow_id");
+
+                    // Check if the response corresponds to our request
+                    if (!responseWorkflowId.equals(workflowId)) {
+                        return; // Ignore messages not related to our request
+                    }
+
+                    // Extract results
                     JSONObject results = responseJson.getJSONObject("results");
-                    
-                    // Iterate over metrics related to the evaluator in cost objectives
-                    for (String metric : costEvaluators.get(evaluator)) {
-                        double value = results.getDouble(metric);
-                        synchronized (costResult) {
-                            costResult.put(metric, value); // Store each metric dynamically
+
+                    synchronized (metricResults) {
+                        // Store each metric received
+                        for (String metric : results.keySet()) {
+                            double value = results.getDouble(metric);
+                            metricResults.put(metric, value);
+                            latch.countDown(); // Decrement the latch for each metric received
                         }
                     }
-                    latch.countDown();  // Signal that this evaluator's results have been processed
-                } else if (scienceEvaluators.containsKey(evaluator)) {
-                    JSONObject results = responseJson.getJSONObject("results");
-        
-                    // Iterate over metrics related to the evaluator in science objectives
-                    for (String metric : scienceEvaluators.get(evaluator)) {
-                        double value = results.getDouble(metric);
-                        synchronized (coverageMetrics) {
-                            coverageMetrics.put(metric, value); // Store each metric dynamically
-                        }
-                    }
-                    latch.countDown();  // Signal that this evaluator's results have been processed
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
-            } catch (JSONException e) {
-                e.printStackTrace();
+            });
+
+            // Generate and publish requests for each metric
+            for (Map.Entry<String, String> entry : metricTopics.entrySet()) {
+                String metric = entry.getKey();
+                String topic = entry.getValue(); // e.g., "evaluators/TATC/CoverageAnalysis"
+
+                // Parse the topic to get evaluator and function
+                String[] topicParts = topic.split("/");
+                if (topicParts.length != 3) {
+                    System.err.println("Invalid topic format for metric " + metric + ": " + topic);
+                    continue; // Skip invalid topic
+                }
+                String evaluatorName = topicParts[1]; // e.g., "TATC"
+                String functionName = topicParts[2];  // e.g., "CoverageAnalysis"
+
+                // Build the request JSON for this function
+                JSONObject evaluatorRequestJson = new JSONObject();
+                evaluatorRequestJson.put("architecture", architectureJson);
+                evaluatorRequestJson.put("workflow_id", workflowId);
+                evaluatorRequestJson.put("function", functionName);
+                evaluatorRequestJson.put("metric", metric);
+                evaluatorRequestJson.put("result_topic", "TSE"); // The topic to return results to
+
+                // Publish the request to the topic
+                publisher.publish(topic, evaluatorRequestJson.toString(), qos);
+
+                System.out.println("Published request for metric '" + metric + "' to topic '" + topic + "'");
+                System.out.println("Request JSON: " + evaluatorRequestJson.toString(2)); // Pretty-print with indentation
             }
-        });
-        
 
-       // Define the topics for TAT-C and SpaDes evaluators
-        String tatcTopic = "evaluators/TATC";
-        String spadesTopic = "evaluators/SpaDes";
+            // Wait for responses from all evaluators or timeout after a certain period
+            boolean allResponsesReceived = latch.await(300, TimeUnit.SECONDS);
+            if (!allResponsesReceived) {
+                throw new IOException("Did not receive responses for all metrics within the timeout period.");
+            }
 
-        // Publish the evaluation request to both topics
-        publisher.publish(tatcTopic, requestJson.toString(), qos);
-        publisher.publish(tatcTopic, requestJson.toString(), qos);
-        publisher.publish(spadesTopic, requestJson.toString(), qos);
-        publisher.publish(spadesTopic, requestJson.toString(), qos);
+            // Process the results
+            String folderPath = architectureJsonFile.getParent();
 
-        // Wait for responses from both evaluators or timeout after a certain period
-        boolean allResponsesReceived = latch.await(300, TimeUnit.SECONDS);
-        if (!allResponsesReceived) {
-            throw new IOException("Did not receive responses from all evaluators within the timeout period.");
+            // Example processing using modifyLifecycleCost and modifyCoverageMetrics functions
+            if (!metricResults.isEmpty()) {
+                // Process LifecycleCost metric
+                if (metricResults.containsKey("LifecycleCost")) {
+                    double cost = metricResults.get("LifecycleCost");
+                    modifyLifecycleCost(folderPath, cost);
+                } else {
+                    System.err.println("LifecycleCost metric not received.");
+                }
+
+                // Process CoverageFraction and HarmonicMeanRevisitTime metrics
+                if (metricResults.containsKey("CoverageFraction") || metricResults.containsKey("HarmonicMeanRevisitTime")) {
+                    double coverageFraction = metricResults.getOrDefault("CoverageFraction", 0.0);
+                    double revisitTime = metricResults.getOrDefault("HarmonicMeanRevisitTime", 0.0);
+
+                    // For demonstration, use revisitTime for avg, max, and min
+                    double[] revisitTimes = { revisitTime, revisitTime, revisitTime };
+                    double[] responseTimes = { revisitTime, revisitTime, revisitTime };
+                    double coverage = coverageFraction;
+
+                    modifyCoverageMetrics(folderPath, revisitTimes, responseTimes, coverage);
+                } else {
+                    System.err.println("Coverage metrics not received.");
+                }
+
+                // Process other metrics as needed
+                // You can add additional processing for other metrics here
+
+            } else {
+                System.err.println("No metrics received.");
+            }
+
+        } catch (MqttException e) {
+            e.printStackTrace();
+            throw new IOException("MQTT communication error", e);
         }
-
-        // Process the results
-        String folderPath = architectureJsonFile.getParent();
-
-        // Update lifecycle cost
-        if (costResult.containsKey("cost")) {
-            modifyLifecycleCost(folderPath, costResult.get("cost"));
-        } else {
-            System.err.println("Cost result not received.");
-        }
-
-        // Update coverage metrics
-        if (!coverageMetrics.isEmpty()) {
-            double harmonicMeanRevisitTime = (double) coverageMetrics.get("harmonicMeanRevisitTime");
-            double coverageFraction = (double) coverageMetrics.get("coverageFraction");
-            // For demonstration, use harmonicMeanRevisitTime for avg, max, and min
-            double[] revisitTime = { harmonicMeanRevisitTime, harmonicMeanRevisitTime, harmonicMeanRevisitTime };
-            double[] responseTime = { harmonicMeanRevisitTime, harmonicMeanRevisitTime, harmonicMeanRevisitTime };
-            double coverage = coverageFraction;
-            modifyCoverageMetrics(folderPath, revisitTime, responseTime, coverage);
-        } else {
-            System.err.println("Coverage metrics not received.");
-        }
-
-    } catch (MqttException e) {
-        e.printStackTrace();
-        throw new IOException("MQTT communication error", e);
+        // } finally {
+        //     // Disconnect from the MQTT broker
+        //     try {
+        //         publisher.disconnect();
+        //         subscriber.disconnect();
+        //     } catch (MqttException e) {
+        //         e.printStackTrace();
+        //     }
+        // }
     }
-    // } finally {
-    //     // Disconnect from the MQTT broker
-    //     try {
-    //         publisher.disconnect();
-    //         subscriber.disconnect();
-    //     } catch (MqttException e) {
-    //         e.printStackTrace();
-    //     }
-    // }
-}
-
     public static void modifyLifecycleCost(String jsonFilePath, double totalMissionCosts) {
         String costRiskFilePath = jsonFilePath + File.separator + "CostRisk_output.json";
         JSONObject data;

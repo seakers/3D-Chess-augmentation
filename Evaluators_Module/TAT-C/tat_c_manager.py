@@ -83,16 +83,15 @@ def evaluate_coverage(architecture_json):
         None if response.harmonic_mean_revisit is None else
         response.harmonic_mean_revisit.total_seconds() / 3600  # Convert to hours
     )
-    coverage_fraction = response.coverage_fraction * 100  # Convert to percentage
+    coverage_fraction = response.coverage_fraction
 
     logger.debug(f'Harmonic Mean Revisit Time: {harmonic_mean_revisit} hours')
     logger.debug(f'Coverage Fraction: {coverage_fraction}%')
 
     # Return the coverage metrics
     return {
-        'harmonicMeanRevisitTime': harmonic_mean_revisit,
-        'MeanResponseTime': harmonic_mean_revisit,
-        'coverageFraction': coverage_fraction
+        'HarmonicMeanRevisitTime': harmonic_mean_revisit,
+        'CoverageFraction': coverage_fraction
     }
 
 def parse_architecture(architecture_json):
@@ -101,6 +100,7 @@ def parse_architecture(architecture_json):
     for constellation in architecture_json.get('spaceSegment', []):
         for sat in constellation.get('satellites', []):
             # Extract orbital parameters
+            sat_id = sat.get('@id', 'Unknown')
             orbit = sat.get('orbit', {})
             semimajor_axis = orbit.get('semimajorAxis')  # km
             eccentricity = orbit.get('eccentricity')
@@ -169,8 +169,9 @@ def parse_architecture(architecture_json):
             }
 
             sat_obj = Satellite(
+                id=sat_id,
                 orbit=GeneralPerturbationsOrbitState.from_omm(omm),
-                field_of_view=field_of_regard
+                field_of_view=field_of_regard,
             )
 
             satellites.append(sat_obj)
@@ -196,7 +197,7 @@ def coverage_tatc(request: CoverageRequest) -> CoverageResponse:
             instruments=[
                 Instrument(
                     name="Default",
-                    field_of_regard=satellite.field_of_view
+                    field_of_regard=114
                 )
             ]
         )

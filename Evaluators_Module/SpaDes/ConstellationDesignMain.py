@@ -64,8 +64,7 @@ import os
 logging.basicConfig(level=logging.DEBUG, filename='debug.log', filemode='w',
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-def evaluate_architecture(arch_json, arch_folder_path):
-    arch_path = os.path.join(arch_folder_path, 'arch.json')
+def evaluate_architecture(arch_json):
     #cost_risk_path = os.path.join(arch_folder_path, 'CostRisk_output.json')
     #logging.debug(f"Architecture JSON path: {arch_path}")    
     
