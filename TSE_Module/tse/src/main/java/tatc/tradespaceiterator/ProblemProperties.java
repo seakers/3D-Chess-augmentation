@@ -30,7 +30,7 @@ public class ProblemProperties {
     private static ProblemProperties instance;
     private Map<String, List<String>> costEvaluators;
     private Map<String, List<String>> scienceEvaluators;
-    private Map<String, List<String>> evaluators;
+    private Map<String, JSONObject> evaluators;
     Map<String, String> metricTopics;
     /**
      * Constructs the problem properties
@@ -56,7 +56,7 @@ public class ProblemProperties {
     public Map<String, List<String>> getScienceEvaluators() {
         return scienceEvaluators;
     }
-    public Map<String, List<String>> getEvaluators() {
+    public Map<String, JSONObject> getEvaluators() {
         return evaluators;
     }
     public Map<String, String> getMetricTopics() {

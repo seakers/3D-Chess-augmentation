@@ -8,7 +8,7 @@ import threading
 # Import your TAT-C specific modules
 from tat_c_manager import evaluate_coverage
 from propagation_interface import perform_orbit_propagation
-
+from access_response import perform_access_response
 class TATCEvaluator:
     # Define the directory for logs
     LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
@@ -24,6 +24,7 @@ class TATCEvaluator:
         'OrbitPropagation': perform_orbit_propagation,
         'RevisitAnalysis': evaluate_coverage,
         'CoverageAnalysis': evaluate_coverage,
+        'AccessTime': perform_access_response
     }
 
     METRICS = ['CoverageFraction', 'HarmonicMeanRevisitTime']
@@ -144,8 +145,6 @@ class TATCEvaluator:
                 result_topic = f"{self.RESULT_TOPIC_PREFIX}/{workflow_id}/{function_name}"
 
                 # Publish the result
-                self.client.publish(result_topic, json.dumps(result))
-                self.logger.debug(f"Published result to topic {result_topic}: {result}")
                 self.client.publish(publish_metrics_topic, json.dumps(result))
                 self.logger.debug(f"Published result to topic {publish_metrics_topic}: {result}")
             else:

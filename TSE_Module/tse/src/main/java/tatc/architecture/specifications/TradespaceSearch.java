@@ -5,7 +5,7 @@ import org.hipparchus.util.FastMath;
 import tatc.architecture.variable.Decision;
 import tatc.util.Combinatorics;
 import tatc.util.Utilities;
-
+import tatc.architecture.specifications.PassiveOpticalScanner;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -101,7 +101,7 @@ public class TradespaceSearch implements Serializable {
     public HashMap<String,Decision<?>> TradespaceSearch2Decisions(){
 
         HashMap<String,Decision<?>> decisions = new HashMap<>();
-
+        //TODO: Here is where design decisions are chosen
         int constellationCount=0;
         for (Constellation c : this.getDesignSpace().getSpaceSegment()){
             if (!c.getConstellationType().equalsIgnoreCase("EXISTING")){
@@ -109,87 +109,243 @@ public class TradespaceSearch implements Serializable {
                 switch (c.getConstellationType()) {
                     case "DELTA_HOMOGENEOUS":
 
-                        if (orbitSpecification.getAltitudeType()==List.class){
-                            decisions.put(String.format("HomoAltitude%d",constellationCount),new Decision<>("Integer",(List<Double>) orbitSpecification.getAltitude()));
-                        }else if (orbitSpecification.getAltitudeType()==QuantitativeRange.class){
-                            decisions.put(String.format("HomoAltitude%d",constellationCount),new Decision<>("Integer", ((QuantitativeRange)orbitSpecification.getAltitude()).discretize()));
-                        }else {
-                            // Not a decision
-                            List<Double> altitude = new ArrayList<>();
-                            altitude.add((Double) orbitSpecification.getAltitude());
-                            decisions.put(String.format("HomoAltitude%d",constellationCount),new Decision<>("Integer", altitude));
-                        }
+                    // Altitude
+                    if (orbitSpecification.getAltitudeType() == List.class) {
+                        decisions.put(String.format("HomoAltitude%d", constellationCount),
+                                new Decision<>("Integer", (List<Double>) orbitSpecification.getAltitude()));
+                    } else if (orbitSpecification.getAltitudeType() == QuantitativeRange.class) {
+                        decisions.put(String.format("HomoAltitude%d", constellationCount),
+                                new Decision<>("Integer", ((QuantitativeRange) orbitSpecification.getAltitude()).discretize()));
+                    } else {
+                        // Not a decision
+                        List<Double> altitude = new ArrayList<>();
+                        altitude.add((Double) orbitSpecification.getAltitude());
+                        decisions.put(String.format("HomoAltitude%d", constellationCount),
+                                new Decision<>("Integer", altitude));
+                    }
 
-                        if (orbitSpecification.getInclinationType()==List.class){
-                            decisions.put(String.format("HomoInclination%d",constellationCount),new Decision<>("Integer",(List<Object>) orbitSpecification.getInclination()));
-                        }else if (orbitSpecification.getInclinationType()==QuantitativeRange.class){
-                            decisions.put(String.format("HomoInclination%d",constellationCount),new Decision<>("Integer", ((QuantitativeRange)orbitSpecification.getInclination()).discretize()));
-                        }else {
-                            // Not a decision
-                            List<Object> inclination = new ArrayList<>();
-                            inclination.add(orbitSpecification.getInclination());
-                            decisions.put(String.format("HomoInclination%d",constellationCount),new Decision<>("Integer", inclination));
-                        }
+                    // Inclination
+                    if (orbitSpecification.getInclinationType() == List.class) {
+                        decisions.put(String.format("HomoInclination%d", constellationCount),
+                                new Decision<>("Integer", (List<Object>) orbitSpecification.getInclination()));
+                    } else if (orbitSpecification.getInclinationType() == QuantitativeRange.class) {
+                        decisions.put(String.format("HomoInclination%d", constellationCount),
+                                new Decision<>("Integer", ((QuantitativeRange) orbitSpecification.getInclination()).discretize()));
+                    } else {
+                        // Not a decision
+                        List<Object> inclination = new ArrayList<>();
+                        inclination.add(orbitSpecification.getInclination());
+                        decisions.put(String.format("HomoInclination%d", constellationCount),
+                                new Decision<>("Integer", inclination));
+                    }
 
-                        if (c.getNumberSatellitesType()==List.class){
-                            decisions.put(String.format("HomoNumberSatellites%d",constellationCount),new Decision<>("Integer",(List<Integer>) c.getNumberSatellites()));
-                        }else if (c.getNumberSatellitesType()==QuantitativeRange.class){
-                            List <Double> numberSatellitesQuantitativeRange = ((QuantitativeRange)c.getNumberSatellites()).discretize();
-                            List <Integer> numberSatellites = new ArrayList<>();
-                            for (Double d : numberSatellitesQuantitativeRange){
-                                numberSatellites.add(d.intValue());
+                    // Number of Satellites
+                    if (c.getNumberSatellitesType() == List.class) {
+                        decisions.put(String.format("HomoNumberSatellites%d", constellationCount),
+                                new Decision<>("Integer", (List<Integer>) c.getNumberSatellites()));
+                    } else if (c.getNumberSatellitesType() == QuantitativeRange.class) {
+                        List<Double> numberSatellitesQuantitativeRange = ((QuantitativeRange) c.getNumberSatellites()).discretize();
+                        List<Integer> numberSatellites = new ArrayList<>();
+                        for (Double d : numberSatellitesQuantitativeRange) {
+                            numberSatellites.add(d.intValue());
+                        }
+                        decisions.put(String.format("HomoNumberSatellites%d", constellationCount),
+                                new Decision<>("Integer", numberSatellites));
+                    } else {
+                        // Not a decision
+                        List<Integer> nsat = new ArrayList<>();
+                        nsat.add((Integer) c.getNumberSatellites());
+                        decisions.put(String.format("HomoNumberSatellites%d", constellationCount),
+                                new Decision<>("Integer", nsat));
+                    }
+
+                    // Number of Planes
+                    if (c.getNumberPlanesType() == List.class) {
+                        decisions.put(String.format("HomoNumberPlanes%d", constellationCount),
+                                new Decision<>("Integer", (List<Integer>) c.getNumberPlanes()));
+                    } else if (c.getNumberPlanesType() == QuantitativeRange.class) {
+                        List<Double> numberPlanesQuantitativeRange = ((QuantitativeRange) c.getNumberPlanes()).discretize();
+                        List<Integer> numberPlanes = new ArrayList<>();
+                        for (Double d : numberPlanesQuantitativeRange) {
+                            numberPlanes.add(d.intValue());
+                        }
+                        decisions.put(String.format("HomoNumberPlanes%d", constellationCount),
+                                new Decision<>("Integer", numberPlanes));
+                    } else if (c.getNumberPlanesType() == null) {
+                        decisions.put(String.format("HomoNumberPlanes%d", constellationCount),
+                                new Decision<>("Integer", null));
+                    } else {
+                        // Not a decision
+                        List<Integer> nplanes = new ArrayList<>();
+                        nplanes.add((Integer) c.getNumberPlanes());
+                        decisions.put(String.format("HomoNumberPlanes%d", constellationCount),
+                                new Decision<>("Integer", nplanes));
+                    }
+
+                    // Relative Spacing
+                    if (c.getRelativeSpacingType() == List.class) {
+                        decisions.put(String.format("HomoRelativeSpacing%d", constellationCount),
+                                new Decision<>("Integer", (List<Integer>) c.getRelativeSpacing()));
+                    } else if (c.getRelativeSpacingType() == QuantitativeRange.class) {
+                        List<Double> relSpacingQuantitativeRange = ((QuantitativeRange) c.getRelativeSpacing()).discretize();
+                        List<Integer> relSpacing = new ArrayList<>();
+                        for (Double d : relSpacingQuantitativeRange) {
+                            relSpacing.add(d.intValue());
+                        }
+                        decisions.put(String.format("HomoRelativeSpacing%d", constellationCount),
+                                new Decision<>("Integer", relSpacing));
+                    } else if (c.getRelativeSpacingType() == null) {
+                        decisions.put(String.format("HomoRelativeSpacing%d", constellationCount),
+                                new Decision<>("Integer", null));
+                    } else {
+                        // Not a decision
+                        List<Integer> relspac = new ArrayList<>();
+                        relspac.add((Integer) c.getRelativeSpacing());
+                        decisions.put(String.format("HomoRelativeSpacing%d", constellationCount),
+                                new Decision<>("Integer", relspac));
+                    }
+
+                    // Satellites
+                    if (!c.getSatellites().isEmpty()) {
+                        decisions.put(String.format("HomoSatellite%d", constellationCount),
+                                new Decision<>("Integer", c.getSatellites()));
+                    } else {
+                        decisions.put(String.format("HomoSatellite%d", constellationCount),
+                                new Decision<>("Integer", this.getDesignSpace().getSatellites()));
+                    }
+
+                    // Payload Variables (Assuming one satellite and one payload for simplicity)
+                    if (!c.getSatellites().isEmpty()) {
+                        Satellite satellite = c.getSatellites().get(0);
+                        if (!satellite.getPayload().isEmpty()) {
+                            List<?> payloadList = satellite.getPayload();
+                            Object payloadObj = payloadList.get(0);
+                    
+                            if (payloadObj instanceof Instrument) {
+                                Instrument instrument = (Instrument) payloadObj;
+                    
+                                // Check if the instrument is a PassiveOpticalScanner
+                                if (instrument instanceof PassiveOpticalScanner) {
+                                    PassiveOpticalScanner pos = (PassiveOpticalScanner) instrument;
+                    
+                                    // Focal Length
+                                    Object focalLengthObj = pos.getFocalLength();
+                                    if (focalLengthObj instanceof List<?>) {
+                                        List<Double> focalLengthList = new ArrayList<>();
+                                        for (Object item : (List<?>) focalLengthObj) {
+                                            if (item instanceof Number) {
+                                                focalLengthList.add(((Number) item).doubleValue());
+                                            }
+                                        }
+                                        decisions.put(String.format("PayloadFocalLength%d", constellationCount),
+                                                new Decision<>("Double", focalLengthList));
+                                    } else if (focalLengthObj instanceof QuantitativeRange) {
+                                        List<Double> discretizedValues = ((QuantitativeRange) focalLengthObj).discretize();
+                                        decisions.put(String.format("PayloadFocalLength%d", constellationCount),
+                                                new Decision<>("Double", discretizedValues));
+                                    } else if (focalLengthObj instanceof Number) {
+                                        List<Double> focalLength = new ArrayList<>();
+                                        focalLength.add(((Number) focalLengthObj).doubleValue());
+                                        decisions.put(String.format("PayloadFocalLength%d", constellationCount),
+                                                new Decision<>("Double", focalLength));
+                                    } else {
+                                        // Not a decision or unsupported type
+                                        System.err.println("Unsupported type for focal length.");
+                                    }
+                    
+                                    // Pixel Size
+                                    Object detectorWidthObj = pos.getDetectorWidth();
+                                    if (detectorWidthObj instanceof List<?>) {
+                                        List<Double> pixelSizeList = new ArrayList<>();
+                                        for (Object item : (List<?>) detectorWidthObj) {
+                                            if (item instanceof Number) {
+                                                pixelSizeList.add(((Number) item).doubleValue());
+                                            }
+                                        }
+                                        decisions.put(String.format("PayloadPixelSize%d", constellationCount),
+                                                new Decision<>("Double", pixelSizeList));
+                                    } else if (detectorWidthObj instanceof QuantitativeRange) {
+                                        List<Double> discretizedValues = ((QuantitativeRange) detectorWidthObj).discretize();
+                                        decisions.put(String.format("PayloadPixelSize%d", constellationCount),
+                                                new Decision<>("Double", discretizedValues));
+                                    } else if (detectorWidthObj instanceof Number) {
+                                        List<Double> pixelSize = new ArrayList<>();
+                                        pixelSize.add(((Number) detectorWidthObj).doubleValue());
+                                        decisions.put(String.format("PayloadPixelSize%d", constellationCount),
+                                                new Decision<>("Double", pixelSize));
+                                    } else {
+                                        // Not a decision or unsupported type
+                                        System.err.println("Unsupported type for pixel size.");
+                                    }
+                    
+                                    // Number of Pixels Horizontal
+                                    Object numPixelsObj = pos.getNumberOfDetectorsColsCrossTrack();
+                                    if (numPixelsObj instanceof List<?>) {
+                                        List<Integer> numPixelsList = new ArrayList<>();
+                                        for (Object item : (List<?>) numPixelsObj) {
+                                            if (item instanceof Number) {
+                                                numPixelsList.add(((Number) item).intValue());
+                                            }
+                                        }
+                                        decisions.put(String.format("PayloadNumPixelsHorizontal%d", constellationCount),
+                                                new Decision<>("Integer", numPixelsList));
+                                    } else if (numPixelsObj instanceof QuantitativeRange) {
+                                        List<Double> discretizedValues = ((QuantitativeRange) numPixelsObj).discretize();
+                                        List<Integer> numPixels = new ArrayList<>();
+                                        for (Double d : discretizedValues) {
+                                            numPixels.add(d.intValue());
+                                        }
+                                        decisions.put(String.format("PayloadNumPixelsHorizontal%d", constellationCount),
+                                                new Decision<>("Integer", numPixels));
+                                    } else if (numPixelsObj instanceof Number) {
+                                        List<Integer> numPixels = new ArrayList<>();
+                                        numPixels.add(((Number) numPixelsObj).intValue());
+                                        decisions.put(String.format("PayloadNumPixelsHorizontal%d", constellationCount),
+                                                new Decision<>("Integer", numPixels));
+                                    } else {
+                                        // Not a decision or unsupported type
+                                        System.err.println("Unsupported type for number of pixels horizontal.");
+                                    }
+                    
+                                    // Aperture Size
+                                    Object apertureDiaObj = pos.getApertureDia();
+                                    if (apertureDiaObj instanceof List<?>) {
+                                        List<Double> apertureSizeList = new ArrayList<>();
+                                        for (Object item : (List<?>) apertureDiaObj) {
+                                            if (item instanceof Number) {
+                                                apertureSizeList.add(((Number) item).doubleValue());
+                                            }
+                                        }
+                                        decisions.put(String.format("PayloadApertureSize%d", constellationCount),
+                                                new Decision<>("Double", apertureSizeList));
+                                    } else if (apertureDiaObj instanceof QuantitativeRange) {
+                                        List<Double> discretizedValues = ((QuantitativeRange) apertureDiaObj).discretize();
+                                        decisions.put(String.format("PayloadApertureSize%d", constellationCount),
+                                                new Decision<>("Double", discretizedValues));
+                                    } else if (apertureDiaObj instanceof Number) {
+                                        List<Double> apertureSize = new ArrayList<>();
+                                        apertureSize.add(((Number) apertureDiaObj).doubleValue());
+                                        decisions.put(String.format("PayloadApertureSize%d", constellationCount),
+                                                new Decision<>("Double", apertureSize));
+                                    } else {
+                                        // Not a decision or unsupported type
+                                        System.err.println("Unsupported type for aperture size.");
+                                    }
+                    
+                                } else {
+                                    // Handle other instrument types if necessary
+                                    System.err.println("Instrument is not a PassiveOpticalScanner.");
+                                }
+                            } else {
+                                System.err.println("Payload is not an Instrument.");
                             }
-                            decisions.put(String.format("HomoNumberSatellites%d",constellationCount),new Decision<>("Integer", numberSatellites));
-                        }else {
-                            // Not a decision
-                            List<Integer> nsat = new ArrayList<>();
-                            nsat.add((Integer) c.getNumberSatellites());
-                            decisions.put(String.format("HomoNumberSatellites%d",constellationCount),new Decision<>("Integer", nsat));
                         }
+                    }
+                    
+                    
 
-                        if (c.getNumberPlanesType()==List.class){
-                            decisions.put(String.format("HomoNumberPlanes%d",constellationCount),new Decision<>("Integer",(List<Integer>) c.getNumberPlanes()));
-                        }else if (c.getNumberPlanesType()==QuantitativeRange.class){
-                            List <Double> numberPlanesQuantitativeRange = ((QuantitativeRange)c.getNumberPlanes()).discretize();
-                            List <Integer> numberPlanes = new ArrayList<>();
-                            for (Double d : numberPlanesQuantitativeRange){
-                                numberPlanes.add(d.intValue());
-                            }
-                            decisions.put(String.format("HomoNumberPlanes%d",constellationCount),new Decision<>("Integer", numberPlanes));
-                        }else if (c.getNumberPlanesType()==null){
-                            decisions.put(String.format("HomoNumberPlanes%d",constellationCount),new Decision<>("Integer", null));
-                        }else {
-                            // Not a decision
-                            List<Integer> nplanes = new ArrayList<>();
-                            nplanes.add((Integer) c.getNumberPlanes());
-                            decisions.put(String.format("HomoNumberPlanes%d",constellationCount),new Decision<>("Integer", nplanes));
-                        }
-
-                        if (c.getRelativeSpacingType()==List.class){
-                            decisions.put(String.format("HomoRelativeSpacing%d",constellationCount),new Decision<>("Integer",(List<Integer>) c.getRelativeSpacing()));
-                        }else if (c.getRelativeSpacingType()==QuantitativeRange.class) {
-                            List <Double> relSpacingQuantitativeRange = ((QuantitativeRange)c.getRelativeSpacing()).discretize();
-                            List <Integer> relSpacing = new ArrayList<>();
-                            for (Double d : relSpacingQuantitativeRange){
-                                relSpacing.add(d.intValue());
-                            }
-                            decisions.put(String.format("HomoRelativeSpacing%d",constellationCount),new Decision<>("Integer", relSpacing));
-                        }else if (c.getRelativeSpacingType()==null){
-                            decisions.put(String.format("HomoRelativeSpacing%d",constellationCount),new Decision<>("Integer", null));
-                        }else {
-                            // Not a decision
-                            List<Integer> relspac = new ArrayList<>();
-                            relspac.add((Integer) c.getRelativeSpacing());
-                            decisions.put(String.format("HomoRelativeSpacing%d",constellationCount),new Decision<>("Integer", relspac));
-                        }
-                        if (!c.getSatellites().isEmpty()){
-                            decisions.put(String.format("HomoSatellite%d",constellationCount),new Decision<>("Integer", c.getSatellites()));
-                        }else{
-                            decisions.put(String.format("HomoSatellite%d",constellationCount),new Decision<>("Integer", this.getDesignSpace().getSatellites()));
-                        }
-                        constellationCount++;
-                        break;
-
+                    constellationCount++;
+                    break;
                     case "DELTA_HETEROGENEOUS":
                         if (orbitSpecification.getAltitudeType()==List.class){
                             decisions.put(String.format("HeteroAltitude%d",constellationCount),new Decision<>("Integer",(List<Double>) orbitSpecification.getAltitude()));

@@ -26,6 +26,9 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.google.gson.JsonObject;
+
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -51,7 +54,7 @@ public class TradespaceSearchExecutive {
 
     private Map<String, List<String>> costEvaluators;
     private Map<String, List<String>> scienceEvaluators;
-    private Map<String, List<String>> evaluators;
+    private Map<String, JSONObject> evaluators;
 
     /**
      * Constructs the tradespace search executive
@@ -83,12 +86,10 @@ public class TradespaceSearchExecutive {
             String content = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
             JSONObject tseRequest = new JSONObject(content);
             String tatcRoot = System.getProperty("tatc.root");
-            Map<String, List<String>> evaluators = parser.getWorkflow(tseRequest);
+            Map<String, JSONObject> evaluators = parser.getWorkflow(tseRequest);
             // Store the parsed evaluators and metrics
-            this.costEvaluators = evaluators;
-            this.scienceEvaluators = evaluators;
             this.evaluators = evaluators;
-            if (costEvaluators.containsKey("SpaDes")) {
+            if (evaluators.containsKey("SpaDes")) {
                 evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "SpaDes";
                 serverScriptPath = evaluatorModulePath + File.separator + "mqtt_manager.py";
                 System.out.println("SpaDes is in the list of cost evaluators.");
@@ -99,7 +100,7 @@ public class TradespaceSearchExecutive {
                 System.out.println("SpaDes is not in the list of cost evaluators.");
             }
 
-            if (scienceEvaluators.containsKey("TAT-C")) {
+            if (evaluators.containsKey("TAT-C")) {
                 evaluatorModulePath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "TAT-C";
                 serverScriptPath = evaluatorModulePath + File.separator + "tatc_server.py";
                 System.out.println("TAT-C is in the list of science evaluators.");
@@ -158,7 +159,7 @@ public class TradespaceSearchExecutive {
 
         // Retrieve metric topics from properties
         Map<String, String> metricTopics = properties.getMetricTopics();   // Map of metrics to their topics
-
+        Map<String, JSONObject> evaluators = properties.getEvaluators();
         // Prepare the architecture JSON and unique workflow ID
         JSONObject architectureJson = new JSONObject(jsonContent);
         String workflowId = UUID.randomUUID().toString(); // Unique ID for the workflow
@@ -226,13 +227,14 @@ public class TradespaceSearchExecutive {
                 }
                 String evaluatorName = topicParts[1]; // e.g., "TATC"
                 String functionName = topicParts[2];  // e.g., "CoverageAnalysis"
-
+                JSONObject evaluator = evaluators.get(evaluatorName);
                 // Build the request JSON for this function
                 JSONObject evaluatorRequestJson = new JSONObject();
                 evaluatorRequestJson.put("architecture", architectureJson);
                 evaluatorRequestJson.put("workflow_id", workflowId);
                 evaluatorRequestJson.put("function", functionName);
                 evaluatorRequestJson.put("metric", metric);
+                evaluatorRequestJson.put("dependencies",evaluator);
                 evaluatorRequestJson.put("result_topic", "TSE"); // The topic to return results to
 
                 // Publish the request to the topic
