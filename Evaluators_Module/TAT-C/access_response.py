@@ -114,8 +114,7 @@ def perform_access_response(architecture):
         start=datetime(2024, 1, 1, tzinfo=timezone.utc),
         duration=timedelta(hours=1),
         propagator=Propagator.SGP4,
-        payload_ids=["Atom"],
+        payload_ids=["FireSat-Sensor"],
     )
-    response = access_tatc(request)
-    response_df = response.as_dataframe()
-    return response_df
+    access_response = access_tatc(request)
+    return access_response.model_dump_json(exclude=["start", "duration", "propagator"]),

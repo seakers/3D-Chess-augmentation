@@ -20,9 +20,6 @@ import pandas as pd
 
 from tatc_propagation import propagate_tatc
 # Load the JSON data from a file
-with open('arch.json', 'r') as f:
-    data = json.load(f)
-
 def perform_orbit_propagation(architecture):
     # Initialize an empty list to hold Satellite objects
     satellites = parse_architecture(architecture)
@@ -35,6 +32,7 @@ def perform_orbit_propagation(architecture):
         frame=CartesianReferenceFrame.ICRF,
         propagator=Propagator.SGP4,
     )
-    response = propagate_tatc(request)
-    response_df = response.as_dataframe()
-    return response_df
+    propagation_response = propagate_tatc(request)
+    return propagation_response.model_dump_json(
+        exclude=["start", "duration", "satellites", "time_step"]
+    ),

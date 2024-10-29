@@ -1,3 +1,5 @@
+# tatc_http_server.py
+
 import paho.mqtt.client as mqtt
 import json
 import logging
@@ -5,10 +7,15 @@ from datetime import datetime
 import os
 import threading
 
+from flask import Flask, request, jsonify
+
 # Import your TAT-C specific modules
 from tat_c_manager import evaluate_coverage
 from propagation_interface import perform_orbit_propagation
 from access_response import perform_access_response
+
+app = Flask(__name__)
+
 class TATCEvaluator:
     # Define the directory for logs
     LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
@@ -24,7 +31,7 @@ class TATCEvaluator:
         'OrbitPropagation': perform_orbit_propagation,
         'RevisitAnalysis': evaluate_coverage,
         'CoverageAnalysis': evaluate_coverage,
-        'AccessTime': perform_access_response
+        'AccessResponse': perform_access_response
     }
 
     METRICS = ['CoverageFraction', 'HarmonicMeanRevisitTime']
@@ -42,8 +49,13 @@ class TATCEvaluator:
 
         # Assign MQTT callbacks
         self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
+
+        # Connect to the broker
+        self.client.connect(self.BROKER_ADDRESS, self.BROKER_PORT, keepalive=60)
+
+        # Start the MQTT client loop in a separate thread
+        self.client.loop_start()
 
     def setup_logging(self):
         # Check if the log directory exists, if not, create it
@@ -75,83 +87,19 @@ class TATCEvaluator:
         self.logger.addHandler(ch)
 
         # Log a startup message to confirm logging is working
-        self.logger.info("Starting TAT-C MQTT client... Log file is initialized.")
-
-    def start(self):
-        # Connect to the broker
-        self.client.connect(self.BROKER_ADDRESS, self.BROKER_PORT, keepalive=60)
-
-        # Start the MQTT client loop
-        self.client.loop_forever()
+        self.logger.info("Starting TAT-C HTTP server... Log file is initialized.")
 
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             self.logger.info("Connected to MQTT Broker!")
-            # Subscribe to all implemented function topics
-            for function_name in self.IMPLEMENTED_FUNCTIONS.keys():
-                topic = f'evaluators/TATC/{function_name}'
-                client.subscribe(topic)
-                self.logger.info(f"Subscribed to topic: {topic}")
         else:
-            self.logger.error(f"Failed to connect, return code {rc}")
-
-    def on_message(self, client, userdata, msg):
-        self.logger.debug(f"Message received on topic {msg.topic}: {msg.payload.decode()}")
-        try:
-            data = json.loads(msg.payload.decode())
-            # Extract the function name from the topic
-            topic_parts = msg.topic.split('/')
-            if len(topic_parts) >= 3:
-                function_name = topic_parts[2]
-                if function_name in self.IMPLEMENTED_FUNCTIONS:
-                    # Start a new thread to process each message
-                    threading.Thread(target=self.process_request, args=(function_name, data)).start()
-                else:
-                    self.logger.error(f"Received request for unknown function: {function_name}")
-            else:
-                self.logger.error(f"Invalid topic format: {msg.topic}")
-        except Exception as e:
-            self.logger.error(f"Error processing message: {str(e)}")
-            self.logger.exception("Exception details:")
+            self.logger.error(f"Failed to connect to MQTT Broker, return code {rc}")
 
     def on_disconnect(self, client, userdata, rc):
         if rc == 0:
             self.logger.info("Disconnected from MQTT Broker gracefully.")
         else:
             self.logger.warning(f"Unexpected disconnection from MQTT Broker. Return code: {rc}")
-
-    def process_request(self, function_name, data):
-        try:
-            # Check if the message contains the necessary fields
-            if 'architecture' in data and 'workflow_id' in data:
-                architecture = data['architecture']
-                workflow_id = data['workflow_id']
-                publish_metrics_topic = data['result_topic']
-                self.logger.debug(f'Processing architecture ID: {workflow_id}')
-                self.logger.debug(f'Function to execute: {function_name}')
-
-                # Execute the requested function
-                result_data = self.execute_function(function_name, architecture)
-
-                # Prepare the result message
-                result = {
-                    'evaluator': 'TAT-C',
-                    'workflow_id': workflow_id,
-                    'function': function_name,
-                    'results': result_data
-                }
-
-                # Determine the result topic
-                result_topic = f"{self.RESULT_TOPIC_PREFIX}/{workflow_id}/{function_name}"
-
-                # Publish the result
-                self.client.publish(publish_metrics_topic, json.dumps(result))
-                self.logger.debug(f"Published result to topic {publish_metrics_topic}: {result}")
-            else:
-                self.logger.error('Missing required fields in the message.')
-        except Exception as e:
-            self.logger.error(f"Error processing request: {str(e)}")
-            self.logger.exception("Exception details:")
 
     def execute_function(self, function_name, architecture):
         """
@@ -170,6 +118,61 @@ class TATCEvaluator:
         else:
             raise ValueError(f"Function {function_name} is not implemented.")
 
+    def publish_result(self, result_topic, result):
+        """
+        Publishes the result to the specified MQTT topic.
+
+        :param result_topic: The MQTT topic to publish the result to.
+        :param result: The result data to publish.
+        """
+        self.client.publish(result_topic, json.dumps(result))
+        self.logger.debug(f"Published result to topic {result_topic}: {result}")
+
+# Instantiate the evaluator
+evaluator = TATCEvaluator()
+
+# Define the HTTP endpoints
+@app.route('/tatc/<function_name>', methods=['POST'])
+def handle_request(function_name):
+    data = request.get_json()
+    try:
+        # Check if the message contains the necessary fields
+        if 'architecture' in data and 'workflow_id' in data:
+            architecture = data['architecture']
+            workflow_id = data['workflow_id']
+            publish_metrics_topic = data.get('result_topic', 'TSE')
+            evaluator.logger.debug(f'Processing architecture ID: {workflow_id}')
+            evaluator.logger.debug(f'Function to execute: {function_name}')
+
+            # Execute the requested function
+            result_data = evaluator.execute_function(function_name, architecture)
+
+            # Prepare the result message
+            result = {
+                'evaluator': 'TAT-C',
+                'workflow_id': workflow_id,
+                'function': function_name,
+                'results': result_data
+            }
+
+            # Determine the result topic
+            result_topic = f"{evaluator.RESULT_TOPIC_PREFIX}/{workflow_id}/{function_name}"
+
+            # Publish the result to MQTT
+            if function_name =='CoverageAnalysis':
+                evaluator.publish_result(publish_metrics_topic, result)
+                evaluator.logger.debug(f"Published result to topic {publish_metrics_topic}: {result}")
+
+            # Also return the result in the HTTP response
+            return jsonify(result), 200
+        else:
+            evaluator.logger.error('Missing required fields in the request.')
+            return jsonify({'error': 'Missing required fields in the request.'}), 400
+    except Exception as e:
+        evaluator.logger.error(f"Error processing request: {str(e)}")
+        evaluator.logger.exception("Exception details:")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
-    evaluator = TATCEvaluator()
-    evaluator.start()
+    # Run the Flask app
+    app.run(host='0.0.0.0', port=5000)
