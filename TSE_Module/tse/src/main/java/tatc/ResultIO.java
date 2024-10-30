@@ -12,11 +12,17 @@ package tatc;
 import org.moeaframework.core.Population;
 import org.moeaframework.core.PopulationIO;
 import org.moeaframework.core.Solution;
+
+import com.google.gson.internal.LinkedTreeMap;
+
 import tatc.architecture.ArchitectureCreator;
 import tatc.architecture.outputspecifications.CostRisk;
 import tatc.architecture.outputspecifications.Gbl;
 import tatc.architecture.outputspecifications.ValueOutput;
 import tatc.architecture.specifications.Constellation;
+import tatc.architecture.specifications.Instrument;
+import tatc.architecture.specifications.PassiveOpticalScanner;
+import tatc.architecture.specifications.Satellite;
 import tatc.architecture.variable.*;
 import tatc.tradespaceiterator.search.DrivingFeature;
 import tatc.tradespaceiterator.search.PopulationLabeler;
@@ -564,28 +570,52 @@ public class ResultIO implements Serializable {
         return mapMetrics.get(objectiveName);
     }
 
-    /**
-     * Creates the summary file with its header
-     * @param file the path to create the summary file
-     * @param numberObjectives the number of objectives in the search (0 if FF)
-     * @return true if the creation of the summary file was successful and false otherwise
-     */
-    public static boolean createSummaryFile(File file, int numberObjectives) {
+    // /**
+    //  * Creates the summary file with its header
+    //  * @param file the path to create the summary file
+    //  * @param numberObjectives the number of objectives in the search (0 if FF)
+    //  * @return true if the creation of the summary file was successful and false otherwise
+    //  */
+    // public static boolean createSummaryFile(File file, int numberObjectives) {
 
-        try (FileWriter fw = new FileWriter(file)) {
-            //write the header
-            fw.append(String.format("arch_id,constellation_type,num_satellites,num_planes,sat_ids,num_stations,gs_ids,exec_time[s]"));
-            for (int i=1; i<=numberObjectives; i++){
-                fw.append(String.format(",objective_%d",i));
-            }
-            fw.append("\n");
-            fw.flush();
-        } catch (IOException ex) {
-            Logger.getLogger(ResultIO.class.getName()).log(Level.SEVERE, null, ex);
-            return false;
+    //     try (FileWriter fw = new FileWriter(file)) {
+    //         //write the header
+    //         fw.append(String.format("arch_id,constellation_type,num_satellites,num_planes,sat_ids,num_stations,gs_ids,exec_time[s]"));
+    //         for (int i=1; i<=numberObjectives; i++){
+    //             fw.append(String.format(",objective_%d",i));
+    //         }
+    //         fw.append("\n");
+    //         fw.flush();
+    //     } catch (IOException ex) {
+    //         Logger.getLogger(ResultIO.class.getName()).log(Level.SEVERE, null, ex);
+    //         return false;
+    //     }
+    //     return true;
+    // }
+    /**
+/**
+ * Creates the summary file with its header
+ * @param file the path to create the summary file
+ * @param numberObjectives the number of objectives in the search (0 if FF)
+ * @return true if the creation of the summary file was successful and false otherwise
+ */
+public static boolean createSummaryFile(File file, int numberObjectives) {
+    try (FileWriter fw = new FileWriter(file)) {
+        // Write the header with additional columns for decision variables
+        fw.append("arch_id,constellation_type,num_satellites,num_planes,sat_ids,num_stations,gs_ids,exec_time[s],payloadApertureDia,payloadBitsPerPixel,payloadFocalLength,payloadNumDetectorsRowsAlongTrack");
+
+        // Add objective headers
+        for (int i = 1; i <= numberObjectives; i++) {
+            fw.append(String.format(",objective_%d", i));
         }
-        return true;
+        fw.append("\n");
+        fw.flush();
+    } catch (IOException ex) {
+        Logger.getLogger(ResultIO.class.getName()).log(Level.SEVERE, null, ex);
+        return false;
     }
+    return true;
+}
 
     /**
      * Adds a line to the summary file
@@ -606,62 +636,76 @@ public class ResultIO implements Serializable {
         return true;
     }
 
-    /**
-     * Creates the line of the summary file for a given architecture, its id number and execution time
-     * @param architecture the architecture creator object
-     * @param archCounter the architecture id number
-     * @param execTime the computational time needed to evaluate the architecture
-     * @return the summary line for the architecture
-     */
-    public static String getLineSummaryData(ArchitectureCreator architecture, int archCounter,double execTime){
-        String str = "arch-"+archCounter+",";
-        for (int i=0; i<architecture.getConstellations().size(); i++){
-            Constellation c = architecture.getConstellations().get(i);
-            if (i==architecture.getConstellations().size()-1){
-                str = str + c.getConstellationType()+",";
-            }else{
-                str = str + c.getConstellationType()+" ";
-            }
+   /**
+ * Creates the line of the summary file for a given architecture, its id number and execution time
+ * @param architecture the architecture creator object
+ * @param archCounter the architecture id number
+ * @param execTime the computational time needed to evaluate the architecture
+ * @return the summary line for the architecture
+ */
+public static String getLineSummaryData(ArchitectureCreator architecture, int archCounter, double execTime) {
+    String str = "arch-" + archCounter + ",";
+    for (int i = 0; i < architecture.getConstellations().size(); i++) {
+        Constellation c = architecture.getConstellations().get(i);
+        if (i == architecture.getConstellations().size() - 1) {
+            str = str + c.getConstellationType() + ",";
+        } else {
+            str = str + c.getConstellationType() + " ";
         }
-
-        int numSat=0;
-        int numPlanes=0;
-        for (Constellation c : architecture.getConstellations()){
-            numSat = numSat + c.getSatellites().size();
-            if (c.getNumberPlanes()!=null){
-                numPlanes = numPlanes + (Integer) c.getNumberPlanes();
-            }
-        }
-        str = str + numSat + ",";
-        str = str + numPlanes + ",";
-
-        for (int j=0; j<architecture.getConstellations().size(); j++){
-            Constellation c = architecture.getConstellations().get(j);
-            for (int i=0; i<c.getSatellites().size(); i++){
-                if (j==architecture.getConstellations().size()-1){
-                    if (i==c.getSatellites().size()-1){
-                        str = str + c.getSatellites().get(i).get_id()+",";
-                    }else{
-                        str = str + c.getSatellites().get(i).get_id()+" ";
-                    }
-                }else{
-                    str = str + c.getSatellites().get(i).get_id()+" ";
-                }
-
-            }
-        }
-
-        str = str + architecture.getGroundNetwork().getGroundStations().size()+",";
-        for (int i=0; i<architecture.getGroundNetwork().getGroundStations().size(); i++){
-            if (i==architecture.getGroundNetwork().getGroundStations().size()-1){
-                str = str + architecture.getGroundNetwork().getGroundStations().get(i).get_id()+",";
-            }else{
-                str = str + architecture.getGroundNetwork().getGroundStations().get(i).get_id()+" ";
-            }
-        }
-        str = str + execTime;
-        return str;
     }
+
+    int numSat = 0;
+    int numPlanes = 0;
+    for (Constellation c : architecture.getConstellations()) {
+        numSat += c.getSatellites().size();
+        if (c.getNumberPlanes() != null) {
+            numPlanes += (Integer) c.getNumberPlanes();
+        }
+    }
+    str = str + numSat + ",";
+    str = str + numPlanes + ",";
+
+    for (int j = 0; j < architecture.getConstellations().size(); j++) {
+        Constellation c = architecture.getConstellations().get(j);
+        for (int i = 0; i < c.getSatellites().size(); i++) {
+            if (j == architecture.getConstellations().size() - 1 && i == c.getSatellites().size() - 1) {
+                str = str + c.getSatellites().get(i).get_id() + ",";
+            } else {
+                str = str + c.getSatellites().get(i).get_id() + " ";
+            }
+        }
+    }
+
+    str = str + architecture.getGroundNetwork().getGroundStations().size() + ",";
+    for (int i = 0; i < architecture.getGroundNetwork().getGroundStations().size(); i++) {
+        if (i == architecture.getGroundNetwork().getGroundStations().size() - 1) {
+            str = str + architecture.getGroundNetwork().getGroundStations().get(i).get_id() + ",";
+        } else {
+            str = str + architecture.getGroundNetwork().getGroundStations().get(i).get_id() + " ";
+        }
+    }
+    str = str + execTime;
+
+    // Add payload decision variables
+    if (!architecture.getConstellations().isEmpty() && !architecture.getConstellations().get(0).getSatellites().isEmpty()) {
+        Satellite satellite = architecture.getConstellations().get(0).getSatellites().get(0);
+        if (satellite.getPayload() != null && !satellite.getPayload().isEmpty()) {
+            LinkedTreeMap<String, Object> payload = (LinkedTreeMap<String, Object>) satellite.getPayload().get(0);
+            str += "," + payload.getOrDefault("apertureDia", "N/A");
+            str += "," + payload.getOrDefault("bitsPerPixel", "N/A");
+            str += "," + payload.getOrDefault("focalLength", "N/A");
+            str += "," + payload.getOrDefault("numberOfDetectorsRowsAlongTrack", "N/A");
+        } else {
+            str += ",N/A,N/A,N/A,N/A"; // Fallback if payload data is missing
+        }
+    } else {
+        str += ",N/A,N/A,N/A,N/A"; // Fallback if no satellite or payload data
+    }
+
+    return str;
+}
+
+
 
     /**
      * Creates the line of the summary file for a given architecture, its id number, execution time and objectives (GA only)

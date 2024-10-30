@@ -125,7 +125,7 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
 
         }
 
-        ResultIO.createSummaryFile(new File(System.getProperty("tatc.output") + File.separator + "summary.csv"),0);
+        ResultIO.createSummaryFile(new File(System.getProperty("tatc.output") + File.separator + "summary.csv"), properties.getObjectives().size());
         List<List<ConstellationParameters>> cartesianProduct = Combinatorics.cartesianProduct(listConstellationParameters);
         
         Decision<GroundNetwork> decisionGroundNetwork = (Decision<GroundNetwork>)decisions.get("groundNetwork");
@@ -179,27 +179,33 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
                             throw new IllegalArgumentException("Constellation type has to be either DELTA_HOMOGENEOUS, DELTA_HETEROGENOUS, TRAIN OR AD_HOC.");
                     }
                 }
-                if (!architecture.getConstellations().isEmpty()){
-                    // create the Architecture JSON file
+                if (!architecture.getConstellations().isEmpty()) {
+                    // Create the Architecture JSON file
                     File architectureJsonFile = architecture.toJSON(this.getCounter());
+        
                     // Evaluate architecture
                     long startTime = System.nanoTime();
-                    try{
-                        TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
-                    }catch(InterruptedException e){
-                    System.out.println("Error reading the JSON file: " + e.getMessage());
-                    e.printStackTrace();
-
-                    }catch(IOException e){
+                    HashMap<String, Double> objectivesResults = null;
+                    try {
+                        objectivesResults = TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
+                    } catch (InterruptedException | IOException e) {
                         System.out.println("Error reading the JSON file: " + e.getMessage());
                         e.printStackTrace();
-    
-                        }; 
+                    }
                     long endTime = System.nanoTime();
                     double execTime = (endTime - startTime) / Math.pow(10, 9);
+        
+                    // Create a list to store the objective values for this architecture
+                    double[] objectiveValues = new double[properties.getObjectives().size()];
+                    for (int i = 0; i < properties.getObjectives().size(); i++) {
+                        String objectiveName = properties.getObjectives().get(i).getParent().getName();
+                        objectiveValues[i] = objectivesResults.getOrDefault(objectiveName, 0.0);
+                    }
+        
                     // Add line in summaryData
-                    ResultIO.addSummaryLine(new File(System.getProperty("tatc.output") + File.separator + "summary.csv"),ResultIO.getLineSummaryData(architecture,this.getCounter(),execTime));
-                    // increment the counter at each architecture evaluation
+                    ResultIO.addSummaryLine(new File(System.getProperty("tatc.output") + File.separator + "summary.csv"),
+                            ResultIO.getLineSummaryDataWithObjectives(architecture, this.getCounter(), execTime, objectiveValues));
+                    // Increment the counter for each architecture evaluation
                     this.incrementCounter();
                 }
             }

@@ -4,6 +4,8 @@ import tatc.ResultIO;
 import tatc.TSEPublisher;
 import tatc.TSESubscriber;
 import tatc.architecture.specifications.Architecture;
+import tatc.architecture.specifications.CompoundObjective;
+import tatc.architecture.specifications.Objective;
 import tatc.architecture.specifications.TradespaceSearch;
 import tatc.util.JSONIO;
 import java.io.*;
@@ -147,7 +149,7 @@ public class TradespaceSearchExecutive {
      * the demo folder. In this method we are calling python from java.
      * @param architectureJSONFile the architecture file that needs to be evaluated
      */
-    public static void evaluateArchitecture(File architectureJsonFile, ProblemProperties properties) throws IOException, InterruptedException {
+    public static HashMap<String, Double> evaluateArchitecture(File architectureJsonFile, ProblemProperties properties) throws IOException, InterruptedException {
         // Read the JSON content from the architecture file
         String jsonContent;
         try {
@@ -179,7 +181,8 @@ public class TradespaceSearchExecutive {
         Map<String, Double> metricResults = new HashMap<>();
 
         // Create a CountDownLatch to wait for all metric results
-        CountDownLatch latch = new CountDownLatch(expectedMetrics.size());
+        //CountDownLatch latch = new CountDownLatch(expectedMetrics.size());
+        CountDownLatch latch = new CountDownLatch(evaluators.size());
 
         try {
             // Connect to the MQTT broker
@@ -206,8 +209,9 @@ public class TradespaceSearchExecutive {
                         for (String metric : results.keySet()) {
                             double value = results.getDouble(metric);
                             metricResults.put(metric, value);
-                            latch.countDown(); // Decrement the latch for each metric received
+                             // Decrement the latch for each metric received
                         }
+                        latch.countDown();
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -254,41 +258,54 @@ public class TradespaceSearchExecutive {
             String folderPath = architectureJsonFile.getParent();
 
             // Example processing using modifyLifecycleCost and modifyCoverageMetrics functions
-            if (!metricResults.isEmpty()) {
-                // Process LifecycleCost metric
-                if (metricResults.containsKey("LifecycleCost")) {
-                    double cost = metricResults.get("LifecycleCost");
-                    modifyLifecycleCost(folderPath, cost);
+            HashMap<String, Double> objectiveResults = new HashMap<>();
+
+            // Iterate over each objective defined in the properties
+            for (CompoundObjective objective : properties.getObjectives()) {
+                String objectiveName = objective.getParent().getName(); // Get the objective name from properties
+
+                // Check if the metricResults contain this objective name as a key
+                if (metricResults.containsKey(objectiveName)) {
+                    // Retrieve the metric value from metricResults
+                    double metricValue = metricResults.get(objectiveName);
+
+                    // Add the metric value to the objective results map
+                    objectiveResults.put(objectiveName, metricValue);
+
+                    // Process specific metrics based on the objective name
+                    switch (objectiveName) {
+                        case "LifecycleCost":
+                            modifyLifecycleCost(folderPath, metricValue);
+                            break;
+
+                        case "CoverageFraction":
+                        case "HarmonicMeanRevisitTime":
+                            double coverageFraction = metricResults.getOrDefault("CoverageFraction", 0.0);
+                            double revisitTime = metricResults.getOrDefault("HarmonicMeanRevisitTime", 0.0);
+
+                            // Use revisitTime for avg, max, and min as placeholders
+                            double[] revisitTimes = {revisitTime, revisitTime, revisitTime};
+                            double[] responseTimes = {revisitTime, revisitTime, revisitTime};
+                            double coverage = coverageFraction;
+
+                            modifyCoverageMetrics(folderPath, revisitTimes, responseTimes, coverage);
+                            break;
+
+                        // Add more cases here if other specific metrics require processing
+                        default:
+                            System.out.println("Metric processed for objective: " + objectiveName);
+                            break;
+                    }
                 } else {
-                    System.err.println("LifecycleCost metric not received.");
+                    System.err.println("Metric not received for objective: " + objectiveName);
                 }
-
-                // Process CoverageFraction and HarmonicMeanRevisitTime metrics
-                if (metricResults.containsKey("CoverageFraction") || metricResults.containsKey("HarmonicMeanRevisitTime")) {
-                    double coverageFraction = metricResults.getOrDefault("CoverageFraction", 0.0);
-                    double revisitTime = metricResults.getOrDefault("HarmonicMeanRevisitTime", 0.0);
-
-                    // For demonstration, use revisitTime for avg, max, and min
-                    double[] revisitTimes = { revisitTime, revisitTime, revisitTime };
-                    double[] responseTimes = { revisitTime, revisitTime, revisitTime };
-                    double coverage = coverageFraction;
-
-                    modifyCoverageMetrics(folderPath, revisitTimes, responseTimes, coverage);
-                } else {
-                    System.err.println("Coverage metrics not received.");
-                }
-
-                // Process other metrics as needed
-                // You can add additional processing for other metrics here
-
-            } else {
-                System.err.println("No metrics received.");
             }
+            return objectiveResults;
 
-        } catch (MqttException e) {
-            e.printStackTrace();
-            throw new IOException("MQTT communication error", e);
-        }
+            } catch (MqttException e) {
+                e.printStackTrace();
+                throw new IOException("MQTT communication error", e);
+            }
         // } finally {
         //     // Disconnect from the MQTT broker
         //     try {
@@ -298,6 +315,7 @@ public class TradespaceSearchExecutive {
         //         e.printStackTrace();
         //     }
         // }
+
     }
     public static void modifyLifecycleCost(String jsonFilePath, double totalMissionCosts) {
         String costRiskFilePath = jsonFilePath + File.separator + "CostRisk_output.json";
