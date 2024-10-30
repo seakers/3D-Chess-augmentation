@@ -23,7 +23,7 @@ class TATCEvaluator:
     # MQTT Broker details
     BROKER_ADDRESS = 'localhost'  # Replace with your broker address
     BROKER_PORT = 1883
-    CLIENT_ID = 'TAT-C_Evaluator'
+    CLIENT_ID = 'TAT-C_http'
     RESULT_TOPIC_PREFIX = 'evaluators/TATC/results'
 
     # Implemented functions and metrics (hardcoded)

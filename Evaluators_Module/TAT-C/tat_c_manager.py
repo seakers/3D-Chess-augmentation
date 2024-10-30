@@ -168,43 +168,66 @@ def parse_architecture(architecture_json):
                 "MEAN_MOTION_DOT": 0,
                 "MEAN_MOTION_DDOT": 0
             }
-            basic_sensor = BasicSensor(
-                id="Atom",
-                mass=100.5,
-                volume=0.75,
-                power=150.0,
-                field_of_view=CircularGeometry(diameter=60.0),
-                data_rate=10.5,
-                bits_per_pixel=16,
-            )
-            firesat = PassiveOpticalScanner(
+            # basic_sensor = BasicSensor(
+            #     id="Atom",
+            #     mass=100.5,
+            #     volume=0.75,
+            #     power=150.0,
+            #     field_of_view=CircularGeometry(diameter=60.0),
+            #     data_rate=10.5,
+            #     bits_per_pixel=16,
+            # )
+            # firesat = PassiveOpticalScanner(
+            #     id="FireSat-Sensor",
+            #     mass= 28, 
+            #     volume= 0.12, 
+            #     power= 32, 
+            #     field_of_view= RectangularGeometry(angle_height= 0.628, angle_width= 115.8),
+            #     scene_field_of_view= RectangularGeometry(angle_height= 30, angle_width= 115.8),
+            #     scanTechnique= OpticalInstrumentScanTechnique.WHISKBROOM,
+            #     data_rate= 85,
+            #     number_detector_rows= 256,
+            #     number_detector_cols= 1,
+            #     detector_width= 30e-6,
+            #     focal_length= 0.7,
+            #     operating_wavelength= 4.2e-6,
+            #     bandwidth= 1.9e-6,
+            #     quantum_efficiency= 0.5,
+            #     target_black_body_temp= 290,
+            #     bits_per_pixel= 8,
+            #     optics_sys_eff= 0.75,
+            #     number_of_read_out_E= 25,
+            #     aperture_dia= 0.26,
+            #     F_num= 2.7
+            # )
+            sensor = PassiveOpticalScanner(
                 id="FireSat-Sensor",
-                mass= 28, 
-                volume= 0.12, 
-                power= 32, 
-                field_of_view= RectangularGeometry(angle_height= 0.628, angle_width= 115.8),
+                mass= instrument.get("mass"), 
+                volume= instrument.get("volume"), 
+                power= instrument.get("power"), 
+                field_of_view= RectangularGeometry(angle_height= fov.get("angle_height_fov"), angle_width= fov.get("angle_width_fov")),
                 scene_field_of_view= RectangularGeometry(angle_height= 30, angle_width= 115.8),
                 scanTechnique= OpticalInstrumentScanTechnique.WHISKBROOM,
-                data_rate= 85,
-                number_detector_rows= 256,
-                number_detector_cols= 1,
-                detector_width= 30e-6,
-                focal_length= 0.7,
-                operating_wavelength= 4.2e-6,
-                bandwidth= 1.9e-6,
-                quantum_efficiency= 0.5,
-                target_black_body_temp= 290,
-                bits_per_pixel= 8,
-                optics_sys_eff= 0.75,
-                number_of_read_out_E= 25,
-                aperture_dia= 0.26,
-                F_num= 2.7
+                data_rate= instrument.get("dataRate"),
+                number_detector_rows= instrument.get("numberOfDetectorsRowsAlongTrack"),
+                number_detector_cols= instrument.get("numberOfDetectorsColsCrossTrack"),
+                detector_width= instrument.get("detectorWidth"),
+                focal_length= instrument.get("focalLength"),
+                operating_wavelength= instrument.get("operatingWavelength"),
+                bandwidth= instrument.get("bandwidth"),
+                quantum_efficiency= instrument.get("quantumEff"),
+                target_black_body_temp= instrument.get("targetBlackBodyTemp"),
+                bits_per_pixel= instrument.get("bitsPerPixel"),
+                optics_sys_eff= instrument.get("opticsSysEff"),
+                number_of_read_out_E= instrument.get("numOfReadOutE"),
+                aperture_dia= instrument.get("apertureDia"),
+                F_num= instrument.get("Fnum")
             )
             sat_obj = Satellite(
                 id=sat_id,
                 orbit=GeneralPerturbationsOrbitState.from_omm(omm),
                 field_of_view=field_of_regard,
-                payloads=[firesat]
+                payloads=[sensor]
             )
             satellites.append(sat_obj)
             logging.debug(f'Created satellite: {sat_obj}')
