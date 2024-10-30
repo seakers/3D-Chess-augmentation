@@ -6,6 +6,9 @@
 package tatc.architecture;
 
 import org.hipparchus.util.FastMath;
+
+import com.google.gson.internal.LinkedTreeMap;
+
 import seakers.conmop.variable.SatelliteVariable;
 import tatc.ResultIO;
 import tatc.architecture.constellations.WalkerPlane;
@@ -51,18 +54,22 @@ public class ArchitectureCreator implements ArchitectureMethods{
     }
 
     /**
-     * Adds a walker delta-pattern constellation in the list of constellations inside the architecture.
-     * @param semimajoraxis the semi-major axis in km
-     * @param inc the inclination in deg
-     * @param t the number of satellites
-     * @param p the number of planes
-     * @param f the relative spacing (values from 0 to p-1)
-     * @param satellite the satellite
-     * @param secondaryPayload true if the constellation uses secondary payloads and false otherwise (or null if not specified)
-     * @param epoch the epoch in ISO 8601 format
-     * @param eccentricity the eccentricity of all the orbits
-     */
-    public void addHomogeneousWalker(double semimajoraxis, double inc, int t, int p, int f, Satellite satellite, Boolean secondaryPayload, String epoch, double eccentricity) {
+    * Adds a walker delta-pattern constellation in the list of constellations inside the architecture.
+    * @param semimajoraxis the semi-major axis in km
+    * @param inc the inclination in deg
+    * @param t the number of satellites
+    * @param p the number of planes
+    * @param f the relative spacing (values from 0 to p-1)
+    * @param satellite the satellite (template)
+    * @param payloadFocalLength the payload focal length
+    * @param payloadBitsPerPixel the payload bits per pixel
+    * @param payloadNumDetectorsRows the payload number of detectors rows along track
+    * @param payloadApertureDia the payload aperture diameter
+    * @param secondaryPayload true if the constellation uses secondary payloads and false otherwise (or null if not specified)
+    * @param epoch the epoch in ISO 8601 format
+    * @param eccentricity the eccentricity of all the orbits
+    */
+    public void addHomogeneousWalker(double semimajoraxis, double inc, int t, int p, int f, Satellite satellite, Boolean secondaryPayload, double payloadApertureDia, int payloadBitsPerPixel, double payloadFocalLength, int payloadNumDetectorsRows,String epoch, double eccentricity) {
 
         //checks for valid parameters
         if (t < 0 || p < 0) {
@@ -106,6 +113,32 @@ public class ArchitectureCreator implements ArchitectureMethods{
                 listOrbits.add(orbit);
             }
         }
+        // Modify the instrument in the satellite's payload
+    List<? super Instrument> payload = satellite.getPayload();
+
+    if (payload != null && !payload.isEmpty()) {
+        // Access the first element of the payload (should be a LinkedTreeMap)
+        Object instrumentObj = payload.get(0);
+
+        if (instrumentObj instanceof LinkedTreeMap) {
+            LinkedTreeMap<String, Object> instrumentMap = (LinkedTreeMap<String, Object>) instrumentObj;
+
+            // Set the instrument properties
+            instrumentMap.put("focalLength", payloadFocalLength);
+            instrumentMap.put("apertureDia", payloadApertureDia);
+            instrumentMap.put("numberOfDetectorsRowsAlongTrack", payloadNumDetectorsRows);
+            instrumentMap.put("bitsPerPixel", payloadBitsPerPixel);
+        } else {
+            // Handle cases where the instrument is not a LinkedTreeMap
+            // You may need to deserialize or cast appropriately
+            System.err.println("Instrument is not a LinkedTreeMap. Cannot set properties.");
+        }
+    } else {
+        System.err.println("Payload is empty or null. Cannot modify instrument properties.");
+    }
+
+    // Set the modified payload back to the satellite
+    satellite.setPayload(payload);
 
         List<Satellite> satellites = new ArrayList<>();
         for (Orbit orbit : listOrbits){

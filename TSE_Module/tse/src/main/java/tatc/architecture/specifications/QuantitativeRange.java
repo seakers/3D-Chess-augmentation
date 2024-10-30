@@ -32,6 +32,9 @@ public class QuantitativeRange implements Serializable {
      * Number of steps
      */
     private final Integer numberSteps;
+    private double min;
+    private double max;
+    private double step;
 
     /**
      * Constructs a quantitative range object
@@ -46,7 +49,6 @@ public class QuantitativeRange implements Serializable {
         this.stepSize = stepSize;
         this.numberSteps = numberSteps;
     }
-
     /**
      * Gets the minimum value or lower bound
      * @return the minimum value or lower bound

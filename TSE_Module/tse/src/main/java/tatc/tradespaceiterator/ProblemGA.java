@@ -97,7 +97,7 @@ public class ProblemGA extends AbstractProblem {
                     ArrayList<Integer> planeAndPhase = Utilities.obtainPlanesAndPhasingFromChromosome(nsatHomo, tradespacePlanes, planeRealHomo, phaseRealHomo);
                     int plane = planeAndPhase.get(0);
                     int phase = planeAndPhase.get(1);
-                    HomogeneousWalkerParameters constellationHomo = new HomogeneousWalkerParameters(altitudeHomo, inclinationModified, nsatHomo, plane, phase, satelliteHomo);
+                    HomogeneousWalkerParameters constellationHomo = new HomogeneousWalkerParameters(altitudeHomo, inclinationModified, nsatHomo, plane, phase, satelliteHomo, 0,null,0,0.0);
                     constellationHomo.setSecondaryPayload(((HomogeneousWalkerVariable) soln.getVariable(variableCounter)).getSecondaryPayload());
                     constellationHomo.setEccentricity(((HomogeneousWalkerVariable) soln.getVariable(variableCounter)).getEccentricity());
                     architecture.addHomogeneousWalker(constellationHomo.getA()+ Utilities.EARTH_RADIUS_KM, constellationHomo.getI(), constellationHomo.getT(),

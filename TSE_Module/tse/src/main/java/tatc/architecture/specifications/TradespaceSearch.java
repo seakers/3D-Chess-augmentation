@@ -1,6 +1,8 @@
 package tatc.architecture.specifications;
 
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.internal.LinkedTreeMap;
+
 import org.hipparchus.util.FastMath;
 import tatc.architecture.variable.Decision;
 import tatc.util.Combinatorics;
@@ -11,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Class containing a set of constraints and parameters to bound and define a tradespace search.
@@ -34,16 +37,18 @@ public class TradespaceSearch implements Serializable {
      */
     private final AnalysisSettings settings;
 
+    private final Evaluation evaluation;
     /**
      * Constructs a tradespace search object
      * @param mission the mission concept
      * @param designSpace the design space
      * @param settings the analysis settings
      */
-    public TradespaceSearch(MissionConcept mission, DesignSpace designSpace, AnalysisSettings settings) {
+    public TradespaceSearch(MissionConcept mission, DesignSpace designSpace, AnalysisSettings settings, Evaluation evaluation) {
         this.mission = mission;
         this.designSpace = designSpace;
         this.settings = settings;
+        this.evaluation = evaluation;
     }
 
     /**
@@ -68,6 +73,10 @@ public class TradespaceSearch implements Serializable {
      */
     public AnalysisSettings getSettings() {
         return settings;
+    }
+
+    public Evaluation gEvaluation(){
+        return evaluation;
     }
 
     /**
@@ -215,134 +224,33 @@ public class TradespaceSearch implements Serializable {
                     }
 
                     // Payload Variables (Assuming one satellite and one payload for simplicity)
+                    // Payload Variables (Assuming one satellite and one payload for simplicity)
                     if (!c.getSatellites().isEmpty()) {
                         Satellite satellite = c.getSatellites().get(0);
                         if (!satellite.getPayload().isEmpty()) {
                             List<?> payloadList = satellite.getPayload();
                             Object payloadObj = payloadList.get(0);
-                    
-                            if (payloadObj instanceof Instrument) {
-                                Instrument instrument = (Instrument) payloadObj;
-                    
-                                // Check if the instrument is a PassiveOpticalScanner
-                                if (instrument instanceof PassiveOpticalScanner) {
-                                    PassiveOpticalScanner pos = (PassiveOpticalScanner) instrument;
-                    
-                                    // Focal Length
-                                    Object focalLengthObj = pos.getFocalLength();
-                                    if (focalLengthObj instanceof List<?>) {
-                                        List<Double> focalLengthList = new ArrayList<>();
-                                        for (Object item : (List<?>) focalLengthObj) {
-                                            if (item instanceof Number) {
-                                                focalLengthList.add(((Number) item).doubleValue());
-                                            }
-                                        }
-                                        decisions.put(String.format("PayloadFocalLength%d", constellationCount),
-                                                new Decision<>("Double", focalLengthList));
-                                    } else if (focalLengthObj instanceof QuantitativeRange) {
-                                        List<Double> discretizedValues = ((QuantitativeRange) focalLengthObj).discretize();
-                                        decisions.put(String.format("PayloadFocalLength%d", constellationCount),
-                                                new Decision<>("Double", discretizedValues));
-                                    } else if (focalLengthObj instanceof Number) {
-                                        List<Double> focalLength = new ArrayList<>();
-                                        focalLength.add(((Number) focalLengthObj).doubleValue());
-                                        decisions.put(String.format("PayloadFocalLength%d", constellationCount),
-                                                new Decision<>("Double", focalLength));
-                                    } else {
-                                        // Not a decision or unsupported type
-                                        System.err.println("Unsupported type for focal length.");
-                                    }
-                    
-                                    // Pixel Size
-                                    Object detectorWidthObj = pos.getDetectorWidth();
-                                    if (detectorWidthObj instanceof List<?>) {
-                                        List<Double> pixelSizeList = new ArrayList<>();
-                                        for (Object item : (List<?>) detectorWidthObj) {
-                                            if (item instanceof Number) {
-                                                pixelSizeList.add(((Number) item).doubleValue());
-                                            }
-                                        }
-                                        decisions.put(String.format("PayloadPixelSize%d", constellationCount),
-                                                new Decision<>("Double", pixelSizeList));
-                                    } else if (detectorWidthObj instanceof QuantitativeRange) {
-                                        List<Double> discretizedValues = ((QuantitativeRange) detectorWidthObj).discretize();
-                                        decisions.put(String.format("PayloadPixelSize%d", constellationCount),
-                                                new Decision<>("Double", discretizedValues));
-                                    } else if (detectorWidthObj instanceof Number) {
-                                        List<Double> pixelSize = new ArrayList<>();
-                                        pixelSize.add(((Number) detectorWidthObj).doubleValue());
-                                        decisions.put(String.format("PayloadPixelSize%d", constellationCount),
-                                                new Decision<>("Double", pixelSize));
-                                    } else {
-                                        // Not a decision or unsupported type
-                                        System.err.println("Unsupported type for pixel size.");
-                                    }
-                    
-                                    // Number of Pixels Horizontal
-                                    Object numPixelsObj = pos.getNumberOfDetectorsColsCrossTrack();
-                                    if (numPixelsObj instanceof List<?>) {
-                                        List<Integer> numPixelsList = new ArrayList<>();
-                                        for (Object item : (List<?>) numPixelsObj) {
-                                            if (item instanceof Number) {
-                                                numPixelsList.add(((Number) item).intValue());
-                                            }
-                                        }
-                                        decisions.put(String.format("PayloadNumPixelsHorizontal%d", constellationCount),
-                                                new Decision<>("Integer", numPixelsList));
-                                    } else if (numPixelsObj instanceof QuantitativeRange) {
-                                        List<Double> discretizedValues = ((QuantitativeRange) numPixelsObj).discretize();
-                                        List<Integer> numPixels = new ArrayList<>();
-                                        for (Double d : discretizedValues) {
-                                            numPixels.add(d.intValue());
-                                        }
-                                        decisions.put(String.format("PayloadNumPixelsHorizontal%d", constellationCount),
-                                                new Decision<>("Integer", numPixels));
-                                    } else if (numPixelsObj instanceof Number) {
-                                        List<Integer> numPixels = new ArrayList<>();
-                                        numPixels.add(((Number) numPixelsObj).intValue());
-                                        decisions.put(String.format("PayloadNumPixelsHorizontal%d", constellationCount),
-                                                new Decision<>("Integer", numPixels));
-                                    } else {
-                                        // Not a decision or unsupported type
-                                        System.err.println("Unsupported type for number of pixels horizontal.");
-                                    }
-                    
-                                    // Aperture Size
-                                    Object apertureDiaObj = pos.getApertureDia();
-                                    if (apertureDiaObj instanceof List<?>) {
-                                        List<Double> apertureSizeList = new ArrayList<>();
-                                        for (Object item : (List<?>) apertureDiaObj) {
-                                            if (item instanceof Number) {
-                                                apertureSizeList.add(((Number) item).doubleValue());
-                                            }
-                                        }
-                                        decisions.put(String.format("PayloadApertureSize%d", constellationCount),
-                                                new Decision<>("Double", apertureSizeList));
-                                    } else if (apertureDiaObj instanceof QuantitativeRange) {
-                                        List<Double> discretizedValues = ((QuantitativeRange) apertureDiaObj).discretize();
-                                        decisions.put(String.format("PayloadApertureSize%d", constellationCount),
-                                                new Decision<>("Double", discretizedValues));
-                                    } else if (apertureDiaObj instanceof Number) {
-                                        List<Double> apertureSize = new ArrayList<>();
-                                        apertureSize.add(((Number) apertureDiaObj).doubleValue());
-                                        decisions.put(String.format("PayloadApertureSize%d", constellationCount),
-                                                new Decision<>("Double", apertureSize));
-                                    } else {
-                                        // Not a decision or unsupported type
-                                        System.err.println("Unsupported type for aperture size.");
-                                    }
-                    
+
+                            if (payloadObj instanceof Map) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> instrumentMap = (Map<String, Object>) payloadObj;
+
+                                // Check if the instrument is a Passive Optical Scanner
+                                String instrumentType = (String) instrumentMap.get("@type");
+                                if ("Passive Optical Scanner".equals(instrumentType)) {
+                                    // Process the instrument parameters
+                                    processInstrumentParameter(instrumentMap, "focalLength", "Double", "PayloadFocalLength", constellationCount, decisions);
+                                    processInstrumentParameter(instrumentMap, "bitsPerPixel", "Integer", "PayloadBitsPerPixel", constellationCount, decisions);
+                                    processInstrumentParameter(instrumentMap, "numberOfDetectorsRowsAlongTrack", "Integer", "PayloadNumDetectorsRows", constellationCount, decisions);
+                                    processInstrumentParameter(instrumentMap, "apertureDia", "Double", "PayloadApertureDia", constellationCount, decisions);
                                 } else {
-                                    // Handle other instrument types if necessary
-                                    System.err.println("Instrument is not a PassiveOpticalScanner.");
+                                    System.err.println("Instrument is not a Passive Optical Scanner.");
                                 }
                             } else {
-                                System.err.println("Payload is not an Instrument.");
+                                System.err.println("Payload is not a Map.");
                             }
                         }
                     }
-                    
-                    
 
                     constellationCount++;
                     break;
@@ -744,6 +652,79 @@ public class TradespaceSearch implements Serializable {
         return decisions;
     }
 
+    private void processInstrumentParameter(Map<String, Object> instrumentMap, String paramName, String decisionType, String decisionKeyPrefix, int constellationCount, Map<String, Decision<?>> decisions) {
+    Object paramObj = instrumentMap.get(paramName);
+    if (paramObj == null) {
+        System.err.println("Parameter " + paramName + " not found in instrument.");
+        return;
+    }
+    if (paramObj instanceof List<?>) {
+        // Handle List of values
+        if ("Double".equals(decisionType)) {
+            List<Double> paramList = new ArrayList<>();
+            for (Object item : (List<?>) paramObj) {
+                if (item instanceof Number) {
+                    paramList.add(((Number) item).doubleValue());
+                }
+            }
+            decisions.put(String.format("%s%d", decisionKeyPrefix, constellationCount),
+                    new Decision<>(decisionType, paramList));
+        } else if ("Integer".equals(decisionType)) {
+            List<Integer> paramList = new ArrayList<>();
+            for (Object item : (List<?>) paramObj) {
+                if (item instanceof Number) {
+                    paramList.add(((Number) item).intValue());
+                }
+            }
+            decisions.put(String.format("%s%d", decisionKeyPrefix, constellationCount),
+                    new Decision<>(decisionType, paramList));
+        }
+    } else if (paramObj instanceof Map) {
+        // Handle QuantitativeRange
+        @SuppressWarnings("unchecked")
+        LinkedTreeMap<String, Object> rangeMap = (LinkedTreeMap<String, Object>) paramObj;
+        String rangeType = (String) rangeMap.get("@type");
+        if ("QuantitativeRange".equals(rangeType)) {
+            try {
+                QuantitativeRange qr = QuantitativeRange.createQuantitativeRangeFromLinkedTreeMap(rangeMap);
+                ArrayList<Double> discretizedValues = qr.discretize();
+                if ("Double".equals(decisionType)) {
+                    decisions.put(String.format("%s%d", decisionKeyPrefix, constellationCount),
+                            new Decision<>(decisionType, discretizedValues));
+                } else if ("Integer".equals(decisionType)) {
+                    List<Integer> intValues = new ArrayList<>();
+                    for (Double d : discretizedValues) {
+                        intValues.add(d.intValue());
+                    }
+                    decisions.put(String.format("%s%d", decisionKeyPrefix, constellationCount),
+                            new Decision<>(decisionType, intValues));
+                }
+            } catch (IllegalArgumentException e) {
+                System.err.println("Error creating QuantitativeRange for parameter " + paramName + ": " + e.getMessage());
+            }
+        } else {
+            System.err.println("Unsupported range type for parameter " + paramName);
+        }
+    } else if (paramObj instanceof Number) {
+        // Handle single numeric value
+        if ("Double".equals(decisionType)) {
+            List<Double> paramList = new ArrayList<>();
+            paramList.add(((Number) paramObj).doubleValue());
+            decisions.put(String.format("%s%d", decisionKeyPrefix, constellationCount),
+                    new Decision<>(decisionType, paramList));
+        } else if ("Integer".equals(decisionType)) {
+            List<Integer> paramList = new ArrayList<>();
+            paramList.add(((Number) paramObj).intValue());
+            decisions.put(String.format("%s%d", decisionKeyPrefix, constellationCount),
+                    new Decision<>(decisionType, paramList));
+        }
+    } else {
+        System.err.println("Unsupported type for parameter " + paramName);
+    }
+}
+
+    
+
     /**
      * This method reads the objectives in the TSR and returns a list of compound objectives. The ones that are not
      * compound are created as compound objectives with 0 childs. If the search strategy is FF, this method returns an
@@ -752,19 +733,18 @@ public class TradespaceSearch implements Serializable {
      */
     public List<CompoundObjective> processObjectives(){
         List<CompoundObjective> compoundObjectives = new ArrayList<>();
-        if (!this.getSettings().getSearchStrategy().equalsIgnoreCase("FF")){
-            for (MissionObjective objParent : this.getMission().getObjectives()){
-                if (objParent.getParent()==null){
-                    CompoundObjective compoundObjective = new CompoundObjective(objParent);
-                    for (MissionObjective objChild : this.getMission().getObjectives()){
-                        if (objParent.getName().equalsIgnoreCase(objChild.getParent())){
-                            compoundObjective.addChild(objChild);
-                        }
+        for (MissionObjective objParent : this.gEvaluation().getTSE().getObjectives()){
+            if (objParent.getParent()==null){
+                CompoundObjective compoundObjective = new CompoundObjective(objParent);
+                for (MissionObjective objChild : this.getMission().getObjectives()){
+                    if (objParent.getName().equalsIgnoreCase(objChild.getParent())){
+                        compoundObjective.addChild(objChild);
                     }
-                    compoundObjectives.add(compoundObjective);
                 }
+                compoundObjectives.add(compoundObjective);
             }
         }
         return compoundObjectives;
     }
+    
 }

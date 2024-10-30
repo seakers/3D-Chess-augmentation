@@ -59,7 +59,7 @@ public class Satellite implements Serializable {
      * List of instruments carried on board this satellite
      */
     @JsonAdapter(AlwaysListTypeAdapterFactory.class)
-    private final List<? super Instrument> payload;
+    private List<? super Instrument> payload;
     /**
      * Orbital trajectory of this satellite
      */
@@ -121,6 +121,24 @@ public class Satellite implements Serializable {
         this.isSpare = isSpare;
         this.propellantType = propellantType;
         this.stabilizationType = stabilizationType;
+    }
+
+    public Satellite() {
+        this.name = null;
+        this.acronym = null;
+        this.agency = null;
+        this.mass = null;
+        this.dryMass = null;
+        this.volume = null;
+        this.power = null;
+        this.commBand = null;
+        this.payload = null;
+        this.orbit = null;
+        this.techReadinessLevel = null;
+        this.isGroundCommand = false;
+        this.isSpare = false;
+        this.propellantType = null;
+        this.stabilizationType = null;
     }
 
     /**
@@ -256,4 +274,9 @@ public class Satellite implements Serializable {
     public String getStabilizationType() {
         return stabilizationType;
     }
+
+    public void setPayload(List<? super Instrument> payload){
+        this.payload = payload;
+    }
+
 }

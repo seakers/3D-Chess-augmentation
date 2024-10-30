@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import com.google.gson.internal.LinkedTreeMap;
+
 /**
  * Full factorial search strategy. It enumerates all possible architectures contained in the design space and
  * evaluates them one by one.
@@ -42,27 +44,44 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
 
     @SuppressWarnings("unchecked")
     public void start() throws IllegalArgumentException{
-        HashMap<String,Decision<?>> decisions = properties.getDecisions();
-        List<List<ConstellationParameters>> listConstellationParmeters = new ArrayList<>();
-        for (int constellationCount = 0; constellationCount<properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().size(); constellationCount++){
-            if (!properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).getConstellationType().equalsIgnoreCase("EXISTING")){
-                double eccentricity = -1;
-                switch (properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).getConstellationType()){
-                    case "DELTA_HOMOGENEOUS":
-                        eccentricity = properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).getOrbit().get(0).getEccentricity();
-                        ArrayList<ConstellationParameters> constellationParamsHomo = Enumeration.fullFactHomogeneousWalker(((Decision<Double>) decisions.get(String.format("HomoAltitude%d",constellationCount))).getAllowedValues(),
-                                ((Decision<Object>)decisions.get(String.format("HomoInclination%d",constellationCount))).getAllowedValues(),
-                                ((Decision<Integer>)decisions.get(String.format("HomoNumberSatellites%d",constellationCount))).getAllowedValues(),
-                                ((Decision<Integer>)decisions.get(String.format("HomoNumberPlanes%d",constellationCount))).getAllowedValues(),
-                                ((Decision<Integer>)decisions.get(String.format("HomoRelativeSpacing%d",constellationCount))).getAllowedValues(),
-                                ((Decision<Satellite>)decisions.get(String.format("HomoSatellite%d",constellationCount))).getAllowedValues(),
-                                eccentricity);
-                        for (ConstellationParameters params : constellationParamsHomo){
-                            params.setSecondaryPayload(properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).isSecondaryPayload());
-                            params.setEccentricity(eccentricity);
-                        }
-                        listConstellationParmeters.add(constellationParamsHomo);
-                        break;
+        HashMap<String, Decision<?>> decisions = properties.getDecisions();
+    List<List<ConstellationParameters>> listConstellationParameters = new ArrayList<>();
+
+    for (int constellationCount = 0; constellationCount < properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().size(); constellationCount++) {
+        if (!properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).getConstellationType().equalsIgnoreCase("EXISTING")) {
+            double eccentricity = -1;
+            switch (properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).getConstellationType()) {
+                case "DELTA_HOMOGENEOUS":
+                    eccentricity = properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).getOrbit().get(0).getEccentricity();
+
+                    // Retrieve payload decision variables
+                    List<Double> payloadFocalLengths = ((Decision<Double>) decisions.get(String.format("PayloadFocalLength%d", constellationCount))).getAllowedValues();
+                    List<Integer> payloadBitsPerPixel = ((Decision<Integer>) decisions.get(String.format("PayloadBitsPerPixel%d", constellationCount))).getAllowedValues();
+                    List<Integer> payloadNumDetectorsRows = ((Decision<Integer>) decisions.get(String.format("PayloadNumDetectorsRows%d", constellationCount))).getAllowedValues();
+                    List<Double> payloadApertureDias = ((Decision<Double>) decisions.get(String.format("PayloadApertureDia%d", constellationCount))).getAllowedValues();
+
+                    // Call the Enumeration method with payload decision variables
+                    ArrayList<ConstellationParameters> constellationParamsHomo = Enumeration.fullFactHomogeneousWalker(
+                        ((Decision<Double>) decisions.get(String.format("HomoAltitude%d", constellationCount))).getAllowedValues(),
+                        ((Decision<Object>) decisions.get(String.format("HomoInclination%d", constellationCount))).getAllowedValues(),
+                        ((Decision<Integer>) decisions.get(String.format("HomoNumberSatellites%d", constellationCount))).getAllowedValues(),
+                        ((Decision<Integer>) decisions.get(String.format("HomoNumberPlanes%d", constellationCount))).getAllowedValues(),
+                        ((Decision<Integer>) decisions.get(String.format("HomoRelativeSpacing%d", constellationCount))).getAllowedValues(),
+                        ((Decision<Satellite>)decisions.get(String.format("HomoSatellite%d",constellationCount))).getAllowedValues(),
+                        payloadFocalLengths,
+                        payloadBitsPerPixel,
+                        payloadNumDetectorsRows,
+                        payloadApertureDias,
+                        eccentricity
+                    );
+
+                    // Set secondary payload and eccentricity
+                    for (ConstellationParameters params : constellationParamsHomo) {
+                        params.setSecondaryPayload(properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).isSecondaryPayload());
+                        params.setEccentricity(eccentricity);
+                    }
+                    listConstellationParameters.add(constellationParamsHomo);
+                    break;
                     case "DELTA_HETEROGENEOUS":
                         eccentricity = properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).getOrbit().get(0).getEccentricity();
                         ArrayList<ConstellationParameters> constellationParamsHet = Enumeration.fullFactHeterogeneousWalker(((Decision<Double>) decisions.get(String.format("HeteroAltitude%d",constellationCount))).getAllowedValues(),
@@ -76,7 +95,7 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
                             params.setSecondaryPayload(properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).isSecondaryPayload());
                             params.setEccentricity(eccentricity);
                         }
-                        listConstellationParmeters.add(constellationParamsHet);
+                        listConstellationParameters.add(constellationParamsHet);
                         break;
                     case "TRAIN":
                         ArrayList<ConstellationParameters> constellationParamsTrain = Enumeration.fullFactTrain(((Decision<Double>) decisions.get(String.format("TrainAltitude%d",constellationCount))).getAllowedValues(),
@@ -88,7 +107,7 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
                             params.setSecondaryPayload(properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).isSecondaryPayload());
                             params.setEccentricity(properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).getOrbit().get(0).getEccentricity());
                         }
-                        listConstellationParmeters.add(constellationParamsTrain);
+                        listConstellationParameters.add(constellationParamsTrain);
                         break;
                     case "AD_HOC":
                         ArrayList<ConstellationParameters> constellationParamsAdHoc = Enumeration.fullFactAdHoc(((Decision<Integer>)decisions.get(String.format("AdhocNumberSatellites%d",constellationCount))).getAllowedValues(),
@@ -96,7 +115,7 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
                         for (ConstellationParameters params : constellationParamsAdHoc){
                             params.setSecondaryPayload(properties.getTradespaceSearch().getDesignSpace().getSpaceSegment().get(constellationCount).isSecondaryPayload());
                         }
-                        listConstellationParmeters.add(constellationParamsAdHoc);
+                        listConstellationParameters.add(constellationParamsAdHoc);
                         break;
                     default:
                         throw new IllegalArgumentException("Constellation type has to be either DELTA_HOMOGENEOUS, DELTA_HETEROGENOUS, TRAIN OR AD_HOC.");
@@ -107,7 +126,8 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
         }
 
         ResultIO.createSummaryFile(new File(System.getProperty("tatc.output") + File.separator + "summary.csv"),0);
-        List<List<ConstellationParameters>> cartesianProduct = Combinatorics.cartesianProduct(listConstellationParmeters);
+        List<List<ConstellationParameters>> cartesianProduct = Combinatorics.cartesianProduct(listConstellationParameters);
+        
         Decision<GroundNetwork> decisionGroundNetwork = (Decision<GroundNetwork>)decisions.get("groundNetwork");
         String epoch = properties.getTradespaceSearch().getMission().getStart();
         for (GroundNetwork gn : decisionGroundNetwork.getAllowedValues()) {
@@ -121,11 +141,16 @@ public class TradespaceSearchStrategyFF implements TradespaceSearchStrategy {
                                 architecture.addHomogeneousWalker(((HomogeneousWalkerParameters) constellation).getA()+ Utilities.EARTH_RADIUS_KM,
                                         ((HomogeneousWalkerParameters) constellation).getI(), ((HomogeneousWalkerParameters) constellation).getT(),
                                         ((HomogeneousWalkerParameters) constellation).getP(), ((HomogeneousWalkerParameters) constellation).getF(),
-                                        ((HomogeneousWalkerParameters) constellation).getSatellite(), constellation.getSecondaryPayload(), epoch,
+                                        ((HomogeneousWalkerParameters) constellation).getSatellite(), constellation.getSecondaryPayload(),
+                                        ((HomogeneousWalkerParameters) constellation).getPayloadApertureDia(), 
+                                        ((HomogeneousWalkerParameters) constellation).getPayloadBitsPerPixel(),
+                                        ((HomogeneousWalkerParameters) constellation).getPayloadFocalLength(),
+                                        ((HomogeneousWalkerParameters) constellation).getPayloadNumDetectorsRows(), 
+                                        epoch,
                                         constellation.getEccentricity());
                             }
                             break;
-                        case "DELTA_HETEROGENEOUS":
+                            case "DELTA_HETEROGENEOUS":
                             if (((HeterogeneousWalkerParameters) constellation).getT() != 0) {
                                 architecture.addHeterogenousWalker(((HeterogeneousWalkerParameters) constellation).getT(),
                                         ((HeterogeneousWalkerParameters) constellation).getPlanes(),
