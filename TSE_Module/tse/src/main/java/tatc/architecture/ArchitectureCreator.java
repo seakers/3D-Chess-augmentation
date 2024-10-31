@@ -102,11 +102,11 @@ public class ArchitectureCreator implements ArchitectureMethods{
         if (eccentricity != 0.0){
             delPerigee = delRaan;
         }
-
+        double altitude = semimajoraxis - Utilities.EARTH_RADIUS_KM;
         List<Orbit> listOrbits = new ArrayList<>();
         for (int planeNum = 0; planeNum < p; planeNum++) {
             for (int satNum = 0; satNum < s; satNum++) {
-                Orbit orbit = new Orbit("KEPLERIAN",null,
+                Orbit orbit = new Orbit("SUN_SYNCHRONOUS",altitude,
                         semimajoraxis,inc,eccentricity,FastMath.toDegrees(refPerigee + planeNum * delPerigee),
                         FastMath.toDegrees(refRaan + planeNum * delRaan),
                         FastMath.toDegrees((refAnom + satNum * delAnom + phasing * planeNum) % (2. * FastMath.PI)), epoch, null);
@@ -158,7 +158,7 @@ public class ArchitectureCreator implements ArchitectureMethods{
                     satellite.getPropellantType(),
                     satellite.getStabilizationType()));
         }
-        Constellation constellation=new Constellation("DELTA_HOMOGENEOUS", t,p,f, null,null,satellites,secondaryPayload);
+        Constellation constellation=new Constellation("DELTA_HOMOGENEOUS", t,p,f, listOrbits,null,satellites,secondaryPayload);
         constellations.add(constellation);
     }
 

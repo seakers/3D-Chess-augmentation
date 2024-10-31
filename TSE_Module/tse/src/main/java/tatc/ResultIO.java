@@ -602,7 +602,7 @@ public class ResultIO implements Serializable {
 public static boolean createSummaryFile(File file, int numberObjectives) {
     try (FileWriter fw = new FileWriter(file)) {
         // Write the header with additional columns for decision variables
-        fw.append("arch_id,constellation_type,num_satellites,num_planes,sat_ids,num_stations,gs_ids,exec_time[s],payloadApertureDia,payloadBitsPerPixel,payloadFocalLength,payloadNumDetectorsRowsAlongTrack");
+        fw.append("ArchId,ConstellationType,Inclination,Altitude,NumSats,NumPlanes,SatIds,NumStations,GsIds,ExecTime[s],ApertureDia,BitsPerPixel,FocalLength,NumDetectorsColsCrossTrack");
 
         // Add objective headers
         for (int i = 1; i <= numberObjectives; i++) {
@@ -652,6 +652,8 @@ public static String getLineSummaryData(ArchitectureCreator architecture, int ar
         } else {
             str = str + c.getConstellationType() + " ";
         }
+        str = str+c.getSatellites().get(0).getOrbit().getInclination()+',';
+        str = str + c.getOrbit().get(0).getAltitude()+',';
     }
 
     int numSat = 0;
