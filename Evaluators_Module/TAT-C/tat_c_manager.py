@@ -252,7 +252,7 @@ def coverage_tatc(request: CoverageRequest) -> CoverageResponse:
             instruments=[
                 Instrument(
                     name="Default",
-                    field_of_regard=114
+                    field_of_regard=satellite.payloads[0].field_of_view.angle_width
                 )
             ]
         )
