@@ -97,11 +97,14 @@ public class ProblemGA extends AbstractProblem {
                     ArrayList<Integer> planeAndPhase = Utilities.obtainPlanesAndPhasingFromChromosome(nsatHomo, tradespacePlanes, planeRealHomo, phaseRealHomo);
                     int plane = planeAndPhase.get(0);
                     int phase = planeAndPhase.get(1);
-                    HomogeneousWalkerParameters constellationHomo = new HomogeneousWalkerParameters(altitudeHomo, inclinationModified, nsatHomo, plane, phase, satelliteHomo, 0,null,0,0.0);
+                    HomogeneousWalkerParameters constellationHomo = new HomogeneousWalkerParameters(altitudeHomo, inclinationModified, nsatHomo, plane, phase, satelliteHomo, 0,0,0,0.0);
                     constellationHomo.setSecondaryPayload(((HomogeneousWalkerVariable) soln.getVariable(variableCounter)).getSecondaryPayload());
                     constellationHomo.setEccentricity(((HomogeneousWalkerVariable) soln.getVariable(variableCounter)).getEccentricity());
                     architecture.addHomogeneousWalker(constellationHomo.getA()+ Utilities.EARTH_RADIUS_KM, constellationHomo.getI(), constellationHomo.getT(),
-                            constellationHomo.getP(), constellationHomo.getF(), constellationHomo.getSatellite(), constellationHomo.getSecondaryPayload(), epoch, constellationHomo.getEccentricity());
+                            constellationHomo.getP(), constellationHomo.getF(), constellationHomo.getSatellite(), constellationHomo.getSecondaryPayload(),((HomogeneousWalkerParameters) constellationHomo).getPayloadApertureDia(), 
+                            ((HomogeneousWalkerParameters) constellationHomo).getPayloadBitsPerPixel(),
+                            ((HomogeneousWalkerParameters) constellationHomo).getPayloadFocalLength(),
+                            ((HomogeneousWalkerParameters) constellationHomo).getPayloadNumDetectorsRows(), epoch, constellationHomo.getEccentricity());
                 }
                 variableCounter++;
 
@@ -230,7 +233,7 @@ public class ProblemGA extends AbstractProblem {
             // 3. Evaluate architecture
             long startTime = System.nanoTime();
             try{
-                TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
+                HashMap<String, Double> objectivesResults=TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
             }catch(IOException e){
             System.out.println("Error reading the JSON file: " + e.getMessage());
             e.printStackTrace();
