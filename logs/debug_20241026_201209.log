@@ -1,0 +1,3 @@
+2024-10-26 20:12:09,599 - INFO - Starting InstruPy MQTT client... Log file is initialized.
+2024-10-26 20:12:09,606 - INFO - Connected to MQTT Broker!
+2024-10-26 20:12:09,607 - INFO - Subscribed to topic: evaluators/InstruPy/InstrumentPerformance
