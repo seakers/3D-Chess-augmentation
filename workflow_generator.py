@@ -199,7 +199,7 @@ class TSEWorkflowGenerator:
                 for dep_function in dependencies:
                     dep_tool=self.function_tool_map[dep_function]
                     implemented_functions[function]["dependencies"][dep_function] = (
-                        f"evaluators/{dep_tool}" if dep_tool != evaluator else "self"
+                        f"evaluators/{dep_tool}/{dep_function}" if dep_tool != evaluator else "self"
                     )
             implemented_functions[function]["level"] = self.function_levels[function]
 
