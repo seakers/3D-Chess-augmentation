@@ -249,7 +249,7 @@ public class TradespaceSearchExecutive {
             }
 
             // Wait for responses from all evaluators or timeout after a certain period
-            boolean allResponsesReceived = latch.await(300, TimeUnit.SECONDS);
+            boolean allResponsesReceived = latch.await(600, TimeUnit.SECONDS);
             if (!allResponsesReceived) {
                 throw new IOException("Did not receive responses for all metrics within the timeout period.");
             }
@@ -407,8 +407,10 @@ public class TradespaceSearchExecutive {
         }
 
         switch (tsr.getSettings().getSearchStrategy()) {
+            // case "FF":
+            //     return new TradespaceSearchStrategyFF(searchProperties);
             case "FF":
-                return new TradespaceSearchStrategyFF(searchProperties);
+                return new TradespaceSearchStrategyFFNew(searchProperties);
             case "GA":
             case "MOEA":
                 return new TradespaceSearchStrategyMOEA(searchProperties);

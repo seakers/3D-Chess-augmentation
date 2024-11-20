@@ -32,6 +32,8 @@ public class ProblemProperties {
     private Map<String, List<String>> scienceEvaluators;
     private Map<String, JSONObject> evaluators;
     Map<String, String> metricTopics;
+    private JSONObject tsrJson;
+
     /**
      * Constructs the problem properties
      * @param tsr the tradespace search request
@@ -41,6 +43,7 @@ public class ProblemProperties {
         decisions = this.tradespaceSearch.TradespaceSearch2Decisions();
         objectives = this.tradespaceSearch.processObjectives();
         instance = this;
+        this.tsrJson = tsrJson;
         TSERequestParser parser = new TSERequestParser();
         evaluators = parser.getWorkflow(tsrJson);
         metricTopics = parser.getMetricRequestsTopics(tsrJson);
@@ -62,7 +65,9 @@ public class ProblemProperties {
     public Map<String, String> getMetricTopics() {
         return metricTopics;
     }
-    
+    public JSONObject getTsrObject(){
+        return tsrJson;
+    }
     public TradespaceSearch getTradespaceSearch() {
         return tradespaceSearch;
     }

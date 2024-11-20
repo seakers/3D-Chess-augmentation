@@ -5,15 +5,11 @@
  */
 package tatc;
 
-/*
- * A pre-Phase A constellation mission analysis tool
- */
-
-import tatc.tradespaceiterator.TradespaceSearchExecutive;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,6 +18,12 @@ import java.time.format.DateTimeFormatter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+/*
+ * A pre-Phase A constellation mission analysis tool
+ */
+import tatc.tradespaceiterator.TradespaceSearchStrategyFFNew;
+import tatc.tradespaceiterator.TradespaceSearchExecutive;
 /**
  * Main class of the Tradespace Search Executive
  */
@@ -46,7 +48,7 @@ public class TSE {
         }
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
-        args[0] = "workflow_outputtest2.json";
+        args[0] = "TSERequestFF2.json";
         args[1] = "TSE_Module\\tse\\results\\results_"+timestamp;
         Path path = Paths.get(args[1]);
         try{
@@ -61,6 +63,29 @@ public class TSE {
         ConsoleHandler handler = new ConsoleHandler();
         handler.setLevel(level);
         Logger.getGlobal().addHandler(handler);
+        TradespaceSearchStrategyFFNew tff;
+        // try{
+        //      tff = new TradespaceSearchStrategyFFNew(fullPathArg0);
+        //      List<String> decisionVariables = tff.getDecisionVariables();
+        //      System.out.println("Decision Variables: " + decisionVariables);
+     
+        //      // Get possible values for each decision variable
+        //      Map<String, List<Object>> variableValues = tff.getDecisionVariableValues(decisionVariables);
+        //      System.out.println("Variable Values:");
+        //      for (String var : variableValues.keySet()) {
+        //          System.out.println(var + ": " + variableValues.get(var));
+        //      }
+     
+        //      // Generate full factorial design
+        //      List<Map<String, Object>> fullFactorialDesign = tff.generateFullFactorialDesign(variableValues);
+        //      System.out.println("Number of architectures: " + fullFactorialDesign.size());
+             
+
+        // }catch(IOException e){
+        //     System.out.println("Directory doesn't exist");
+
+        // }
+       
         long startTime = System.nanoTime();
         TradespaceSearchExecutive tse = new TradespaceSearchExecutive(fullPathArg0,fullPathArg1);
         tse.run();
