@@ -187,6 +187,79 @@ public class Instrument implements Serializable {
             this.power = ((Number) value).doubleValue();
         }
     }
+    if (instrumentParams.containsKey("focalLength")) {
+        Object value = instrumentParams.get("focalLength");
+        if (value instanceof Number) {
+            this.focalLength = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("apertureDia")) {
+        Object value = instrumentParams.get("apertureDia");
+        if (value instanceof Number) {
+            this.apertureDia = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("quantumEff")) {
+        Object value = instrumentParams.get("quantumEff");
+        if (value instanceof Number) {
+            this.quantumEff = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("bandwidth")) {
+        Object value = instrumentParams.get("bandwidth");
+        if (value instanceof Number) {
+            this.bandwidth = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("targetBlackBodyTemp")) {
+        Object value = instrumentParams.get("targetBlackBodyTemp");
+        if (value instanceof Number) {
+            this.targetBlackBodyTemp = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("numOfReadOutE")) {
+        Object value = instrumentParams.get("numOfReadOutE");
+        if (value instanceof Number) {
+            this.numOfReadOutE = ((Number) value).intValue();
+        }
+    }
+    if (instrumentParams.containsKey("detectorWidth")) {
+        Object value = instrumentParams.get("detectorWidth");
+        if (value instanceof Number) {
+            this.detectorWidth = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("operatingWavelength")) {
+        Object value = instrumentParams.get("operatingWavelength");
+        if (value instanceof Number) {
+            this.operatingWavelength = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("snrThreshold")) {
+        Object value = instrumentParams.get("snrThreshold");
+        if (value instanceof Number) {
+            this.snrThreshold = ((Number) value).intValue();
+        }
+    }
+    if (instrumentParams.containsKey("maxDetectorExposureTime")) {
+        Object value = instrumentParams.get("maxDetectorExposureTime");
+        if (value instanceof Number) {
+            this.maxDetectorExposureTime = ((Number) value).doubleValue();
+        }
+    }
+    
+    if (instrumentParams.containsKey("opticsSysEff")) {
+        Object value = instrumentParams.get("opticsSysEff");
+        if (value instanceof Number) {
+            this.opticsSysEff = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("Fnum")) {
+        Object value = instrumentParams.get("Fnum");
+        if (value instanceof Number) {
+            this.Fnum = ((Number) value).doubleValue();
+        }
+    }
     if (instrumentParams.containsKey("dataRate")) {
         Object value = instrumentParams.get("dataRate");
         if (value instanceof Number) {

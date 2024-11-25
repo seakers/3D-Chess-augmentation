@@ -48,8 +48,8 @@ public class TSE {
         }
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
-        args[0] = "TSERequestClimateCentric.json";
-        //args[0] = "TSERequestFFFireSat.json";
+        //args[0] = "TSERequestClimateCentric.json";
+        args[0] = "TSERequestFFFireSat.json";
         args[1] = "TSE_Module\\tse\\results\\results_"+timestamp;
         Path path = Paths.get(args[1]);
         try{

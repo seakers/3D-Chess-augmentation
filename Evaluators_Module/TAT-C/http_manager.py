@@ -132,7 +132,7 @@ class TATCEvaluator:
 evaluator = TATCEvaluator()
 
 # Define the HTTP endpoints
-@app.route('/TATC/<function_name>', methods=['POST'])
+@app.route('/tatc/<function_name>', methods=['POST'])
 def handle_request(function_name):
     data = request.get_json()
     try:
