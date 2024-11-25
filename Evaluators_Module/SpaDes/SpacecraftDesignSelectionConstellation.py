@@ -105,7 +105,7 @@ def loadJSONConst(jsonDict): # work in progress -- need to make some decisions o
                     peakPower=payload['power'],
                     name=payload['name'],
                     tempRange=[payload['targetBlackBodyTemp']-25,payload['targetBlackBodyTemp']+25],
-                    resolution=(payload['fieldOfView']['fullConeAngle']/payload['numberOfDetectorsColsCrossTrack'])*3600, # arcseconds
+                    resolution=(payload['fieldOfView']['fullConeAngle']/(payload['numberOfDetectorsColsCrossTrack']+0.01))*3600, # arcseconds
                     FOV=payload['fieldOfView']['fullConeAngle'],
                     specRange=payload['operatingWavelength'],
                     dataRate=payload['dataRate'],

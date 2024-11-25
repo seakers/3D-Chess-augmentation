@@ -153,7 +153,7 @@ def payloadMissionFFE(instruments, instrumentNames, altitudes, inclinations):
 # made up default values for tempRange and resolution where vassar doesn't have them
 climateCentricInstruments = {
     "ACE_ORCA": {
-        "type": "payload",
+        "type": "ClimateCentric",
         "mass": 137,
         "dimensions": [1, 1, 1],
         "avgPower": 132,

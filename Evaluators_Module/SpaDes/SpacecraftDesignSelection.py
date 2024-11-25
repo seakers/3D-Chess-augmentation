@@ -19,7 +19,7 @@ def loadJSONSCDesign(jsonPath, ind):
     jsonFile = open(jsonPath)
     jsonDict = json.load(jsonFile)
 
-    payloadDict = jsonDict['payloads']
+    payloadDict = jsonDict['payload']
     missionDict = jsonDict['mission']
 
     # import into component object
