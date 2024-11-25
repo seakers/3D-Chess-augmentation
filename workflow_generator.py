@@ -18,7 +18,18 @@ class TSEWorkflowGenerator:
         with self.driver.session() as session:
             result = session.run(query, parameters)
             return [record.data() for record in result]
-
+    def get_tool_http_address(self, tool_name):
+        query = """
+        MATCH (t:Tool {name: $tool_name})
+        RETURN t.httpAddress AS httpAddress
+        """
+        result = self.execute_query(query, {"tool_name": tool_name})
+        
+        if result and result[0].get("httpAddress"):
+            return result[0]["httpAddress"]
+        else:
+            raise ValueError(f"No httpAddress found for tool '{tool_name}' or tool does not exist.")
+    
     def get_functions_calculating_metric(self, metric_name):
         # Query functions that calculate the given metric
         query = """
@@ -199,7 +210,7 @@ class TSEWorkflowGenerator:
                 for dep_function in dependencies:
                     dep_tool=self.function_tool_map[dep_function]
                     implemented_functions[function]["dependencies"][dep_function] = (
-                        f"evaluators/{dep_tool}/{dep_function}" if dep_tool != evaluator else "self"
+                        f"{self.get_tool_http_address(dep_tool)}/{dep_function}" if dep_tool != evaluator else "self"
                     )
             implemented_functions[function]["level"] = self.function_levels[function]
 
