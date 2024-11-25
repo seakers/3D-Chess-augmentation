@@ -3,7 +3,11 @@ package tatc.architecture.specifications;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+
+import org.json.JSONArray;
 
 /**
  * A payload component that performs scientific observation functions. Examples include imagers which observe and produce one or more image products.
@@ -80,7 +84,11 @@ public class Instrument implements Serializable {
             private double maxDetectorExposureTime;
             private int snrThreshold;
             private String type;
-            
+            private List<Number> dimensions;
+            private List<Number> tempRange;
+            private double resolution;
+            private double FOV;
+            private String specRange;
         
             /**
              * Constructs an instrument object
@@ -120,6 +128,7 @@ public class Instrument implements Serializable {
                 // Initialize final fields with default values
                 this.id = "";
                 this.name = "";
+                this.type = "";
                 this.acronym = "";
                 this.agency = new Agency("","","");
                 this.mass = 0.0;
@@ -133,6 +142,9 @@ public class Instrument implements Serializable {
                 // Overwrite with values from instrumentParams if present
                 if (instrumentParams.containsKey("id")) {
                     this.id = (String) instrumentParams.get("id");
+                }
+                if (instrumentParams.containsKey("type")) {
+                    this.type = (String) instrumentParams.get("type");
                 }
                 if (instrumentParams.containsKey("name")) {
                     this.name = (String) instrumentParams.get("name");
@@ -162,8 +174,8 @@ public class Instrument implements Serializable {
                 this.orientation = (Orientation) value;
         }
     }
-        if (instrumentParams.containsKey("fov")) {
-            Object value = instrumentParams.get("fov");
+        if (instrumentParams.containsKey("fieldOfView")) {
+            Object value = instrumentParams.get("fieldOfView");
             if (value instanceof FieldOfView) {
                 this.fieldOfView = (FieldOfView) value;
         }
@@ -179,6 +191,18 @@ public class Instrument implements Serializable {
         Object value = instrumentParams.get("dataRate");
         if (value instanceof Number) {
             this.dataRate = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("numberOfDetectorsColsCrossTrack")) {
+        Object value = instrumentParams.get("numberOfDetectorsColsCrossTrack");
+        if (value instanceof Number) {
+            this.numberOfDetectorsColsCrossTrack = ((Number) value).intValue();
+        }
+    }
+    if (instrumentParams.containsKey("numberOfDetectorsRowsAlongTrack")) {
+        Object value = instrumentParams.get("numberOfDetectorsRowsAlongTrack");
+        if (value instanceof Number) {
+            this.numberOfDetectorsRowsAlongTrack = ((Number) value).intValue();
         }
     }
     if (instrumentParams.containsKey("bitsPerPixel")) {
@@ -199,10 +223,48 @@ public class Instrument implements Serializable {
     if (instrumentParams.containsKey("scanTechnique")) {
         this.scanTechnique = (String) instrumentParams.get("scanTechnique");
     }
+    if (instrumentParams.containsKey("dimensions")) {
+        Object value = instrumentParams.get("dimensions");
+        this.dimensions = convertToNumberList(value);
+    }
+    if (instrumentParams.containsKey("temperatureRange")) {
+        Object value = instrumentParams.get("temperatureRange");
+        this.tempRange = convertToNumberList(value);
+    }
+    if (instrumentParams.containsKey("resolution")) {
+        Object value = instrumentParams.get("resolution");
+        if (value instanceof Number) {
+            this.resolution = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("FOV")) {
+        Object value = instrumentParams.get("FOV");
+        if (value instanceof Number) {
+            this.FOV = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("specRange")) {
+        this.specRange = (String) instrumentParams.get("specRange");
+    }
     // ... handle other fields similarly
 }
-    // Getters and setters for the fields (if needed)
-    // ...
+    
+private List<Number> convertToNumberList(Object value) {
+        List<Number> numberList = new ArrayList<>();
+        if (value instanceof List) {
+            for (Object item : (List<?>) value) {
+                if (item instanceof Number) {
+                    numberList.add((Number) item);
+                }
+            }
+        } else if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (int i = 0; i < array.length(); i++) {
+                numberList.add(array.getNumber(i));
+            }
+        }
+        return numberList;
+    }
     /**
      * Gets the instrument name
      * @return the instrument name

@@ -17,7 +17,7 @@ public class FieldOfView implements Serializable {
     /**
      * Specification of sensor geometry. Recongized values include: CONICAL, RECTANGULAR (default), CUSTOM
      */
-    private final String SensorGeometry;
+    private final String sensorGeometry;
     /**
      * Angle (deg) of full FoV cone (for CONE geometry)
      */
@@ -40,6 +40,7 @@ public class FieldOfView implements Serializable {
      * customConeAnglesVector are defined
      */
     private final List<Double>  customClockAnglesVector;
+    private final Double  fieldOfRegard;
 
     /**
      * Constructs a field of view specifications object
@@ -52,13 +53,14 @@ public class FieldOfView implements Serializable {
      * @param customClockAnglesVector the numeric values explaining the angular positions (deg) at which field of view
      *                                angles in customConeAnglesVector are defined
      */
-    public FieldOfView(String sensorGeometry, Double fullConeAngle, Double alongTrackFieldOfView, Double crossTrackFieldOfView, List<Double> customConeAnglesVector, List<Double> customClockAnglesVector) {
-        SensorGeometry = sensorGeometry;
+    public FieldOfView(String SensorGeometry, Double fullConeAngle, Double alongTrackFieldOfView, Double crossTrackFieldOfView, List<Double> customConeAnglesVector, List<Double> customClockAnglesVector, Double fieldOfRegard) {
+        sensorGeometry = SensorGeometry;
         this.fullConeAngle = fullConeAngle;
         this.alongTrackFieldOfView = alongTrackFieldOfView;
         this.crossTrackFieldOfView = crossTrackFieldOfView;
         this.customConeAnglesVector = customConeAnglesVector;
         this.customClockAnglesVector = customClockAnglesVector;
+        this.fieldOfRegard = fieldOfRegard;
     }
 
     /**
@@ -66,7 +68,7 @@ public class FieldOfView implements Serializable {
      * @return the sensor geometry (CONICAL, RECTANGULAR or CUSTOM)
      */
     public String getSensorGeometry() {
-        return SensorGeometry;
+        return sensorGeometry;
     }
 
     /**
