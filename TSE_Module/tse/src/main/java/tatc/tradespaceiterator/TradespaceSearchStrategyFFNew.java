@@ -48,15 +48,9 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
         // Step 1: Get combining pattern variables and generate architectures (L)
         Map<String, String> decisionVariables = properties.getDecisionVariables();
         Map<String, List<Object>> variableValues = properties.getDecisionVariableValues(decisionVariables);
-        List<Map<Object, Set<Object>>> fullArchitectures = new ArrayList<>();
-        List<Map<String, Object>> combiningArchitectures;
         // Filter combining pattern variables
         Map<String, List<Object>> combiningVariableValues = new LinkedHashMap<>();
         Map<String, List<Object>> assigningVariableValues = new LinkedHashMap<>();
-        List<Constellation> constellations = properties.getTradespaceSearch().getDesignSpace().getSpaceSegment();
-        JSONArray constellationsJSON = tseRequestJson.getJSONObject("designSpace").getJSONArray("spaceSegment");
-        HashMap<String, Decision<?>> decisions = properties.getDecisions();        
-        Decision<GroundNetwork> decisionGroundNetwork = (Decision<GroundNetwork>)decisions.get("groundNetwork");
         for (Map.Entry<String, String> entry : decisionVariables.entrySet()) {
             if ("Combining".equalsIgnoreCase(entry.getValue())) {
                 combiningVariableValues.put(entry.getKey(), variableValues.get(entry.getKey()));
@@ -66,117 +60,118 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
             }
         }
         if(!assigningVariableValues.isEmpty() && !combiningVariableValues.isEmpty()){
-            combiningArchitectures = generateFullFactorialDesign(combiningVariableValues);
-            for (Map.Entry<String, List<Object>> entry : assigningVariableValues.entrySet()){
-                List<Object> entries = new ArrayList<>();
-                // entries.add(entry.getValue().get(0));
-                // entries.add(entry.getValue().get(1));
-                List<Object> architectures = new ArrayList<>(combiningArchitectures);
-                List<Map<Object, Set<Object>>> allAssignments = assigning(architectures, entry.getValue());
-                // Step 4: Combine architectures with assignments
-                for (Map<Object, Set<Object>> assignment : allAssignments) {
-                    List<Map<String, Object>> architecture = new ArrayList<>();
+            fullFactorialCombiningAndAssigning(combiningVariableValues, assigningVariableValues);
+        }
+        else{
+            fullFactorialCombining(combiningVariableValues);
+        }
+    }
+    private void fullFactorialCombiningAndAssigning(Map<String, List<Object>> combiningVariableValues,Map<String, List<Object>> assigningVariableValues ){
+        List<Map<String, Object>> combiningArchitectures = generateFullFactorialDesign(combiningVariableValues);
+        List<Map<Object, Set<Object>>> fullArchitectures = new ArrayList<>();;
+        HashMap<String, Decision<?>> decisions = properties.getDecisions();        
+        Decision<GroundNetwork> decisionGroundNetwork = (Decision<GroundNetwork>)decisions.get("groundNetwork");
+        for (Map.Entry<String, List<Object>> entry : assigningVariableValues.entrySet()){
+            List<Object> architectures = new ArrayList<>(combiningArchitectures);
+            List<Map<Object, Set<Object>>> allAssignments = assigning(architectures, entry.getValue());
+            // Step 4: Combine architectures with assignments
+            for (Map<Object, Set<Object>> assignment : allAssignments) {
+                fullArchitectures.add(assignment);
+            }
+            System.out.println("Total number of architectures: " + fullArchitectures.size());
+            JSONArray constellationsJSON = tseRequestJson.getJSONObject("designSpace").getJSONArray("spaceSegment");
+            List<JSONObject> architecturesJson = new ArrayList<>();
+            // Loop over each set of architecture parameters
+            Collections.shuffle(fullArchitectures);
+            int k = 0;
+            for (GroundNetwork gn : decisionGroundNetwork.getAllowedValues()) {
+                for (Map<Object, Set<Object>> archParameters : fullArchitectures) {
+                    // Create a new architecture JSON object
+                    ArchitectureCreatorNew creator = new ArchitectureCreatorNew();
+                    // Initialize the spaceSegment JSONArray
+                    Map<String, Object> architecture = new HashMap<>();
                     // Extract architecture parameters from assignment keys
-                    
-                    for (Object archObj : assignment.keySet()) {
+                    int i = 0;
+                    JSONObject constJson = constellationsJSON.getJSONObject(i);
+                    for (Object archObj : archParameters.keySet()) {
                         if (archObj instanceof Map) {
                             Map<String, Object> archMap = (Map<String, Object>) archObj;
-                            
-                            architecture.add(archMap);
+                            architecture.putAll(archMap);
                         }
                         // Add instrument assignments
-                        Set<Object> assignedVariables = assignment.get(archObj);
-                        //architecture.add(entry.getKey(), assignedVariables);
+                        Set<Object> assignedVariables = archParameters.get(archObj);
+                        architecture.put(entry.getKey(), assignedVariables);
+                        //JSONObject finalConst = creator.addHomogeneousWalker(constJson, archParameters);
+                        creator.addHomogeneousWalkerOld(constJson, architecture);
+                        i++;
                     }
-                    fullArchitectures.add(assignment);
+                        // Add the updated constellation to the spaceSegment array
+                    if(!creator.getConstellations().isEmpty()){
+                        creator.addGroundNetwork(gn);
+                        File architectureJsonFile = creator.toJSON(k);
+                        k++;
+                        try {
+                                HashMap<String, Double> objectivesResults = TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
+                                writeSummaryFile(objectivesResults,architecture,k);
+                        } catch (InterruptedException | IOException e) {
+                            System.out.println("Error reading the JSON file: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+    
+                }       
+                   
+            }
+    
+            for (int i = 0; i < architecturesJson.size(); i++) {
+                JSONObject arch = architecturesJson.get(i);
+                File mainPath = new File(System.getProperty("tatc.output"));
+                File archPath = new File(mainPath, "arch-" + i);
+                archPath.mkdirs();
+                File file = new File(archPath, "arch.json");
+    
+                // Use FileWriter and write the JSONObject directly
+                try (FileWriter fileWriter = new FileWriter(file)) {
+                    fileWriter.write(arch.toString(4)); // Pretty print with indentation
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-                System.out.println("Total number of architectures: " + fullArchitectures.size());
-            } 
-        }
-        // else if (assigningVariableValues.isEmpty() && !combiningVariableValues.isEmpty()){
-        //     fullArchitectures = generateFullFactorialDesign(combiningVariableValues);
-        // }
-        Set<JSONObject> constellationsJson = new HashSet<JSONObject>();
-        // for (Map<String,Object> archParameters: fullArchitectures){
-        //     int i = 0;
-        //     for(Constellation constellation : constellations){
-        //         if(constellation.getConstellationType().equals("DELTA_HOMOGENEOUS")){
-        //            JSONObject constJson = constellationsJSON.getJSONObject(i);
-        //            JSONObject finalConst = creator.addHomogeneousWalker(constJson, archParameters);
-        //            constellationsJson.add(finalConst);
-        //             i++;
-        //         }                
+            }
+    
+    
+            System.out.println("Hello");
 
-        //     }
-        // }
-        List<JSONObject> architecturesJson = new ArrayList<>();
-        // Loop over each set of architecture parameters
-        Collections.shuffle(fullArchitectures);
-        int k = 0;
+        } 
+    }
+    private void fullFactorialCombining(Map<String, List<Object>> combiningVariableValues){
+        List<Map<String, Object>> fullArchitectures = generateFullFactorialDesign(combiningVariableValues);
+        JSONArray constellationsJSON = tseRequestJson.getJSONObject("designSpace").getJSONArray("spaceSegment");
+        HashMap<String, Decision<?>> decisions = properties.getDecisions();
+        Decision<GroundNetwork> decisionGroundNetwork = (Decision<GroundNetwork>)decisions.get("groundNetwork");
+
         for (GroundNetwork gn : decisionGroundNetwork.getAllowedValues()) {
-            for (Map<Object, Set<Object>> archParameters : fullArchitectures) {
-                // Create a new architecture JSON object
-                JSONObject architectureJson = new JSONObject();
+            int k= 0;
+            for (Map<String,Object> archParameters: fullArchitectures){
                 ArchitectureCreatorNew creator = new ArchitectureCreatorNew();
-                // Add necessary fields to match the structure of arch.json
-                architectureJson.put("@type", "Architecture");
-                architectureJson.put("@id", "arch-" + architecturesJson.size());
-
-                // Initialize the spaceSegment JSONArray
-                JSONArray spaceSegmentArray = new JSONArray();
-                Map<String, Object> architecture = new HashMap<>();
-                // Extract architecture parameters from assignment keys
-                int i = 0;
-                JSONObject constJson = constellationsJSON.getJSONObject(i);
-                for (Object archObj : archParameters.keySet()) {
-                    if (archObj instanceof Map) {
-                        Map<String, Object> archMap = (Map<String, Object>) archObj;
-                        architecture.putAll(archMap);
-                    }
-                    // Add instrument assignments
-                    Set<Object> assignedVariables = archParameters.get(archObj);
-                    architecture.put("payload", assignedVariables);
-                    //JSONObject finalConst = creator.addHomogeneousWalker(constJson, archParameters);
-                    creator.addHomogeneousWalkerOld(constJson, architecture);
-                    i++;
+                for(int i=0; i<constellationsJSON.length(); i++){
+                    JSONObject constJson = constellationsJSON.getJSONObject(i);
+                    creator.addHomogeneousWalkerOld(constJson, archParameters);
                 }
-                    // Add the updated constellation to the spaceSegment array
                 if(!creator.getConstellations().isEmpty()){
                     creator.addGroundNetwork(gn);
                     File architectureJsonFile = creator.toJSON(k);
                     k++;
                     try {
                             HashMap<String, Double> objectivesResults = TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
-                            writeSummaryFile(objectivesResults,architecture,k);
+                            writeSummaryFile(objectivesResults,archParameters,k);
                     } catch (InterruptedException | IOException e) {
                         System.out.println("Error reading the JSON file: " + e.getMessage());
                         e.printStackTrace();
                     }
                 }
-
-                }
-
-                
-               
-    }
-
-        for (int i = 0; i < architecturesJson.size(); i++) {
-            JSONObject arch = architecturesJson.get(i);
-            File mainPath = new File(System.getProperty("tatc.output"));
-            File archPath = new File(mainPath, "arch-" + i);
-            archPath.mkdirs();
-            File file = new File(archPath, "arch.json");
-
-            // Use FileWriter and write the JSONObject directly
-            try (FileWriter fileWriter = new FileWriter(file)) {
-                fileWriter.write(arch.toString(4)); // Pretty print with indentation
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+
         }
-
-
-        System.out.println("Hello");
     }
     public void writeSummaryFile(Map<String, Double> objectives, Map<String, Object> archVariables, int archIndex) throws IOException {
         //String csvFile = "summary.csv";

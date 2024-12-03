@@ -48,8 +48,8 @@ public class TSE {
         }
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
-        args[0] = "TSERequestClimateCentricAllInstruments.json";
-        //args[0] = "TSERequestFFFireSat.json";
+        //args[0] = "TSERequestClimateCentricAllInstruments.json";
+        args[0] = "TSERequestFFFireSat.json";
         args[1] = "TSE_Module\\tse\\results\\results_"+timestamp;
         Path path = Paths.get(args[1]);
         try{
@@ -64,28 +64,6 @@ public class TSE {
         ConsoleHandler handler = new ConsoleHandler();
         handler.setLevel(level);
         Logger.getGlobal().addHandler(handler);
-        // try{
-        //      tff = new TradespaceSearchStrategyFFNew(fullPathArg0);
-        //      List<String> decisionVariables = tff.getDecisionVariables();
-        //      System.out.println("Decision Variables: " + decisionVariables);
-     
-        //      // Get possible values for each decision variable
-        //      Map<String, List<Object>> variableValues = tff.getDecisionVariableValues(decisionVariables);
-        //      System.out.println("Variable Values:");
-        //      for (String var : variableValues.keySet()) {
-        //          System.out.println(var + ": " + variableValues.get(var));
-        //      }
-     
-        //      // Generate full factorial design
-        //      List<Map<String, Object>> fullFactorialDesign = tff.generateFullFactorialDesign(variableValues);
-        //      System.out.println("Number of architectures: " + fullFactorialDesign.size());
-             
-
-        // }catch(IOException e){
-        //     System.out.println("Directory doesn't exist");
-
-        // }
-       
         long startTime = System.nanoTime();
         TradespaceSearchExecutive tse = new TradespaceSearchExecutive(fullPathArg0,fullPathArg1);
         tse.run();
