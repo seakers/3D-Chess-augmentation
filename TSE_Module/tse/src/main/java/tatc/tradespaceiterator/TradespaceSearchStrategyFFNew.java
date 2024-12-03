@@ -46,9 +46,9 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
 
     public void start() throws IllegalArgumentException {
         // Step 1: Get combining pattern variables and generate architectures (L)
-        Map<String, String> decisionVariables = this.getDecisionVariables();
-        Map<String, List<Object>> variableValues = this.getDecisionVariableValues(decisionVariables);
-        List<Map<String, Object>> fullArchitectures = new ArrayList<>();
+        Map<String, String> decisionVariables = properties.getDecisionVariables();
+        Map<String, List<Object>> variableValues = properties.getDecisionVariableValues(decisionVariables);
+        List<Map<Object, Set<Object>>> fullArchitectures = new ArrayList<>();
         List<Map<String, Object>> combiningArchitectures;
         // Filter combining pattern variables
         Map<String, List<Object>> combiningVariableValues = new LinkedHashMap<>();
@@ -68,30 +68,35 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
         if(!assigningVariableValues.isEmpty() && !combiningVariableValues.isEmpty()){
             combiningArchitectures = generateFullFactorialDesign(combiningVariableValues);
             for (Map.Entry<String, List<Object>> entry : assigningVariableValues.entrySet()){
+                List<Object> entries = new ArrayList<>();
+                // entries.add(entry.getValue().get(0));
+                // entries.add(entry.getValue().get(1));
                 List<Object> architectures = new ArrayList<>(combiningArchitectures);
                 List<Map<Object, Set<Object>>> allAssignments = assigning(architectures, entry.getValue());
                 // Step 4: Combine architectures with assignments
                 for (Map<Object, Set<Object>> assignment : allAssignments) {
-                    Map<String, Object> architecture = new HashMap<>();
+                    List<Map<String, Object>> architecture = new ArrayList<>();
                     // Extract architecture parameters from assignment keys
+                    
                     for (Object archObj : assignment.keySet()) {
                         if (archObj instanceof Map) {
                             Map<String, Object> archMap = (Map<String, Object>) archObj;
-                            architecture.putAll(archMap);
+                            
+                            architecture.add(archMap);
                         }
                         // Add instrument assignments
                         Set<Object> assignedVariables = assignment.get(archObj);
-                        architecture.put(entry.getKey(), assignedVariables);
+                        //architecture.add(entry.getKey(), assignedVariables);
                     }
-                    fullArchitectures.add(architecture);
+                    fullArchitectures.add(assignment);
                 }
                 System.out.println("Total number of architectures: " + fullArchitectures.size());
-            }
-        }else if (assigningVariableValues.isEmpty() && !combiningVariableValues.isEmpty()){
-            fullArchitectures = generateFullFactorialDesign(combiningVariableValues);
+            } 
         }
+        // else if (assigningVariableValues.isEmpty() && !combiningVariableValues.isEmpty()){
+        //     fullArchitectures = generateFullFactorialDesign(combiningVariableValues);
+        // }
         Set<JSONObject> constellationsJson = new HashSet<JSONObject>();
-        ArchitectureCreatorNew creator = new ArchitectureCreatorNew();
         // for (Map<String,Object> archParameters: fullArchitectures){
         //     int i = 0;
         //     for(Constellation constellation : constellations){
@@ -106,39 +111,43 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
         // }
         List<JSONObject> architecturesJson = new ArrayList<>();
         // Loop over each set of architecture parameters
+        Collections.shuffle(fullArchitectures);
         int k = 0;
         for (GroundNetwork gn : decisionGroundNetwork.getAllowedValues()) {
-            for (Map<String, Object> archParameters : fullArchitectures) {
+            for (Map<Object, Set<Object>> archParameters : fullArchitectures) {
                 // Create a new architecture JSON object
                 JSONObject architectureJson = new JSONObject();
-
+                ArchitectureCreatorNew creator = new ArchitectureCreatorNew();
                 // Add necessary fields to match the structure of arch.json
                 architectureJson.put("@type", "Architecture");
                 architectureJson.put("@id", "arch-" + architecturesJson.size());
 
                 // Initialize the spaceSegment JSONArray
                 JSONArray spaceSegmentArray = new JSONArray();
-
-                // Loop over the constellations
-                for (int i = 0; i < constellations.size(); i++) {
-                    Constellation constellation = constellations.get(i);
-
-                    // Get the corresponding constellation JSON from constellationsJSON
-                    JSONObject constJson = constellationsJSON.getJSONObject(i);
-
-                    // Update the constellation JSON with the architecture parameters
+                Map<String, Object> architecture = new HashMap<>();
+                // Extract architecture parameters from assignment keys
+                int i = 0;
+                JSONObject constJson = constellationsJSON.getJSONObject(i);
+                for (Object archObj : archParameters.keySet()) {
+                    if (archObj instanceof Map) {
+                        Map<String, Object> archMap = (Map<String, Object>) archObj;
+                        architecture.putAll(archMap);
+                    }
+                    // Add instrument assignments
+                    Set<Object> assignedVariables = archParameters.get(archObj);
+                    architecture.put("payload", assignedVariables);
                     //JSONObject finalConst = creator.addHomogeneousWalker(constJson, archParameters);
-                    creator.addHomogeneousWalkerOld(constJson, archParameters);
-
-                    // Add the updated constellation to the spaceSegment array
+                    creator.addHomogeneousWalkerOld(constJson, architecture);
+                    i++;
                 }
+                    // Add the updated constellation to the spaceSegment array
                 if(!creator.getConstellations().isEmpty()){
                     creator.addGroundNetwork(gn);
                     File architectureJsonFile = creator.toJSON(k);
                     k++;
                     try {
                             HashMap<String, Double> objectivesResults = TradespaceSearchExecutive.evaluateArchitecture(architectureJsonFile, properties);
-                            writeSummaryFile(objectivesResults, archParameters, k);
+                            writeSummaryFile(objectivesResults,architecture,k);
                     } catch (InterruptedException | IOException e) {
                         System.out.println("Error reading the JSON file: " + e.getMessage());
                         e.printStackTrace();
@@ -225,63 +234,6 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
         }
     }
 
-public Map<String, String> getDecisionVariables() {
-    JSONObject designSpace = tseRequestJson.getJSONObject("designSpace");
-    JSONObject decisionVariablesObject = designSpace.getJSONObject("decisionVariables");
-    Map<String, String> decisionVariables = new LinkedHashMap<>();
-    for (String key : decisionVariablesObject.keySet()) {
-        String decisionType = decisionVariablesObject.getString(key);
-        decisionVariables.put(key, decisionType);
-    }
-    return decisionVariables;
-}
-
-
-public Map<String, List<Object>> getDecisionVariableValues(Map<String, String> decisionVariables) {
-    Map<String, List<Object>> variableValues = new LinkedHashMap<>();
-    for (String variable : decisionVariables.keySet()) {
-        List<Object> values = findValuesForVariable(variable, tseRequestJson);
-        if (values != null && !values.isEmpty()) {
-            // Remove duplicates while preserving order
-            Set<Object> uniqueValues = new LinkedHashSet<>(values);
-            variableValues.put(variable, new ArrayList<>(uniqueValues));
-        } else {
-            System.err.println("Warning: No values found for variable " + variable);
-        }
-    }
-    return variableValues;
-}
-
-private List<Object> findValuesForVariable(String variable, Object element) {
-    List<Object> values = new ArrayList<>();
-    if (element instanceof JSONObject) {
-        JSONObject obj = (JSONObject) element;
-        for (String key : obj.keySet()) {
-            if (!key.equals("decisionVariables")){
-                Object value = obj.get(key);
-                if (key.equals(variable)) {
-                    if (value instanceof JSONArray) {
-                        JSONArray array = (JSONArray) value;
-                        for (int i = 0; i < array.length(); i++) {
-                            values.add(array.get(i));
-                        }
-                    } else {
-                        values.add(value);
-                    }
-                } else {
-                    // Recursively search in the value
-                    values.addAll(findValuesForVariable(variable, value));
-                }
-            }
-        }
-    } else if (element instanceof JSONArray) {
-        JSONArray array = (JSONArray) element;
-        for (int i = 0; i < array.length(); i++) {
-            values.addAll(findValuesForVariable(variable, array.get(i)));
-        }
-    }
-    return values;
-}
 
     public List<Map<String, Object>> generateFullFactorialDesign(Map<String, List<Object>> variableValues) {
         List<Map<String, Object>> result = new ArrayList<>();

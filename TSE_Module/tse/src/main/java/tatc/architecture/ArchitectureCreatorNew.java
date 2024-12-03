@@ -319,7 +319,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         // Check if 'payload' is defined in archParameters
         Object payloadObj = archParameters.get("payload");
         if (payloadObj != null) {
-            if (payloadObj instanceof HashSet) {
+            if (payloadObj instanceof HashSet || payloadObj instanceof HashMap) {
             // Payload is a HashSet of instrument parameters
             HashSet<?> payloadSet = (HashSet<?>) payloadObj;
             for (Object instrumentObj : payloadSet) {
