@@ -118,20 +118,40 @@ def build_sensor(instrument):
                 optics_sys_eff= instrument.get("opticsSysEff"),
                 number_of_read_out_E= instrument.get("numOfReadOutE"),
                 aperture_dia= instrument.get("apertureDia"),
-                F_num= instrument.get("Fnum")
+                F_num= instrument.get("Fnum"),
+                max_detector_exposure_time=instrument.get("maxDetectorExposureTime")
             )
-    elif instrument["type"] == 'basic':
-        sensor = BasicSensor(
+    else:
+        
+        # sensor = BasicSensor(
+        #     id="Atom",
+        #     mass=instrument.get("mass"),
+        #     volume=instrument.get("volume"),
+        #     power=instrument.get("power"),
+        #     # field_of_view=RectangularGeometry(
+        #     #     angle_height=fov.get("fullConeAngle"), angle_width=fov.get("fullConeAngle")
+        #     # ),  # CircularGeometry(diameter=60.0)
+        #     field_of_view=RectangularGeometry(
+        #         angle_height=60, angle_width=50
+        #     ),  # CircularGeometry(diameter=60.0)
+        #     orientation=list([0, 0.258819, 0, 0.9659258]),  # +30 deg roll about x-axis (roll)
+        #     data_rate=instrument.get("dataRate"),
+        #     bits_per_pixel=instrument.get("bitsPerPixel"),
+        # )
+                sensor = BasicSensor(
             id="Atom",
             mass=instrument.get("mass"),
             volume=instrument.get("volume"),
             power=instrument.get("power"),
+            # field_of_view=RectangularGeometry(
+            #     angle_height=fov.get("fullConeAngle"), angle_width=fov.get("fullConeAngle")
+            # ),  # CircularGeometry(diameter=60.0)
             field_of_view=RectangularGeometry(
-                angle_height=fov.get("fullConeAngle"), angle_width=fov.get("fullConeAngle")
+                angle_height=60, angle_width=50
             ),  # CircularGeometry(diameter=60.0)
             orientation=list([0, 0.258819, 0, 0.9659258]),  # +30 deg roll about x-axis (roll)
             data_rate=instrument.get("dataRate"),
-            bits_per_pixel=instrument.get("bitsPerPixel"),
+            bits_per_pixel=16,
         )
         
     return sensor

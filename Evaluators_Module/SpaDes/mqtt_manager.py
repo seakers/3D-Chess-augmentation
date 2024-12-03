@@ -55,7 +55,7 @@ client = mqtt.Client(
 )
 
 def process_request(data):
-    try:
+    #try:
         # Check if the message contains the necessary fields
         if 'architecture' in data and 'workflow_id' in data:
             architecture = data['architecture']
@@ -83,8 +83,8 @@ def process_request(data):
 
         else:
             logger.error('Missing required fields in the message.')
-    except Exception as e:
-        logger.error(f"Error processing message: {str(e)}")
+    # except Exception as e:
+    #     logger.error(f"Error processing message: {str(e)}")
 
 def on_connect(client, userdata, flags, rc):
     if rc == 0:

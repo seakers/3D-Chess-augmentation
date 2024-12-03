@@ -173,14 +173,18 @@ def chooseAttDetComponents(accReq,compInstance,attDetData):
     pickData = attDetData
     pickReq = accReq
     while pickReq <= 10: # 10 deg is the least sensitive sensor in the database
-        newComp = chooseComponent(pickReq,"Accuracy (deg)",compInstance,pickData,"less")
-        # Two of each component
-        totalDetMass += 2*newComp.mass
-        newCompCopy = copy.deepcopy(newComp)
-        compList.append(newCompCopy)
-        compList.append(newCompCopy)
-        del pickData[newComp.type]
-        pickReq *= 33
+        #TODO: I was getting an error so I added the condition
+        if len(pickData) != 0:
+            newComp = chooseComponent(pickReq,"Accuracy (deg)",compInstance,pickData,"less")
+            # Two of each component
+            totalDetMass += 2*newComp.mass
+            newCompCopy = copy.deepcopy(newComp)
+            compList.append(newCompCopy)
+            compList.append(newCompCopy)
+            del pickData[newComp.type]
+            pickReq *= 33
+        else:
+            break
 
     return compList,totalDetMass
 
