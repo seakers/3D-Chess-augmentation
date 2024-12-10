@@ -186,12 +186,12 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
                                 constJson.optBoolean("secondaryPayload", false);
 
         // Check for valid parameters
-        if (t <= 0 || p <= 0) {
-            throw new IllegalArgumentException(String.format("Expected t>0, p>0. Found t=%d and p=%d", t, p));
-        }
-        if ((t % p) != 0) {
-            throw new IllegalArgumentException(String.format("Incompatible values for total number of satellites t=%d and number of planes p=%d. t must be divisible by p.", t, p));
-        }
+        // if (t <= 0 || p <= 0) {
+        //     throw new IllegalArgumentException(String.format("Expected t>0, p>0. Found t=%d and p=%d", t, p));
+        // }
+        // if ((t % p) != 0) {
+        //     throw new IllegalArgumentException(String.format("Incompatible values for total number of satellites t=%d and number of planes p=%d. t must be divisible by p.", t, p));
+        // }
         // if (f < 0 || f > p - 1) {
         //     throw new IllegalArgumentException(String.format("Expected 0 <= f <= p-1. Found f=%d and p=%d.", f, p));
         // }

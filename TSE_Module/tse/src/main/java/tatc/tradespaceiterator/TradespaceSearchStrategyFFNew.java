@@ -148,7 +148,7 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
         JSONArray constellationsJSON = tseRequestJson.getJSONObject("designSpace").getJSONArray("spaceSegment");
         HashMap<String, Decision<?>> decisions = properties.getDecisions();
         Decision<GroundNetwork> decisionGroundNetwork = (Decision<GroundNetwork>)decisions.get("groundNetwork");
-
+        Collections.shuffle(fullArchitectures);
         for (GroundNetwork gn : decisionGroundNetwork.getAllowedValues()) {
             int k= 0;
             for (Map<String,Object> archParameters: fullArchitectures){

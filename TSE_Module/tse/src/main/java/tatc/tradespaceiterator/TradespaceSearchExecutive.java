@@ -413,7 +413,7 @@ public class TradespaceSearchExecutive {
                 return new TradespaceSearchStrategyFFNew(searchProperties);
             case "GA":
             case "MOEA":
-                return new TradespaceSearchStrategyMOEA(searchProperties);
+                return new TradespaceSearchStrategyMOEAnew(searchProperties);
             case "AOS":
                 return new TradespaceSearchStrategyAOS(searchProperties);
             case "KDO":
