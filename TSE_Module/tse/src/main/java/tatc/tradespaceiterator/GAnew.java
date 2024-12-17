@@ -13,14 +13,15 @@ import tatc.architecture.specifications.GroundNetwork;
 import tatc.tradespaceiterator.ProblemProperties;
 import tatc.architecture.ArchitectureCreatorNew;
 import tatc.tradespaceiterator.TradespaceSearchExecutive;
-
+import tatc.util.Summary;
+import java.lang.InterruptedException;
 public class GAnew extends AbstractProblem {
 
     private ProblemProperties properties;
     private List<Decision> decisions;
     private int totalVariables;
     private int totalObjectives;
-
+    private int counter;
     /**
      * Constructs a GA problem from the given properties and a list of decisions.
      * 
@@ -34,6 +35,7 @@ public class GAnew extends AbstractProblem {
         this.decisions = decisions;
         this.totalObjectives = totalObjectives;
         this.totalVariables = getTotalNumberOfVariables(decisions, properties);
+        this.counter = 0;
     }
 
     // Utility to sum up variables from each decision
@@ -81,17 +83,26 @@ public class GAnew extends AbstractProblem {
 
         if (!creator.getConstellations().isEmpty()) {
             // Write architecture JSON and evaluate
-            File architectureJsonFile = creator.toJSON(0);
-            HashMap<String, Double> objectivesResults = evaluateArchitecture(architectureJsonFile, properties);
+            File architectureJsonFile = creator.toJSON(this.counter);
+            this.counter++;
+            try{
+                HashMap<String, Double> objectivesResults = evaluateArchitecture(architectureJsonFile, properties);
+                Summary.writeSummaryFile(objectivesResults, archParams, 0);
+                // Set solution objectives
+                // Suppose the problem defines how many objectives and their order
+                // Just iterate over them from objectivesResults
+                int objIndex = 0;
+                for (Map.Entry<String, Double> obj : objectivesResults.entrySet()){
+                    solution.setObjective(objIndex++, obj.getValue());
+                    if (objIndex >= solution.getNumberOfObjectives()) break;
+                }
 
-            // Set solution objectives
-            // Suppose the problem defines how many objectives and their order
-            // Just iterate over them from objectivesResults
-            int objIndex = 0;
-            for (Map.Entry<String, Double> obj : objectivesResults.entrySet()){
-                solution.setObjective(objIndex++, obj.getValue());
-                if (objIndex >= solution.getNumberOfObjectives()) break;
+            }catch (IOException e) {
+                System.out.println("Error reading the JSON file: " + e.getMessage());
+                e.printStackTrace();
             }
+
+
         } else {
             // No architecture created
             for(int i=0; i<solution.getNumberOfObjectives(); i++){
@@ -175,4 +186,45 @@ public class GAnew extends AbstractProblem {
     public int getNumberOfConstraints() {
         return 0;
     }
+
+    public ProblemProperties getProperties() {
+        return properties;
+    }
+
+    public void setProperties(ProblemProperties properties) {
+        this.properties = properties;
+    }
+
+    public List<Decision> getDecisions() {
+        return decisions;
+    }
+
+    public void setDecisions(List<Decision> decisions) {
+        this.decisions = decisions;
+    }
+
+    public int getTotalVariables() {
+        return totalVariables;
+    }
+
+    public void setTotalVariables(int totalVariables) {
+        this.totalVariables = totalVariables;
+    }
+
+    public int getTotalObjectives() {
+        return totalObjectives;
+    }
+
+    public void setTotalObjectives(int totalObjectives) {
+        this.totalObjectives = totalObjectives;
+    }
+
+    public int getCounter() {
+        return counter;
+    }
+
+    public void setCounter(int counter) {
+        this.counter = counter;
+    }
+
 }

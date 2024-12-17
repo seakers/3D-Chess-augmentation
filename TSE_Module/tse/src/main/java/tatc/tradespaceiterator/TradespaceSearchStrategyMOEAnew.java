@@ -5,11 +5,15 @@ import org.moeaframework.core.*;
 import org.moeaframework.core.indicator.QualityIndicator;
 import org.moeaframework.core.operator.*;
 import tatc.ResultIO;
+import tatc.architecture.variable.Decision;
+import tatc.decisions.adg.DecisionMutation;
+import tatc.decisions.adg.DecisionVariation;
 import tatc.interfaces.GUIInterface;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 /**
  * Multi Objective Evolutionary Algorithm (MOEA) search strategy without AOS or KDO. It is the simplest evolutionary
@@ -36,14 +40,18 @@ public class TradespaceSearchStrategyMOEAnew extends TradespaceSearchStrategyGAn
 
         CompoundVariation operators = new CompoundVariation();
 
-        for (int i = 0; i < iOperators.size(); i++) {
-            operators.appendOperator(iOperators.get(i));
-        }
+        // for (int i = 0; i < iOperators.size(); i++) {
+        //     operators.appendOperator(iOperators.get(i));
+        // }
 
-        for (int i = 0; i < dOperators.size(); i++) {
-            operators.appendOperator(dOperators.get(i));
-        }
-
+        // for (int i = 0; i < dOperators.size(); i++) {
+        //     operators.appendOperator(dOperators.get(i));
+        // }
+        List<tatc.decisions.Decision> decisions = ((GAnew) problem).getDecisions();
+        DecisionVariation crossoverOperator = new DecisionVariation(decisions);
+        DecisionMutation mutationOperator = new DecisionMutation(decisions);
+        operators.appendOperator(crossoverOperator);
+        operators.appendOperator(mutationOperator);
         Initialization initialization = new RandomInitialization(this.problem, populationSize);
         Population initialPopulation = new Population();
         NondominatedPopulation nondominatedPopulation = new NondominatedPopulation(comparator);
