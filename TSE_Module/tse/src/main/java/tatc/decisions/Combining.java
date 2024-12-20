@@ -3,6 +3,9 @@ package tatc.decisions;
 import tatc.tradespaceiterator.ProblemProperties;
 import java.util.*;
 
+import org.moeaframework.core.Solution;
+import org.moeaframework.core.variable.RealVariable;
+
 /**
  * A Combining decision pattern class. 
  * 
@@ -116,18 +119,28 @@ public class Combining extends Decision {
     }
 
     @Override
-    public Map<String, Object> decodeArchitecture(Object encoded) {
+    public List<Map<String,Object>> decodeArchitecture(Object encoded, List<Map<String,Object>> currentArchitectures) {
         int[] chrom = (int[]) encoded;
-        if (chrom.length != subDecisions.size()) {
-            throw new IllegalArgumentException("Encoded chromosome length does not match number of sub-decisions.");
+        // For combining, we typically just add parameters to each existing architecture
+        // Since combining usually results in a single architecture, we do it for each current architecture in archSet
+        for (Map<String,Object> arch : currentArchitectures) {
+            for (int i=0; i<chrom.length; i++) {
+                Object chosenVal = alternatives.get(i).get(chrom[i]);
+                arch.put(subDecisions.get(i), chosenVal);
+            }
         }
-
-        Map<String, Object> arch = new LinkedHashMap<>();
-        for (int i=0; i<chrom.length; i++) {
-            Object chosenVal = alternatives.get(i).get(chrom[i]);
-            arch.put(subDecisions.get(i), chosenVal);
+        return currentArchitectures; // No increase in number of architectures
+    }
+    
+    @Override
+    public Object extractEncodingFromSolution(Solution solution, int offset) {
+        int length = getNumberOfVariables(); // equals subDecisions.size()
+        int[] encoding = new int[length];
+        for (int i = 0; i < length; i++) {
+            double val = ((RealVariable)solution.getVariable(offset + i)).getValue();
+            encoding[i] = (int)Math.round(val);
         }
-        return arch;
+        return encoding;
     }
 
     @Override

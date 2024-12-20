@@ -1,7 +1,11 @@
 package tatc.decisions;
 
 import tatc.tradespaceiterator.ProblemProperties;
+
+import java.util.List;
 import java.util.Map;
+
+import org.moeaframework.core.Solution;
 
 /**
  * The Decision class represents a generic decision node that encodes how certain 
@@ -85,7 +89,7 @@ public abstract class Decision {
      * @param encoded The encoded representation of the architecture.
      * @return A map of architecture parameters corresponding to the decision's encoding.
      */
-    public abstract Map<String, Object> decodeArchitecture(Object encoded);
+    public abstract List<Map<String,Object>> decodeArchitecture(Object encoded, List<Map<String,Object>> currentArchitectures);
 
     /**
      * Applies mutation operators to the given encoded architecture representation.
@@ -112,5 +116,5 @@ public abstract class Decision {
     public abstract Object randomEncoding();
 
     public abstract int getMaxOptionForVariable(int i);
-    
+    public abstract Object extractEncodingFromSolution(Solution solution, int offset);
 }

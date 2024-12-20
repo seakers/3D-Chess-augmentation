@@ -2,13 +2,17 @@ package tatc.tradespaceiterator;
 import org.moeaframework.core.*;
 import org.moeaframework.core.variable.RealVariable;  // We'll use RealVariables for integer encoding
 import org.moeaframework.problem.AbstractProblem;
-
+import tatc.decisions.adg.AdgSolution;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import tatc.decisions.Combining;
 import tatc.decisions.Decision;
+import tatc.decisions.adg.AdgSolution;
+import tatc.decisions.adg.Graph;
 import tatc.architecture.specifications.GroundNetwork;
 import tatc.tradespaceiterator.ProblemProperties;
 import tatc.architecture.ArchitectureCreatorNew;
@@ -22,6 +26,7 @@ public class GAnew extends AbstractProblem {
     private int totalVariables;
     private int totalObjectives;
     private int counter;
+    private Graph graph;
     /**
      * Constructs a GA problem from the given properties and a list of decisions.
      * 
@@ -29,13 +34,14 @@ public class GAnew extends AbstractProblem {
      * @param decisions      A list of Decision objects (Combining, Assigning, etc.).
      * @param totalObjectives Number of objectives (from problem definition).
      */
-    public GAnew(ProblemProperties properties, List<Decision> decisions, int totalObjectives) {
-        super(getTotalNumberOfVariables(decisions, properties), totalObjectives);
+    public GAnew(ProblemProperties properties, Graph graph, int totalObjectives) {
+        super(getTotalNumberOfVariables(graph.getTopoOrderedDecisions(), properties), totalObjectives);
+        this.decisions = graph.getTopoOrderedDecisions();
         this.properties = properties;
-        this.decisions = decisions;
         this.totalObjectives = totalObjectives;
         this.totalVariables = getTotalNumberOfVariables(decisions, properties);
         this.counter = 0;
+        this.graph = graph;
     }
 
     // Utility to sum up variables from each decision
@@ -51,20 +57,30 @@ public class GAnew extends AbstractProblem {
     @Override
     public void evaluate(Solution solution) {
         // Decode the solution into architecture parameters
-        Map<String,Object> archParams = decodeSolution(solution);
-
-        // Build architecture JSON using the archParams
+        List<Map<String, Object>> archParams = decodeSolution(solution);
         ArchitectureCreatorNew creator = new ArchitectureCreatorNew();
         JSONObject tseRequestJson = properties.getTsrObject();
         JSONArray constellationsJSON = tseRequestJson.getJSONObject("designSpace").getJSONArray("spaceSegment");
+        JSONObject constJson = constellationsJSON.getJSONObject(0);
 
-        // Add constellations using archParams
-        for (int i=0; i<constellationsJSON.length(); i++){
-            JSONObject constJson = constellationsJSON.getJSONObject(i);
-            // For now, we assume HomogeneousWalker-like constellation
-            // Future: adapt this part depending on decision patterns
-            creator.addHomogeneousWalkerOld(constJson, archParams);
+        if (archParams instanceof List){
+
+            for (Map<String, Object> conste : ( List<Map<String, Object>>) archParams){
+                creator.addHomogeneousWalkerOld(constJson, conste);
+
+            }
+
+        }else if(archParams instanceof Map){
+            // Build architecture JSON using the archParams
+            int k = 0;
+            Map<String, Object> architecture = new HashMap<>();
+            //JSONObject finalConst = creator.addHomogeneousWalker(constJson, archParameters);
+            creator.addHomogeneousWalkerOld(constJson, (HashMap)archParams);
+            k++;
+
         }
+        
+    
 
         // Add ground network if available
         HashMap<String, tatc.architecture.variable.Decision<?>> allDecisions = properties.getDecisions();
@@ -73,7 +89,7 @@ public class GAnew extends AbstractProblem {
         // Assume we picked a groundNetwork from archParams, or from decisionGroundNetwork
         // If the groundNetwork decision was one of the combining or assigning decisions,
         // archParams should contain a chosen GroundNetwork
-        GroundNetwork chosenGN = (GroundNetwork) archParams.get("groundNetwork");
+        GroundNetwork chosenGN = (GroundNetwork) properties.getTradespaceSearch().getDesignSpace().getGroundSegment().get(0);
         if (chosenGN == null) {
             // fallback: pick first allowedValue, or handle error
             chosenGN = decisionGroundNetwork.getAllowedValues().get(0);
@@ -87,7 +103,7 @@ public class GAnew extends AbstractProblem {
             this.counter++;
             try{
                 HashMap<String, Double> objectivesResults = evaluateArchitecture(architectureJsonFile, properties);
-                Summary.writeSummaryFile(objectivesResults, archParams, 0);
+                Summary.writeSummaryFileGA(objectivesResults, solution, this.counter, decisions);
                 // Set solution objectives
                 // Suppose the problem defines how many objectives and their order
                 // Just iterate over them from objectivesResults
@@ -114,25 +130,45 @@ public class GAnew extends AbstractProblem {
     /**
      * Decode solution variables into architecture parameters by querying each decision.
      */
-    private Map<String,Object> decodeSolution(Solution solution) {
-        Map<String,Object> archParams = new HashMap<>();
+    // private Map<String,Object> decodeSolution(Solution solution) {
+    //     Map<String,Object> archParams = new HashMap<>();
+    //     int offset = 0;
+    //     for (Decision d : decisions) {
+    //         int numVars = d.getNumberOfVariables();
+    //         // Extract relevant slice of solution for this decision
+    //         int[] encoding = new int[numVars];
+    //         for (int i=0; i<numVars; i++){
+    //             double val = ((RealVariable)solution.getVariable(offset+i)).getValue();
+    //             // Convert val to int
+    //             encoding[i] = (int)Math.round(val);
+    //         }
+    //         offset += numVars;
+
+    //         Map<String,Object> partialArch = d.decodeArchitecture(encoding);
+    //         archParams.putAll(partialArch);
+    //     }
+    //     return archParams;
+    // }
+    private List<Map<String, Object>> decodeSolution(Solution solution) {
+        // Start with a single empty architecture
+        List<Map<String, Object>> archSet = new ArrayList<>();
+        archSet.add(new HashMap<>());
+    
         int offset = 0;
         for (Decision d : decisions) {
-            int numVars = d.getNumberOfVariables();
-            // Extract relevant slice of solution for this decision
-            int[] encoding = new int[numVars];
-            for (int i=0; i<numVars; i++){
-                double val = ((RealVariable)solution.getVariable(offset+i)).getValue();
-                // Convert val to int
-                encoding[i] = (int)Math.round(val);
+            if(!(d instanceof Combining)){
+                            // Extract the encoding for this decision from the solution
+            Object encoded = d.extractEncodingFromSolution(solution, offset);
+            offset += d.getNumberOfVariables();
+            // Use the decision's decode method to transform archSet
+            archSet = d.decodeArchitecture(encoded, archSet);
             }
-            offset += numVars;
-
-            Map<String,Object> partialArch = d.decodeArchitecture(encoding);
-            archParams.putAll(partialArch);
         }
-        return archParams;
+    
+        return archSet;
     }
+    
+    
 
     /**
      * Evaluate architecture by calling TradespaceSearchExecutive.
@@ -154,28 +190,14 @@ public class GAnew extends AbstractProblem {
 
     @Override
     public Solution newSolution() {
-        Solution solution = new Solution(totalVariables, totalObjectives);
-        // Initialize each variable according to each decision
-        int offset = 0;
-        Random rand = new Random();
+        // First, determine total number of variables by summing over all decisions
+        int totalVars = 0;
         for (Decision d : decisions) {
-            Object encoded = d.randomEncoding(); // Some method that returns a random encoding
-            // encoded is typically int[], with each int from [0, maxOption-1]
-            int[] arr = (int[]) encoded;
-            for (int i = 0; i < arr.length; i++) {
-                int maxOption = d.getMaxOptionForVariable(i);
-                // Use EncodingUtils.newInt replaced with RealVariable approach
-                // RealVariable: lowerBound=0, upperBound=maxOption-1
-                int upperBound = maxOption-1;
-                int lowerBound = 0;
-                RealVariable var = org.moeaframework.core.variable.EncodingUtils.newInt(lowerBound,upperBound);
-                var.setValue(arr[i]);
-                solution.setVariable(offset + i, var);
-            }
-            offset += arr.length;
+            totalVars += d.getNumberOfVariables();
         }
-        return solution;
+        return new AdgSolution(graph, properties, totalObjectives, totalVariables) ;
     }
+
 
     @Override
     public int getNumberOfObjectives() {

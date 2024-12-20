@@ -10,7 +10,12 @@ import org.moeaframework.core.comparator.ParetoDominanceComparator;
 import org.moeaframework.core.operator.RandomInitialization;
 import org.moeaframework.core.operator.TournamentSelection;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import tatc.decisions.Decision;
+import tatc.decisions.adg.Graph;
 
 /**
  * Abstract class for any tradespace search strategy involving an optimization evolutionary algorithm
@@ -118,73 +123,30 @@ public abstract class TradespaceSearchStrategyGAnew implements TradespaceSearchS
      * @throws IllegalArgumentException
      */
     protected Problem createProblem(ProblemProperties properties) throws IllegalArgumentException {
-        // Extract decision variables and their patterns
-        Map<String, String> decisionVariables = properties.getDecisionVariables();
-        //Map<String, List<Object>> variableValues = properties.getDecisionVariableValues(decisionVariables);
-
-        // Create decision objects
-        List<Decision> decisions = new ArrayList<>();
-        // We have a JSON object that defines decision variables; needed for Combining decisions
-        org.json.JSONObject designSpace = properties.getTsrObject().getJSONObject("designSpace");
-        org.json.JSONObject decisionVariablesObject = designSpace.getJSONObject("decisionVariables");
-
-        for (Map.Entry<String, String> entry : decisionVariables.entrySet()) {
-            String varName = entry.getKey();
-            String varType = entry.getValue();
-
-            if (varType.equalsIgnoreCase("Combining")) {
-                // Construct a Combining decision
-                tatc.decisions.Combining comb = new tatc.decisions.Combining(properties, varName);
-
-                // Extract sub-decision names from the TSE request
-                org.json.JSONObject varObj = decisionVariablesObject.getJSONObject(varName);
-                org.json.JSONArray subDecs = varObj.getJSONArray("combiningDecisions");
-                List<String> subDecisionNames = new ArrayList<>();
-                for (int i = 0; i < subDecs.length(); i++) {
-                    subDecisionNames.add(subDecs.getString(i));
-                }
-                comb.setSubDecisions(subDecisionNames);
-
-                // For each sub-decision, we must deduce their distinct values.
-                // The variableValues map for a "Combining" decision currently contains a list of combinations (cartesian product).
-                // However, the Combining class expects a separate list of alternatives for each sub-decision.
-                // We'll directly fetch distinct values for each sub-decision again from properties.
-                List<List<Object>> alternatives = new ArrayList<>();
-                for (String subVar : subDecisionNames) {
-                    // Re-use the logic from properties to find distinct values for each subVar
-                    List<Object> subVarValues = properties.getDistinctValuesForVariable(subVar);
-                    alternatives.add(subVarValues);
-                }
-
-                comb.setAlternatives(alternatives);
-                comb.initializeDecisionVariables(); // Ensure internal structures are ready
-                decisions.add(comb);
-            } 
-            else if (varType.equalsIgnoreCase("Assigning")) {
-                // Future: Once Assigning decision is implemented, create it here
-                // Assigning assign = new Assigning(properties, varName);
-                // ... configure assign ...
-                // decisions.add(assign);
-            } 
-            else if (varType.equalsIgnoreCase("Partitioning")) {
-                // Future: Partitioning decision
-            } 
-            else if (varType.equalsIgnoreCase("Permuting")) {
-                // Future: Permuting decision
-            } 
-            else {
-                // Unknown or not yet implemented decision pattern
-                // For now, ignore or throw exception
-                System.err.println("Unknown decision pattern: " + varType + " for variable: " + varName);
-            }
-        }
-
-        // Determine number of objectives
+        // Build the graph from the TSERequest JSON in properties
+        // We assume Graph.Builder or a similar approach. For example:
+        // Create a Graph from properties.getTsrObject()
+        org.json.JSONObject tseRequestJson = properties.getTsrObject();
+        // Suppose we have a method that constructs the Graph from tseRequestJson
+        tatc.decisions.adg.Graph graph = buildGraphFromTSERequest(tseRequestJson, properties);
+        // Determine number of objectives from properties
         int totalObjectives = properties.getObjectives().size();
 
-        // Create and return the GAnew problem
-        return new GAnew(properties, decisions, totalObjectives);
+        // Create and return a Problem that uses these decisions
+        // GAnew should be updated to rely on the graph and its decisions rather than building them here
+        return new GAnew(properties, graph, totalObjectives);
     }
+
+/**
+ * Example helper method to build the graph from the TSERequest.
+ * This is a placeholder; implement as needed.
+ */
+private tatc.decisions.adg.Graph buildGraphFromTSERequest(org.json.JSONObject tseRequestJson, ProblemProperties properties) {
+    Graph graph = new Graph(properties);
+
+    return graph;
+}
+
 
     /**
      * This method validates TradespaceSearch.JSON according to the search strategy selected

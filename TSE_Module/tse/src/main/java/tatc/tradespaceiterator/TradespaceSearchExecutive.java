@@ -249,7 +249,7 @@ public class TradespaceSearchExecutive {
             }
 
             // Wait for responses from all evaluators or timeout after a certain period
-            boolean allResponsesReceived = latch.await(600, TimeUnit.SECONDS);
+            boolean allResponsesReceived = latch.await(6000, TimeUnit.SECONDS);
             if (!allResponsesReceived) {
                 throw new IOException("Did not receive responses for all metrics within the timeout period.");
             }
