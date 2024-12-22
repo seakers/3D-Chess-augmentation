@@ -29,7 +29,6 @@ public class Combining extends Decision {
      * alternatives.get(1) might be [30, 60, 90] for inclination.
      */
     private List<List<Object>> alternatives;
-
     private Random rand = new Random();
 
     /**
@@ -42,6 +41,7 @@ public class Combining extends Decision {
         super(properties, decisionName);
         this.subDecisions = new ArrayList<>();
         this.alternatives = new ArrayList<>();
+        this.parentDecisions = new ArrayList<Decision>();
     }
 
     @Override
@@ -99,6 +99,10 @@ public class Combining extends Decision {
             current.remove(current.size()-1);
         }
     }
+    public void addParentDecision(Decision parent) {
+        parentDecisions.add(parent);
+    }
+    
 
     @Override
     public Object encodeArchitecture(Map<String, Object> architecture) {
@@ -194,6 +198,10 @@ public class Combining extends Decision {
             encoding[i] = rand.nextInt(numAlternatives-1);
         }
         return encoding;
+    }
+    @Override
+    public int[] getLastEncoding() {
+        return lastEncoding;
     }
     @Override
     public int getMaxOptionForVariable(int i) {

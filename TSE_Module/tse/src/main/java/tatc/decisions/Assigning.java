@@ -199,6 +199,10 @@ public Object extractEncodingFromSolution(Solution solution, int offset) {
         // Number of variables is n*m where n=|L|, m=|R|
         return Lset.size() * Rset.size();
     }
+    @Override
+    public int[] getLastEncoding() {
+        return lastEncoding;
+    }
 
     @Override
     public Object randomEncoding() {
@@ -217,4 +221,9 @@ public Object extractEncodingFromSolution(Solution solution, int offset) {
         // (0 or 1)
         return 2;
     }
+    public void addParentDecision(Decision parent) {
+        parentDecisions.add(parent);
+    }
+    
+    
 }

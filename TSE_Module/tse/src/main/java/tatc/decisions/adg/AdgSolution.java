@@ -1,6 +1,7 @@
 package tatc.decisions.adg;
 
 import org.moeaframework.core.Solution;
+import org.moeaframework.core.Variable;
 import org.moeaframework.core.variable.RealVariable;
 import tatc.decisions.Decision;
 import tatc.decisions.Combining;
@@ -33,7 +34,6 @@ public class AdgSolution extends Solution {
         this.decisions = graph.getTopoOrderedDecisions();
         // Create a random encoding for each decision and store as RealVariables
         int offset = 0;
-        Random rand = new Random();
         for (Decision d : decisions) {
             Object encoded = d.randomEncoding(); 
             int[] arr = (int[]) encoded;
@@ -94,6 +94,23 @@ public class AdgSolution extends Solution {
         // Adjust if you want different behavior when multiple architectures are produced
         return archSet.get(0);
     }
+    @Override
+    public int getNumberOfVariables() {
+        int nVar = 0;
+    
+        // Loop through variables using their indices if direct access is restricted
+        for (int i = 0; i < super.getNumberOfVariables(); i++) {
+            Variable var = this.getVariable(i);
+    
+            // Example condition: Include variables that are RealVariables or meet other criteria
+            if (var instanceof RealVariable) {
+                nVar++;
+            }
+        }
+    
+        return nVar;
+    }
+    
     
     /**
      * Utility method to decode a single decision from the solution.

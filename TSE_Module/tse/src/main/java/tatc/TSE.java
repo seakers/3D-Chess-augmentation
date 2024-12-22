@@ -49,8 +49,9 @@ public class TSE {
 
         //args[0] = "TSERequests\\TSERequestClimateCentricAllInstruments.json";
         //args[0] = "TSERequests\\TSERequestFFFireSat.json";
-        args[0] = "TSERequests\\TSERequestClimateCentricGA.json";
+        //args[0] = "TSERequests\\TSERequestClimateCentricGA.json";
         //args[0] = "TSERequests\\TSERequestFFFireSat2.json";
+        args[0] = "TSERequests\\TSERequestClimateCentricGADSPA.json";
         args[1] = "TSE_Module\\tse\\results\\results_"+timestamp;
         Path path = Paths.get(args[1]);
         try{

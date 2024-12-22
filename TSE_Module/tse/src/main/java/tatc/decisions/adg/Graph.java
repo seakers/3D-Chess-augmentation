@@ -29,28 +29,27 @@ public class Graph {
     }
 
     private void buildGraphFromTSE() {
-        // Extract decision variables object
+        // Extract the top-level TSE request object and the 'designSpace' / 'decisionVariables' subobjects
         JSONObject tseRequest = properties.getTsrObject();
         JSONObject designSpace = tseRequest.getJSONObject("designSpace");
         JSONObject decisionVariablesObject = designSpace.getJSONObject("decisionVariables");
-
-        // Parse each decision node definition
-        // We'll first store the graph structure in adjacency lists form
+    
+        // We'll store adjacency info, in-degrees, plus JSON definitions
         Map<String, List<String>> adjacency = new HashMap<>();
         Map<String, Integer> inDegree = new HashMap<>();
         Map<String, JSONObject> decisionJSONMap = new HashMap<>();
-
+    
         // Collect all decisions and their JSON definitions
         for (String decisionName : decisionVariablesObject.keySet()) {
             JSONObject decObj = decisionVariablesObject.getJSONObject(decisionName);
             decisionJSONMap.put(decisionName, decObj);
-            inDegree.put(decisionName, 0); // init in-degree
+            inDegree.put(decisionName, 0); // initialize in-degree
         }
-
-        // Build graph edges based on "parents"
+    
+        // Build graph edges based on "parents" array or field
         for (String decisionName : decisionJSONMap.keySet()) {
             JSONObject decObj = decisionJSONMap.get(decisionName);
-
+    
             // "parents" may be empty or array of parent decisions
             List<String> parents = new ArrayList<>();
             if (decObj.has("parents")) {
@@ -61,33 +60,32 @@ public class Graph {
                         parents.add(parArr.getString(i));
                     }
                 } else if (parentField instanceof String) {
-                    // If parents is a single string (some older versions?), adapt if needed.
+                    // If 'parents' is a single string
                     parents.add(decObj.getString("parents"));
                 }
             }
-
-            // For each parent, add edge parent -> decisionName
-            // If no parents, it means this is a root decision
+    
+            // For each parent, add edge: parent -> decisionName
             for (String p : parents) {
                 adjacency.computeIfAbsent(p, k -> new ArrayList<>()).add(decisionName);
                 // Increase in-degree for the child
                 inDegree.put(decisionName, inDegree.getOrDefault(decisionName, 0) + 1);
             }
         }
-
+    
         // Ensure all nodes appear in adjacency (even if no outgoing edges)
         for (String dn : decisionJSONMap.keySet()) {
             adjacency.putIfAbsent(dn, new ArrayList<>());
         }
-
-        // Topological sort using Kahn's algorithm
+    
+        // Kahn's algorithm for topological sort
         Queue<String> queue = new LinkedList<>();
         for (Map.Entry<String, Integer> e : inDegree.entrySet()) {
             if (e.getValue() == 0) {
                 queue.add(e.getKey());
             }
         }
-
+    
         List<String> topoOrder = new ArrayList<>();
         while (!queue.isEmpty()) {
             String node = queue.remove();
@@ -100,52 +98,65 @@ public class Graph {
                 }
             }
         }
-
+    
         if (topoOrder.size() != decisionJSONMap.size()) {
             throw new IllegalArgumentException("Cycle detected in decision graph or missing nodes. Cannot topologically sort.");
         }
-
+    
         // Now instantiate each Decision object according to its type and parameters
         for (String decisionName : topoOrder) {
             JSONObject decObj = decisionJSONMap.get(decisionName);
             String type = decObj.getString("type");
-
+    
             Decision d = null;
+    
+            // 1) COMBINING
             if (type.equalsIgnoreCase("Combining")) {
-                // Create a Combining decision
                 Combining comb = new Combining(properties, decisionName);
-                // Extract subDecisions
+    
+                // subDecisions from "combiningDecisions" field
                 JSONArray subDecs = decObj.getJSONArray("combiningDecisions");
                 List<String> subDecisionNames = new ArrayList<>();
                 for (int i = 0; i < subDecs.length(); i++) {
                     subDecisionNames.add(subDecs.getString(i));
                 }
                 comb.setSubDecisions(subDecisionNames);
-
-                // Fetch distinct values for each subVar from the problemProperties
+    
+                // fetch distinct values for each sub-variable
                 List<List<Object>> alternatives = new ArrayList<>();
                 for (String subVar : subDecisionNames) {
                     List<Object> subVarValues = properties.getDistinctValuesForVariable(subVar);
                     if (subVarValues == null || subVarValues.isEmpty()) {
-                        throw new IllegalArgumentException("No values found for sub-variable " + subVar + " in combining decision " + decisionName);
+                        throw new IllegalArgumentException(
+                            "No values found for sub-variable " + subVar
+                            + " in combining decision " + decisionName
+                        );
                     }
                     alternatives.add(subVarValues);
                 }
                 comb.setAlternatives(alternatives);
+    
+                // Optional: get parents if "parents" is defined, store them for reference
+                if (decObj.has("parents")) {
+                    // parse array or string, store it if needed
+                    // comb.setParentNames(...);
+                }
+    
                 comb.initializeDecisionVariables();
                 d = comb;
-            } else if (type.equalsIgnoreCase("Assigning")) {
-                JSONObject varObj = decObj;
-                JSONArray parentsArray = varObj.optJSONArray("parents");
-            
+            }
+    
+            // 2) ASSIGNING
+            else if (type.equalsIgnoreCase("Assigning")) {
+                JSONArray parentsArray = decObj.optJSONArray("parents");
                 List<String> parentNames = new ArrayList<>();
                 if (parentsArray != null) {
                     for (int i = 0; i < parentsArray.length(); i++) {
                         parentNames.add(parentsArray.getString(i));
                     }
                 }
-            
-                // Assume one parent for simplicity; if multiple, handle accordingly
+    
+                // For simplicity assume single parent
                 Decision parentDecision = null;
                 for (String pname : parentNames) {
                     if (decisions.containsKey(pname)) {
@@ -153,52 +164,184 @@ public class Graph {
                         break;
                     }
                 }
-            
                 if (parentDecision == null && !parentNames.isEmpty()) {
-                    throw new IllegalArgumentException("Parent decision(s) " + parentNames + " not found for assigning decision " + decisionName);
+                    throw new IllegalArgumentException(
+                        "Parent decision(s) " + parentNames
+                        + " not found for assigning decision " + decisionName
+                    );
                 }
-            
-                // Enumerate parent's architectures to form Lset
-                // Parent's enumerateArchitectures() returns an iterable of Maps
-                List<Map<String,Object>> parentArchs = new ArrayList<>();
+    
+                // We'll create the Lset from parent's enumerations
+                List<Map<String, Object>> parentArchs = new ArrayList<>();
                 if (parentDecision != null) {
                     for (Object archObj : parentDecision.enumerateArchitectures()) {
-                        parentArchs.add((Map<String,Object>) archObj);
+                        parentArchs.add((Map<String, Object>) archObj);
                     }
                 } else {
-                    // If no parent, we must define some Lset differently.
-                    // For now, assume that Assigning always has a parent. 
-                    // If needed, handle the no-parent scenario.
-                    throw new IllegalArgumentException("Assigning decision " + decisionName + " has no parent. Cannot determine Lset.");
+                    // No parent
+                    throw new IllegalArgumentException("Assigning decision " + decisionName
+                        + " requires a parent to form Lset.");
                 }
-            
+    
                 List<Object> Lset = new ArrayList<>(parentArchs);
-            
-                // For Rset, we fetch distinct values for this decision variable
-                // e.g., if decisionName = "payload", we get distinct payload options
+    
+                // Rset from distinct values
                 List<Object> Rset = properties.getDistinctValuesForVariable(decisionName);
                 if (Rset == null || Rset.isEmpty()) {
                     throw new IllegalArgumentException("No distinct values found for Rset in assigning decision " + decisionName);
                 }
-            
-                tatc.decisions.Assigning assign = new tatc.decisions.Assigning(properties, decisionName);
+    
+                Assigning assign = new Assigning(properties, decisionName);
                 assign.setLset(Lset);
                 assign.setRset(Rset);
+                // Store the parent's reference if needed, e.g.:
+                assign.addParentDecision(parentDecision);
+    
                 assign.initializeDecisionVariables();
                 d = assign;
-            } else {
-                // Other patterns (Partitioning, DownSelecting, etc.) can be similarly implemented
+            }
+    
+            // 3) DOWNSELECTING
+            else if (type.equalsIgnoreCase("DownSelecting")) {
+                // Typically, downselecting has no direct parent or zero parents, 
+                // but it's possible it has a parent we want to reference
+                JSONArray parentsArray = decObj.optJSONArray("parents");
+                DownSelecting downSelect = new DownSelecting(properties, decisionName);
+    
+                if (parentsArray != null && parentsArray.length() > 0) {
+                    // If it has a parent, we can find that parent decision's enumerations
+                    // then unify them into a single set E to possibly downselect from
+                    List<String> parentNames = new ArrayList<>();
+                    for (int i = 0; i < parentsArray.length(); i++) {
+                        parentNames.add(parentsArray.getString(i));
+                    }
+    
+                    Decision parent = null;
+                    for (String pname : parentNames) {
+                        if (decisions.containsKey(pname)) {
+                            parent = decisions.get(pname);
+                            break;
+                        }
+                    }
+                    if (parent == null && !parentNames.isEmpty()) {
+                        throw new IllegalArgumentException("DownSelecting decision " + decisionName
+                            + " references unknown parent(s): " + parentNames);
+                    }
+    
+                    List<Object> combinedEntityList = new ArrayList<>();
+                    if (parent != null) {
+                        for (Object archObj : parent.enumerateArchitectures()) {
+                            // e.g. each archObj is a Map<String,Object>
+                            combinedEntityList.add(archObj);
+                        }
+                    }
+    
+                    if (combinedEntityList.isEmpty()) {
+                        throw new IllegalArgumentException("Parent for downselecting " + decisionName
+                            + " yielded no enumerations.");
+                    }
+    
+                    downSelect.setEntities(combinedEntityList);
+                } else {
+                    // If there's no parent, we get the set from distinct values on the decisionName
+                    List<Object> entitySet = properties.getDistinctValuesForVariable(decisionName);
+                    if (entitySet == null || entitySet.isEmpty()) {
+                        throw new IllegalArgumentException("No distinct values found for DownSelecting decision " + decisionName);
+                    }
+                    downSelect.setEntities(entitySet);
+                }
+    
+                downSelect.initializeDecisionVariables();
+                d = downSelect;
+            }
+    
+            // 4) PARTITIONING
+            else if (type.equalsIgnoreCase("Partitioning")) {
+                Partitioning partition = new Partitioning(properties, decisionName);
+            
+                // Extract parents for this decision
+                JSONArray parentsArrayPA = decObj.optJSONArray("parents");
+                List<String> parentNames = new ArrayList<>();
+                if (parentsArrayPA != null) {
+                    for (int i = 0; i < parentsArrayPA.length(); i++) {
+                        parentNames.add(parentsArrayPA.getString(i));
+                    }
+                }
+            
+                // Assume single parent for simplicity
+                Decision parentDecisionPA = null;
+                for (String pname : parentNames) {
+                    if (decisions.containsKey(pname)) {
+                        parentDecisionPA = decisions.get(pname);
+                        break;
+                    }
+                }
+            
+                if (parentDecisionPA == null && !parentNames.isEmpty()) {
+                    throw new IllegalArgumentException("Parent decision(s) " + parentNames + " not found for partitioning decision " + decisionName);
+                }
+            
+                // Set the parent decision
+                partition.addParentDecision(parentDecisionPA);
+            
+                // Initialize entities (E) from the TSERequest's "entities" field
+                List<Map<String, Object>> entityMaps = new ArrayList<>();
+                if (decObj.has("entities")) {
+                    JSONArray entitiesArray = decObj.getJSONArray("entities");
+                    for (int i = 0; i < entitiesArray.length(); i++) {
+                        String entityKey = entitiesArray.getString(i);
+            
+                        // Get distinct values for the entity
+                        List<Object> entityValues = properties.getDistinctValuesForVariable(entityKey);
+                        if (entityValues != null && !entityValues.isEmpty()) {
+                            // Convert each entity value to a Map<String, Object>
+                            for (Object value : entityValues) {
+                                Map<String, Object> entityMap = new HashMap<>();
+                                entityMap.put("entity", value); // You can adapt the key here based on your requirements
+                                entityMaps.add(entityMap);
+                            }
+                        } else {
+                            throw new IllegalArgumentException("No values found for entity " + entityKey + " in Partitioning decision " + decisionName);
+                        }
+                    }
+                }
+            
+                partition.setEntities(entityMaps); // Set the entities as List<Map<String, Object>>
+                partition.initializeDecisionVariables();
+                d = partition;
+            }
+            
+            
+            
+    
+            // 5) OTHERS or UNIMPLEMENTED
+            else {
                 throw new UnsupportedOperationException("Decision type " + type + " not implemented yet.");
             }
-
+    
+            // keep track of references to parents if needed inside each decision
+            if (decObj.has("parents")) {
+                JSONArray pars = decObj.optJSONArray("parents");
+                if (pars != null) {
+                    for (int i = 0; i < pars.length(); i++) {
+                        String pName = pars.getString(i);
+                        if (decisions.containsKey(pName)) {
+                            d.addParentDecision(decisions.get(pName));  // e.g., new method in your abstract Decision
+                        }
+                    }
+                }
+            }
+    
+            // Put the newly created decision into the map
             this.decisions.put(decisionName, d);
         }
-
-        // Store decisions in topological order
+    
+        // Store them in topological order for easy iteration
         for (String dn : topoOrder) {
             topoOrderedDecisions.add(decisions.get(dn));
         }
     }
+    
 
     /**
      * Returns the decisions in topological order.

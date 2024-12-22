@@ -33,6 +33,8 @@ public abstract class Decision {
      * A unique identifier or name for this decision, allowing easy reference.
      */
     protected String decisionName;
+    protected List<Decision> parentDecisions;
+    protected int[] lastEncoding;
 
     /**
      * Constructs a Decision object given the problem properties and a decision name.
@@ -117,4 +119,6 @@ public abstract class Decision {
 
     public abstract int getMaxOptionForVariable(int i);
     public abstract Object extractEncodingFromSolution(Solution solution, int offset);
+    public abstract void addParentDecision(Decision decision);
+    public abstract int[] getLastEncoding();
 }

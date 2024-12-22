@@ -20,12 +20,14 @@ public class DownSelecting extends Decision {
      * The set of all entities we can choose from.
      */
     private List<Object> E;
-
+    private int[] lastEncoding;
     private Random rand = new Random();
 
     public DownSelecting(ProblemProperties properties, String decisionName) {
         super(properties, decisionName);
         this.E = new ArrayList<>();
+        this.parentDecisions = new ArrayList<Decision>();
+
     }
 
     /**
@@ -83,6 +85,7 @@ public class DownSelecting extends Decision {
                 encoding[idx] = 1;
             }
         }
+        this.lastEncoding = encoding;
 
         return encoding;
     }
@@ -157,14 +160,22 @@ public class DownSelecting extends Decision {
         if (Arrays.stream(encoding).sum() == 0 && encoding.length > 0) {
             encoding[rand.nextInt(encoding.length)] = 1;
         }
+        this.lastEncoding = encoding;
         return encoding;
     }
-
+    @Override
+    public int[] getLastEncoding() {
+        return lastEncoding;
+    }
     @Override
     public int getMaxOptionForVariable(int i) {
         // Binary: each variable can be 0 or 1, so maxOption=2
         return 2;
     }
+    public void addParentDecision(Decision parent) {
+        parentDecisions.add(parent);
+    }
+    
 
     @Override
     public Object extractEncodingFromSolution(Solution solution, int offset) {

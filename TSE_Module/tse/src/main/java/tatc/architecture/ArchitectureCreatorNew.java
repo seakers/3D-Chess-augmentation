@@ -257,7 +257,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
             throw new IllegalArgumentException("Missing required double parameter: " + key);
         }
     }
-    private Satellite createSatelliteFromJson(JSONObject satelliteJson, Map<String, Object> archParameters, Orbit orbit) {
+    public Satellite createSatelliteFromJson(JSONObject satelliteJson, Map<String, Object> archParameters, Orbit orbit) {
         // Extract satellite parameters, applying overrides from archParameters
         String name = satelliteJson.optString("name", "DefaultSatellite");
         String acronym = satelliteJson.optString("acronym", "SAT");
@@ -313,7 +313,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
     
         return satellite;
     }
-    private List<Instrument> getPayloadFromArchOrJson(JSONObject satelliteJson, Map<String, Object> archParameters) {
+    public List<Instrument> getPayloadFromArchOrJson(JSONObject satelliteJson, Map<String, Object> archParameters) {
         List<Instrument> payload = new ArrayList<>();
     
         // Check if 'payload' is defined in archParameters

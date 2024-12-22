@@ -2,6 +2,8 @@ package tatc.decisions;
 
 import tatc.tradespaceiterator.ProblemProperties;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.moeaframework.core.Solution;
 import org.moeaframework.core.variable.RealVariable;
 
@@ -29,20 +31,26 @@ public class Partitioning extends Decision {
     public Partitioning(ProblemProperties properties, String decisionName) {
         super(properties, decisionName);
         this.E = new ArrayList<>();
+        this.parentDecisions = new ArrayList<Decision>();
+
     }
+    public void addParentDecision(Decision parent) {
+        parentDecisions.add(parent);
+    }
+    
 
     /**
      * Sets the set E of entities to be partitioned.
      */
-    public void setEntities(List<Object> entities) {
+    public void setEntities(List<Map<String, Object>> entities) {
         this.E = new ArrayList<>(entities);
     }
 
     @Override
     public void initializeDecisionVariables() {
-        if (E.isEmpty()) {
-            throw new IllegalStateException("Partitioning decision " + decisionName + " has no entities defined.");
-        }
+        // if (E.isEmpty()) {
+        //     throw new IllegalStateException("Partitioning decision " + decisionName + " has no entities defined.");
+        // }
     }
 
     @Override
@@ -96,42 +104,82 @@ public class Partitioning extends Decision {
         }
 
         repair(encoding);
+        this.lastEncoding = encoding;
         return encoding;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> decodeArchitecture(Object encoded, List<Map<String, Object>> currentArchitectures) {
-        int[] chrom = (int[]) encoded;
-        if (chrom.length != E.size()) {
-            throw new IllegalArgumentException("Encoded length does not match |E|.");
-        }
+        // Extract the decision-specific variables from TSERequest
+        JSONObject constVars = this.properties.getTsrObject()
+                .getJSONObject("designSpace")
+                .getJSONArray("spaceSegment")
+                .getJSONObject(0);
+        JSONArray partitioningVars = constVars.getJSONArray(decisionName);
 
-        // Identify how many subsets we have:
-        int maxLabel = 0;
-        for (int val : chrom) {
-            if (val > maxLabel) {
-                maxLabel = val;
+        List<Map<String, Object>> architectureParams = new ArrayList<>();
+        List<Object> selectedEntities = new ArrayList<>();
+
+        // Handle parent decision's influence (e.g., DownSelecting)
+        if (this.parentDecisions.get(0) instanceof DownSelecting) {
+            int[] lastParentEncoding = this.parentDecisions.get(0).getLastEncoding();
+            for (int i = 0; i < E.size(); i++) {
+                if (lastParentEncoding[i] == 1) {
+                    selectedEntities.add(E.get(i));
+                }
             }
+        } else {
+            selectedEntities = E; // If no parent or parent is not DownSelecting, use full entity set
         }
 
-        // Create subsets
-        List<List<Object>> subsets = new ArrayList<>();
-        for (int s = 1; s <= maxLabel; s++) {
-            subsets.add(new ArrayList<>());
+        // Validate encoding length
+        int[] chrom = (int[]) encoded;
+        if (chrom.length != selectedEntities.size()) {
+            throw new IllegalArgumentException("Encoded length does not match the size of selected entities.");
+        }
+
+        // Determine the number of subsets (max label in chrom)
+        int maxLabel = Arrays.stream(chrom).max().orElse(0);
+
+        // Create subsets based on encoding
+        List<List<Object>> subsets = new ArrayList<>(Collections.nCopies(maxLabel, null));
+        for (int i = 0; i < maxLabel; i++) {
+            subsets.set(i, new ArrayList<>());
         }
 
         for (int i = 0; i < chrom.length; i++) {
             int label = chrom[i];
-            subsets.get(label - 1).add(E.get(i));
+            if (label < 1 || label > maxLabel) {
+                throw new IllegalArgumentException("Invalid label in encoding: " + label);
+            }
+            subsets.get(label - 1).add(((Map<String, JSONObject>) selectedEntities.get(i)).get("entity"));
         }
 
-        // Add these subsets to each architecture map
-        for (Map<String, Object> arch : currentArchitectures) {
-            arch.put(decisionName, subsets);
+        // Process each architecture and create new decision mappings
+        for (int k = 0; k < partitioningVars.length(); k++) {
+            JSONObject insideVars = partitioningVars.getJSONObject(k);
+            JSONArray parentVars = insideVars.optJSONArray(parentDecisions.get(0).getDecisionName());
+
+            for (int l = 0; l < subsets.size(); l++) {
+                Map<String, Object> newDecisionMap = new HashMap<>();
+
+                if (parentVars != null) {
+                    insideVars.put(parentDecisions.get(0).getDecisionName(), subsets.get(l));
+                }
+                insideVars.put(decisionName, subsets.get(l));
+
+                newDecisionMap.put(decisionName, new JSONObject(insideVars.toString())); // Clone JSON object to prevent overwriting
+                architectureParams.add(newDecisionMap);
+            }
         }
 
-        return currentArchitectures;
+        return architectureParams;
+    }
+
+    @Override
+    public int[] getLastEncoding() {
+        return lastEncoding;
     }
 
     @Override
@@ -172,24 +220,87 @@ public class Partitioning extends Decision {
 
     @Override
     public int getNumberOfVariables() {
-        return E.size();
+        if((this.parentDecisions.get(0) instanceof DownSelecting)){
+
+            if (parentDecisions.get(0) == null) {
+                throw new IllegalStateException("Parent decision is not set for DownSelecting decision " + decisionName);
+            }
+        
+            // Get the parent's last encoding or selected entities
+            int[] parentSelectedEntities = ((DownSelecting)parentDecisions.get(0)).getLastEncoding(); // This method should return the selected entities from the parent's last encoding
+            if (parentSelectedEntities == null) {
+                return E.size();
+            }
+            int counter = 0;
+            for(int i : parentSelectedEntities){
+                counter += i;
+            }
+            return counter;
+        }else{
+            return E.size();
+        }
+        // Return the size of the selected entities
     }
+    
 
     @Override
     public Object randomEncoding() {
-        int n = E.size();
+        // Ensure parent decisions and their lastEncoding are defined
+        if (parentDecisions == null || parentDecisions.isEmpty()) {
+            throw new IllegalStateException("Partitioning decision " + decisionName + " requires at least one parent decision.");
+        }
+
+        // Fetch the parent decision (e.g., DownSelecting)
+        Decision parent = parentDecisions.get(0); // Assuming the first parent is the relevant one
+        int[] parentLastEncoding = parent.getLastEncoding();
+
+        if (parentLastEncoding == null) {
+            throw new IllegalStateException("Parent decision " + parent.getDecisionName() + " has no last encoding available.");
+        }
+
+        // Filter the entities (E) based on the parent's last encoding
+        List<Map<String, Object>> selectedEntities = new ArrayList<>();
+        for (int i = 0; i < parentLastEncoding.length; i++) {
+            if (parentLastEncoding[i] == 1) { // Selected entities in the parent's encoding
+                if (i >= E.size()) {
+                    throw new IllegalStateException("Parent encoding index exceeds the size of E in partitioning decision " + decisionName);
+                }
+                selectedEntities.add((Map<String, Object>)E.get(i)); // Add selected entities as Map<String, Object>
+            }
+        }
+
+        // Ensure that there are selected entities to partition
+        if (selectedEntities.isEmpty()) {
+            throw new IllegalStateException("No entities selected by parent decision " + parent.getDecisionName() + " for partitioning decision " + decisionName);
+        }
+
+        // // Update E to only include the selected entities
+        // E.clear();
+        // E.addAll(selectedEntities);
+
+        // Partitioning encoding logic
+        int n = selectedEntities.size();
         int[] encoding = new int[n];
         encoding[0] = 1;
-        // For each subsequent a_k: in [1, maxSoFar+1]
+
+        // For each subsequent element, assign it to a subset
         for (int k = 1; k < n; k++) {
             int maxSoFar = maxLabelSoFar(encoding, k);
             int newLabel = 1 + rand.nextInt(maxSoFar + 1);
             encoding[k] = newLabel;
         }
 
+        // Ensure encoding is valid
         repair(encoding);
+        this.lastEncoding = encoding; // Store the generated encoding
         return encoding;
     }
+
+
+
+
+    
+
 
     @Override
     public int getMaxOptionForVariable(int i) {
