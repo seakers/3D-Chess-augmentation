@@ -16,6 +16,7 @@ import com.google.gson.JsonObject;
 
 import tatc.decisions.Decision;
 import tatc.decisions.adg.Graph;
+import tatc.decisions.search.AdgInitialization;
 
 /**
  * Abstract class for any tradespace search strategy involving an optimization evolutionary algorithm
@@ -101,7 +102,7 @@ public abstract class TradespaceSearchStrategyGAnew implements TradespaceSearchS
         this.problem = createProblem(properties);
         this.maxNFE = properties.getTradespaceSearch().getSettings().getSearchParameters().getMaxNFE();
         this.populationSize = properties.getTradespaceSearch().getSettings().getSearchParameters().getPopulationSize();
-        this.initialization = new RandomInitialization(this.problem, populationSize);
+        this.initialization = new AdgInitialization(this.problem, populationSize);
         this.population = new Population();
         this.comparator = new ParetoDominanceComparator();
         this.epsilon = properties.getTradespaceSearch().getSettings().getSearchParameters().getEpsilons();

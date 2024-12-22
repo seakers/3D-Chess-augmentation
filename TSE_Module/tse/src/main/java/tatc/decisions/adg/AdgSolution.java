@@ -20,7 +20,7 @@ public class AdgSolution extends Solution {
 
     private List<Decision> decisions;
     private ProblemProperties properties;
-
+    private int id;
     /**
      * Constructs a new AdgSolution by randomly generating encodings for all decisions from the given graph.
      * @param graph The graph containing decisions in topological order
@@ -33,6 +33,17 @@ public class AdgSolution extends Solution {
         this.properties = properties;
         this.decisions = graph.getTopoOrderedDecisions();
         // Create a random encoding for each decision and store as RealVariables
+    }
+
+    /**
+     * Copy constructor
+     */
+    protected AdgSolution(AdgSolution original) {
+        super(original);
+        this.decisions = original.decisions;
+        this.properties = original.properties;
+    }
+    public void randomizeSolution(){
         int offset = 0;
         for (Decision d : decisions) {
             Object encoded = d.randomEncoding(); 
@@ -48,16 +59,14 @@ public class AdgSolution extends Solution {
                 setVariable(offset + i, var);
             }
             offset += arr.length;
+            d.addEncodingById(this.id, arr);
         }
     }
-
-    /**
-     * Copy constructor
-     */
-    protected AdgSolution(AdgSolution original) {
-        super(original);
-        this.decisions = original.decisions;
-        this.properties = original.properties;
+    public int getId(){
+        return this.id;
+    }
+    public void setId(int id){
+        this.id = id;
     }
 
     @Override
@@ -83,7 +92,7 @@ public class AdgSolution extends Solution {
             offset += d.getNumberOfVariables();
     
             // Decode using the decision, which transforms or expands the architecture set
-            archSet = d.decodeArchitecture(encoded, archSet);
+            archSet = d.decodeArchitecture(encoded, this);
         }
     
         if (archSet.isEmpty()) {
@@ -145,7 +154,7 @@ public class AdgSolution extends Solution {
         initialArchSet.add(new HashMap<>());
     
         // Decode architecture using the updated method
-        List<Map<String, Object>> resultArchSet = target.decodeArchitecture(encoded, initialArchSet);
+        List<Map<String, Object>> resultArchSet = target.decodeArchitecture(encoded, this);
     
         // Check the result
         if (resultArchSet.isEmpty()) {

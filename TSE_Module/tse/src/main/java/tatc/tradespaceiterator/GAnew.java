@@ -11,6 +11,7 @@ import org.json.JSONObject;
 
 import tatc.decisions.Combining;
 import tatc.decisions.Decision;
+import tatc.decisions.Partitioning;
 import tatc.decisions.adg.AdgSolution;
 import tatc.decisions.adg.Graph;
 import tatc.architecture.specifications.GroundNetwork;
@@ -26,6 +27,7 @@ public class GAnew extends AbstractProblem {
     private int totalVariables;
     private int totalObjectives;
     private int counter;
+    private int solutionCounter;
     private Graph graph;
     /**
      * Constructs a GA problem from the given properties and a list of decisions.
@@ -42,6 +44,7 @@ public class GAnew extends AbstractProblem {
         this.totalVariables = getTotalNumberOfVariables(decisions, properties);
         this.counter = 0;
         this.graph = graph;
+        this.solutionCounter = 0;
     }
 
     // Utility to sum up variables from each decision
@@ -94,7 +97,6 @@ public class GAnew extends AbstractProblem {
             // fallback: pick first allowedValue, or handle error
             chosenGN = decisionGroundNetwork.getAllowedValues().get(0);
         }
-
         creator.addGroundNetwork(chosenGN);
 
         if (!creator.getConstellations().isEmpty()) {
@@ -153,18 +155,16 @@ public class GAnew extends AbstractProblem {
         // Start with a single empty architecture
         List<Map<String, Object>> archSet = new ArrayList<>();
         archSet.add(new HashMap<>());
-    
         int offset = 0;
-        for (Decision d : decisions) {
-            if(!(d instanceof Combining)){
-                            // Extract the encoding for this decision from the solution
-            Object encoded = d.extractEncodingFromSolution(solution, offset);
-            offset += d.getNumberOfVariables();
-            // Use the decision's decode method to transform archSet
-            archSet = d.decodeArchitecture(encoded, archSet);
-            }
+        for(int i = 0; i< decisions.size()-1; i++){
+            Decision decision = decisions.get(i);
+            offset += decision.getNumberOfVariables();
+
         }
-    
+        Decision lastDecision = decisions.get(decisions.size()-1);
+        Object encoded = lastDecision.extractEncodingFromSolution(solution, offset);
+        // Use the decision's decode method to transform archSet
+        archSet = lastDecision.decodeArchitecture(encoded, solution);
         return archSet;
     }
     
@@ -195,7 +195,11 @@ public class GAnew extends AbstractProblem {
         for (Decision d : decisions) {
             totalVars += d.getNumberOfVariables();
         }
-        return new AdgSolution(graph, properties, totalObjectives, totalVariables) ;
+        AdgSolution sol = new AdgSolution(graph, properties, totalObjectives, totalVariables);
+        sol.setId(solutionCounter);
+        sol.randomizeSolution();
+        solutionCounter++;
+        return sol;
     }
 
 

@@ -123,19 +123,21 @@ public class Combining extends Decision {
     }
 
     @Override
-    public List<Map<String,Object>> decodeArchitecture(Object encoded, List<Map<String,Object>> currentArchitectures) {
+    public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol) {
+        List<Map<String, Object>> architectures = new ArrayList<>();
         int[] chrom = (int[]) encoded;
-        // For combining, we typically just add parameters to each existing architecture
-        // Since combining usually results in a single architecture, we do it for each current architecture in archSet
-        for (Map<String,Object> arch : currentArchitectures) {
-            for (int i=0; i<chrom.length; i++) {
-                Object chosenVal = alternatives.get(i).get(chrom[i]);
-                arch.put(subDecisions.get(i), chosenVal);
-            }
+        if (chrom.length != subDecisions.size()) {
+            throw new IllegalArgumentException("Encoded chromosome length does not match number of sub-decisions.");
         }
-        return currentArchitectures; // No increase in number of architectures
+
+        Map<String, Object> arch = new LinkedHashMap<>();
+        for (int i=0; i<chrom.length; i++) {
+            Object chosenVal = alternatives.get(i).get(chrom[i]);
+            arch.put(subDecisions.get(i), chosenVal);
+        }
+        architectures.add(arch);
+        return architectures;
     }
-    
     @Override
     public Object extractEncodingFromSolution(Solution solution, int offset) {
         int length = getNumberOfVariables(); // equals subDecisions.size()

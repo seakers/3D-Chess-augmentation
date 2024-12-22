@@ -1,5 +1,6 @@
 package tatc.decisions;
 
+import tatc.decisions.adg.AdgSolution;
 import tatc.tradespaceiterator.ProblemProperties;
 
 import org.json.JSONArray;
@@ -110,7 +111,7 @@ public class Partitioning extends Decision {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> decodeArchitecture(Object encoded, List<Map<String, Object>> currentArchitectures) {
+    public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol) {
         // Extract the decision-specific variables from TSERequest
         JSONObject constVars = this.properties.getTsrObject()
                 .getJSONObject("designSpace")
@@ -123,7 +124,7 @@ public class Partitioning extends Decision {
 
         // Handle parent decision's influence (e.g., DownSelecting)
         if (this.parentDecisions.get(0) instanceof DownSelecting) {
-            int[] lastParentEncoding = this.parentDecisions.get(0).getLastEncoding();
+            int[] lastParentEncoding = this.parentDecisions.get(0).getEncodingById(((AdgSolution)sol).getId());
             for (int i = 0; i < E.size(); i++) {
                 if (lastParentEncoding[i] == 1) {
                     selectedEntities.add(E.get(i));
@@ -281,13 +282,13 @@ public class Partitioning extends Decision {
         // Partitioning encoding logic
         int n = selectedEntities.size();
         int[] encoding = new int[n];
-        encoding[0] = 1;
-
+        int maxSoFar = 0;
         // For each subsequent element, assign it to a subset
         for (int k = 1; k < n; k++) {
-            int maxSoFar = maxLabelSoFar(encoding, k);
             int newLabel = 1 + rand.nextInt(maxSoFar + 1);
             encoding[k] = newLabel;
+            maxSoFar = maxLabelSoFar(encoding, k);
+
         }
 
         // Ensure encoding is valid
@@ -313,21 +314,9 @@ public class Partitioning extends Decision {
 
     @Override
     public Object extractEncodingFromSolution(Solution solution, int offset) {
-        int length = getNumberOfVariables();
-        int[] encoding = new int[length];
+        return this.getEncodingById(((AdgSolution)solution).getId()); // This method should return the selected entities from the parent's last encoding
 
-        for (int i = 0; i < length; i++) {
-            double val = ((RealVariable) solution.getVariable(offset + i)).getValue();
-            int label = (int)Math.round(val);
-            if (label < 1) {
-                label = 1; // ensure at least 1
-            }
-            // no upper bound check here, because we'll repair anyway
-            encoding[i] = label;
-        }
 
-        repair(encoding);
-        return encoding;
     }
 
     /**

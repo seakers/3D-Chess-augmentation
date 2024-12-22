@@ -72,91 +72,85 @@ public class Summary {
         }
     }
 
-public static void writeSummaryFileGA(Map<String, Double> objectives, Solution solution, int archIndex, List<Decision> decisions) throws IOException {
-    // Path to the CSV file
+    public static void writeSummaryFileGA(
+        Map<String, Double> objectives,
+        Solution solution,
+        int archIndex,
+        List<Decision> decisions) throws IOException {
+
     String csvFile = System.getProperty("tatc.output") + File.separator + "summary.csv";
     File file = new File(csvFile);
     boolean fileExists = file.exists();
 
-    // Decode the solution to extract architectural decision variables
-    Map<String, Object> archVariables = decodeSolution(solution, decisions);
+    // --- 1) Identify the number of variables in this solution ---
+    int nVars = solution.getNumberOfVariables();
 
-    // Collect headers from archVariables and objectives
-    Set<String> variableNames = new LinkedHashSet<>(archVariables.keySet());
-    Set<String> objectiveNames = new LinkedHashSet<>(objectives.keySet());
+    // --- 2) Collect objective names ---
+    List<String> objectiveNames = new ArrayList<>(objectives.keySet());
 
-    // Prepare to write to CSV
-    try (FileWriter csvWriter = new FileWriter(file, true)) { // 'true' enables appending
-        // If the file is new, write the header
+    // --- 3) If this is the first time (file doesn't exist), write the header ---
+    // archIndex, var0, var1, ..., var(nVars-1), objective1, objective2, ...
+    try (FileWriter csvWriter = new FileWriter(file, true)) {
+
         if (!fileExists) {
             List<String> header = new ArrayList<>();
-            header.add("archIndex"); // Include archIndex in header
-            header.addAll(variableNames); // Variable names
-            header.addAll(objectiveNames); // Objective names
-            csvWriter.append(String.join(",", header));
-            csvWriter.append("\n");
+            header.add("archIndex");
+            for (int i = 0; i < nVars; i++) {
+                header.add("var" + i);
+            }
+            header.addAll(objectiveNames);
+            csvWriter.append(String.join(",", header)).append("\n");
         }
 
-        // Prepare row values
+        // --- 4) Prepare the row for this solution ---
         List<String> rowValues = new ArrayList<>();
-        rowValues.add(Integer.toString(archIndex)); // Add archIndex to row
+        rowValues.add(Integer.toString(archIndex));  // archIndex
 
-        // Add decision variable values
-        for (String varName : variableNames) {
-            Object value = archVariables.get(varName);
-            String valueStr = (value != null) ? value.toString() : "";
-            // Escape quotes and handle special characters
-            valueStr = valueStr.replace("\"", "\"\"");
-            if (valueStr.contains(",") || valueStr.contains("\"") || valueStr.contains("\n")) {
-                valueStr = "\"" + valueStr + "\"";
+        // 4A) Add the solution's variable values
+        for (int i = 0; i < nVars; i++) {
+            // Attempt to interpret the variable as a double or int, depending on your representation
+            double value = 0.0;
+            try {
+                // If you're using RealVariable or EncodingUtils.newInt(...) => can interpret as double
+                value = ((org.moeaframework.core.variable.RealVariable) solution.getVariable(i)).getValue();
+            } catch (ClassCastException e) {
+                // If using a different variable type, handle accordingly.
+                // E.g., if it's a BinaryIntegerVariable or an IntegerVariable
+                // ...
+                throw new IllegalStateException("Unexpected variable type at index " + i, e);
             }
+            // Convert to string safely
+            String valueStr = String.valueOf(value);
+            // Escape quotes, commas, etc. if needed
+            valueStr = safeForCSV(valueStr);
             rowValues.add(valueStr);
         }
 
-        // Add objective values
+        // 4B) Add the objective values
         for (String objName : objectiveNames) {
-            Double value = objectives.get(objName);
-            String valueStr = (value != null) ? value.toString() : "";
-            // Escape quotes and handle special characters
-            valueStr = valueStr.replace("\"", "\"\"");
-            if (valueStr.contains(",") || valueStr.contains("\"") || valueStr.contains("\n")) {
-                valueStr = "\"" + valueStr + "\"";
-            }
-            rowValues.add(valueStr);
+            Double val = objectives.getOrDefault(objName, Double.NaN);
+            String valStr = safeForCSV(val.toString());
+            rowValues.add(valStr);
         }
 
-        // Write the row to the CSV file
-        csvWriter.append(String.join(",", rowValues));
-        csvWriter.append("\n");
+        // --- 5) Write the row to CSV ---
+        csvWriter.append(String.join(",", rowValues)).append("\n");
     }
 }
+
 /**
- * Decodes the Solution to extract architecture variables using the list of decisions.
- *
- * @param solution  The solution to be decoded.
- * @param decisions The list of decisions in the problem.
- * @return A map where keys are variable names and values are the corresponding decision values.
+ * Utility function to escape any commas, quotes, or newlines in a CSV field.
+ * Adjust as needed for your data format.
  */
-private static Map<String, Object> decodeSolution(Solution solution, List<Decision> decisions) {
-    Map<String, Object> archVariables = new HashMap<>();
-    int offset = 0;
-
-    for (Decision d : decisions) {
-        // Extract the encoding for this decision from the solution
-        Object encoded = d.extractEncodingFromSolution(solution, offset);
-        offset += d.getNumberOfVariables();
-
-        // Decode the encoding into an architectural variable
-        List<Map<String, Object>> decodedArchs = d.decodeArchitecture(encoded, Collections.singletonList(new HashMap<>()));
-        
-        // Extract variable values for this decision
-        for (Map<String, Object> arch : decodedArchs) {
-            archVariables.putAll(arch);
-        }
+private static String safeForCSV(String field) {
+    if (field == null) {
+        return "";
     }
-
-    return archVariables;
+    field = field.replace("\"", "\"\"");
+    if (field.contains(",") || field.contains("\"") || field.contains("\n")) {
+        field = "\"" + field + "\"";
+    }
+    return field;
 }
-
 
 }

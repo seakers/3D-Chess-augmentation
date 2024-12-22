@@ -310,27 +310,23 @@ public class Graph {
                 partition.initializeDecisionVariables();
                 d = partition;
             }
-            
-            
-            
-    
             // 5) OTHERS or UNIMPLEMENTED
             else {
                 throw new UnsupportedOperationException("Decision type " + type + " not implemented yet.");
             }
     
-            // keep track of references to parents if needed inside each decision
-            if (decObj.has("parents")) {
-                JSONArray pars = decObj.optJSONArray("parents");
-                if (pars != null) {
-                    for (int i = 0; i < pars.length(); i++) {
-                        String pName = pars.getString(i);
-                        if (decisions.containsKey(pName)) {
-                            d.addParentDecision(decisions.get(pName));  // e.g., new method in your abstract Decision
-                        }
-                    }
-                }
-            }
+            // // keep track of references to parents if needed inside each decision
+            // if (decObj.has("parents")) {
+            //     JSONArray pars = decObj.optJSONArray("parents");
+            //     if (pars != null) {
+            //         for (int i = 0; i < pars.length(); i++) {
+            //             String pName = pars.getString(i);
+            //             if (decisions.containsKey(pName)) {
+            //                 d.addParentDecision(decisions.get(pName));  // e.g., new method in your abstract Decision
+            //             }
+            //         }
+            //     }
+            // }
     
             // Put the newly created decision into the map
             this.decisions.put(decisionName, d);

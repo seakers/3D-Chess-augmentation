@@ -8,6 +8,7 @@ import tatc.ResultIO;
 import tatc.architecture.variable.Decision;
 import tatc.decisions.adg.DecisionMutation;
 import tatc.decisions.adg.DecisionVariation;
+import tatc.decisions.search.AdgInitialization;
 import tatc.interfaces.GUIInterface;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -52,7 +53,7 @@ public class TradespaceSearchStrategyMOEAnew extends TradespaceSearchStrategyGAn
         DecisionMutation mutationOperator = new DecisionMutation(decisions);
         operators.appendOperator(crossoverOperator);
         operators.appendOperator(mutationOperator);
-        Initialization initialization = new RandomInitialization(this.problem, populationSize);
+        Initialization initialization = new AdgInitialization(this.problem, populationSize);
         Population initialPopulation = new Population();
         NondominatedPopulation nondominatedPopulation = new NondominatedPopulation(comparator);
 

@@ -2,6 +2,7 @@ package tatc.decisions;
 
 import tatc.tradespaceiterator.ProblemProperties;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +29,7 @@ public abstract class Decision {
      * evaluate architectures.
      */
     protected ProblemProperties properties;
-
+    protected Map<Integer,int[]> encodingMap;
     /**
      * A unique identifier or name for this decision, allowing easy reference.
      */
@@ -46,6 +47,7 @@ public abstract class Decision {
     public Decision(ProblemProperties properties, String decisionName) {
         this.properties = properties;
         this.decisionName = decisionName;
+        this.encodingMap = new HashMap<Integer, int[]>();
     }
 
     /**
@@ -56,7 +58,12 @@ public abstract class Decision {
     public String getDecisionName() {
         return this.decisionName;
     }
-
+    public int[] getEncodingById(int id){
+        return this.encodingMap.get(id);
+    }
+    public void addEncodingById(int id, int[] encoding){
+        this.encodingMap.put(id, encoding);
+    }
     /**
      * In general, decision variables will be extracted from the ProblemProperties object.
      * Concrete subclasses will parse the relevant parts of the design space and store 
@@ -91,7 +98,7 @@ public abstract class Decision {
      * @param encoded The encoded representation of the architecture.
      * @return A map of architecture parameters corresponding to the decision's encoding.
      */
-    public abstract List<Map<String,Object>> decodeArchitecture(Object encoded, List<Map<String,Object>> currentArchitectures);
+    public abstract List<Map<String,Object>> decodeArchitecture(Object encoded, Solution sol);
 
     /**
      * Applies mutation operators to the given encoded architecture representation.

@@ -98,7 +98,7 @@ public class Assigning extends Decision {
     }
 
     @Override
-    public List<Map<String, Object>> decodeArchitecture(Object encoded, List<Map<String, Object>> currentArchitectures) {
+    public List<Map<String, Object>> decodeArchitecture(Object encoded,Solution sol) {
         int[] chrom = (int[]) encoded;
         int n = Lset.size();
         int m = Rset.size();

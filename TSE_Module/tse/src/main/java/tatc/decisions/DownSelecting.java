@@ -91,7 +91,8 @@ public class DownSelecting extends Decision {
     }
 
     @Override
-    public List<Map<String, Object>> decodeArchitecture(Object encoded, List<Map<String, Object>> currentArchitectures) {
+    public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol) {
+        List<Map<String,Object>> currentArchitectures = new ArrayList<Map<String,Object>>();
         int[] chrom = (int[]) encoded;
         if (chrom.length != E.size()) {
             throw new IllegalArgumentException("Encoded length does not match |E|.");
