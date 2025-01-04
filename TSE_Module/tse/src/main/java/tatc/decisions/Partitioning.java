@@ -108,6 +108,70 @@ public class Partitioning extends Decision {
         this.lastEncoding = encoding;
         return encoding;
     }
+    /**
+ * Repair the child encoding if this partitioning depends on a 
+ * DownSelecting node that has selected fewer items.
+ */
+public Object repairWithDependency(Object partitionEnc, Object downselectEnc) {
+    int[] partitionChrom = (int[]) partitionEnc;
+    int[] downselChrom = (int[]) downselectEnc;
+
+    // Reconstruct the new partition array
+    int selectedCount = 0;
+    for (int bit : downselChrom) {
+        if (bit == 1) selectedCount++;
+    }
+
+    // create a brand new array and fill from the old partitionChrom
+    int[] newPartition = new int[selectedCount];
+    // we must track reading from partitionChrom[x] in some consistent way
+
+    int readPos = 0;
+    int newIndex = 0;
+    int maxSoFar = 0;
+    for (int i=0; i<selectedCount; i++){
+        if (readPos < partitionChrom.length) {
+            // We can copy the old partition label
+            newPartition[newIndex++] = partitionChrom[readPos++];
+        } else {
+            // Mismatch: we've run out of old partition entries
+            // Insert a random label or fallback label
+            // e.g., random from [1..maxLabels]
+            maxSoFar = maxLabelSoFar(newPartition, i);
+            int randomLabel = 1 + rand.nextInt(maxSoFar);
+            newPartition[newIndex++] = randomLabel;
+        }
+    }
+
+    // now newPartition is your final 
+    repair(newPartition);
+    return newPartition;
+}
+
+
+/** Re-label group IDs consecutively. e.g. 
+ *  If you find used labels {1,2,4} => you map {1->1,2->2,4->3}. 
+ */
+private void relabel(int[] partition) {
+    Set<Integer> used = new TreeSet<>();
+    for (int label : partition) {
+        used.add(label);
+    }
+    // e.g. used might be [1,2,4]
+    Map<Integer,Integer> labelMap = new HashMap<>();
+    int next = 1;
+    for (Integer oldL : used) {
+        labelMap.put(oldL, next++);
+    }
+    // apply
+    for (int i=0; i< partition.length; i++) {
+        partition[i] = labelMap.get(partition[i]);
+    }
+}
+
+    public List<Decision> getParents(){
+        return parentDecisions;
+    }
 
     @Override
     @SuppressWarnings("unchecked")
@@ -186,7 +250,7 @@ public class Partitioning extends Decision {
     @Override
     public void mutate(Object encoded) {
         int[] chrom = (int[]) encoded;
-        double mutationProbability = 0.05; // example value
+        double mutationProbability = this.properties.getTradespaceSearch().getSettings().getSearchParameters().getpMutation(); // example value
 
         for (int i = 1; i < chrom.length; i++) {
             if (rand.nextDouble() < mutationProbability) {
@@ -202,22 +266,40 @@ public class Partitioning extends Decision {
     }
 
     @Override
-    public Object crossover(Object parent1, Object parent2) {
-        int[] p1 = (int[]) parent1;
-        int[] p2 = (int[]) parent2;
-        if (p1.length != p2.length) {
-            throw new IllegalArgumentException("Parents differ in length. Cannot crossover.");
-        }
+public Object crossover(Object parent1, Object parent2) {
+    int[] p1 = (int[]) parent1;
+    int[] p2 = (int[]) parent2;
 
-        int[] child = new int[p1.length];
-        // Simple uniform crossover
-        for (int i = 0; i < p1.length; i++) {
-            child[i] = rand.nextBoolean() ? p1[i] : p2[i];
-        }
+    // 1) Determine the child's length as the max of parent lengths
+    int childLen = Math.max(p1.length, p2.length);
+    int[] child = new int[childLen];
 
-        repair(child);
-        return child;
+    // 2) Uniform crossover in overlapping region
+    int minLen = Math.min(p1.length, p2.length);
+    for (int i = 0; i < minLen; i++) {
+        child[i] = rand.nextBoolean() ? p1[i] : p2[i];
     }
+
+    // 3) Copy remaining tail from whichever parent is longer
+    if (p1.length < p2.length) {
+        // p2 is longer: copy leftover from p2
+        for (int i = minLen; i < childLen; i++) {
+            child[i] = p2[i];
+        }
+    } else if (p2.length < p1.length) {
+        // p1 is longer: copy leftover from p1
+        for (int i = minLen; i < childLen; i++) {
+            child[i] = p1[i];
+        }
+    }
+    // If p1.length == p2.length, no leftover region to copy.
+
+    // 4) Repair child to ensure valid labeling, etc.
+    repair(child);
+
+    return child;
+}
+
 
     @Override
     public int getNumberOfVariables() {

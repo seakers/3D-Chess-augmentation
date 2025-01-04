@@ -18,6 +18,10 @@ import tatc.decisions.Decision;
 public class Summary {
     public static void writeSummaryFile(Map<String, Double> objectives, Map<String, Object> archVariables, int archIndex) throws IOException {
         //String csvFile = "summary.csv";
+        File file_dir = new File(System.getProperty("tatc.output"));
+        if (!file_dir.exists()) {
+            file_dir.mkdirs();
+        }
         String csvFile = System.getProperty("tatc.output") + File.separator + "summary.csv";
         File file = new File(csvFile);
         boolean fileExists = file.exists();
@@ -77,6 +81,10 @@ public class Summary {
         Solution solution,
         int archIndex,
         List<Decision> decisions) throws IOException {
+    File file_dir = new File(System.getProperty("tatc.output"));
+    if (!file_dir.exists()) {
+        file_dir.mkdirs();
+    }
 
     String csvFile = System.getProperty("tatc.output") + File.separator + "summary.csv";
     File file = new File(csvFile);

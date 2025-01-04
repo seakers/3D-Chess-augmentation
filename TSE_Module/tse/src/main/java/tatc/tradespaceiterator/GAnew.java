@@ -111,7 +111,14 @@ public class GAnew extends AbstractProblem {
                 // Just iterate over them from objectivesResults
                 int objIndex = 0;
                 for (Map.Entry<String, Double> obj : objectivesResults.entrySet()){
-                    solution.setObjective(objIndex++, obj.getValue());
+                    String type = properties.getObjectives().get(objIndex).getParent().getType();
+                    Double objective;
+                    if (type.equals("MAX")){
+                        objective = -obj.getValue();
+                    }else{
+                        objective = obj.getValue();
+                    }
+                    solution.setObjective(objIndex++, objective);
                     if (objIndex >= solution.getNumberOfObjectives()) break;
                 }
 

@@ -1,6 +1,7 @@
 package tatc.tradespaceiterator;
 import tatc.PythonServerManager;
 import tatc.ResultIO;
+import tatc.TSE;
 import tatc.TSEPublisher;
 import tatc.TSESubscriber;
 import tatc.architecture.specifications.Architecture;
@@ -190,7 +191,7 @@ public class TradespaceSearchExecutive {
             subscriber.connect();
 
             // Subscribe to the result topic
-            String resultTopic = "TSE";
+            String resultTopic = TSE.getSubscriptionTopic();
             subscriber.subscribe(resultTopic, qos, (topic, payload) -> {
                 try {
                     JSONObject responseJson = new JSONObject(payload);
@@ -239,13 +240,12 @@ public class TradespaceSearchExecutive {
                 evaluatorRequestJson.put("function", functionName);
                 evaluatorRequestJson.put("metric", metric);
                 evaluatorRequestJson.put("dependencies",evaluator);
-                evaluatorRequestJson.put("result_topic", "TSE"); // The topic to return results to
+                evaluatorRequestJson.put("result_topic", resultTopic); // The topic to return results to
 
                 // Publish the request to the topic
                 publisher.publish(topic, evaluatorRequestJson.toString(), qos);
 
                 System.out.println("Published request for metric '" + metric + "' to topic '" + topic + "'");
-                System.out.println("Request JSON: " + evaluatorRequestJson.toString(2)); // Pretty-print with indentation
             }
 
             // Wait for responses from all evaluators or timeout after a certain period

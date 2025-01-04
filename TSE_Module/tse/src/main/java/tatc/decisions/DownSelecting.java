@@ -115,34 +115,62 @@ public class DownSelecting extends Decision {
         return currentArchitectures;
     }
 
+    // @Override
+    // public void mutate(Object encoded) {
+    //     int[] chrom = (int[]) encoded;
+    //     double mutationProbability = 0.05; // Example value
+
+    //     for (int i = 0; i < chrom.length; i++) {
+    //         if (rand.nextDouble() < mutationProbability) {
+    //             // Flip bit
+    //             chrom[i] = (chrom[i] == 0) ? 1 : 0;
+    //         }
+    //     }
+    // }
+
+    // @Override
+    // public Object crossover(Object parent1, Object parent2) {
+    //     int[] p1 = (int[]) parent1;
+    //     int[] p2 = (int[]) parent2;
+    //     if (p1.length != p2.length) {
+    //         throw new IllegalArgumentException("Parents differ in length. Cannot crossover.");
+    //     }
+
+    //     int[] child = new int[p1.length];
+    //     for (int i = 0; i < p1.length; i++) {
+    //         // Uniform crossover: 50% chance from p1 or p2
+    //         child[i] = rand.nextBoolean() ? p1[i] : p2[i];
+    //     }
+    //     return child;
+    // }
+
     @Override
-    public void mutate(Object encoded) {
-        int[] chrom = (int[]) encoded;
-        double mutationProbability = 0.05; // Example value
+public Object crossover(Object parent1, Object parent2) {
+    int[] p1 = (int[]) parent1;
+    int[] p2 = (int[]) parent2;
+    int[] child = new int[p1.length];
 
-        for (int i = 0; i < chrom.length; i++) {
-            if (rand.nextDouble() < mutationProbability) {
-                // Flip bit
-                chrom[i] = (chrom[i] == 0) ? 1 : 0;
-            }
-        }
+    Random rand = new Random();
+    for (int i = 0; i < p1.length; i++) {
+        // Uniform crossover
+        child[i] = rand.nextBoolean() ? p1[i] : p2[i];
     }
+    return child;
+}
+public Object repairWithDependency(Object partitionEnc, Object downselectEnc){
+    return partitionEnc;
+}
 
-    @Override
-    public Object crossover(Object parent1, Object parent2) {
-        int[] p1 = (int[]) parent1;
-        int[] p2 = (int[]) parent2;
-        if (p1.length != p2.length) {
-            throw new IllegalArgumentException("Parents differ in length. Cannot crossover.");
-        }
+@Override
+public void mutate(Object encoded) {
+    int[] encoding = (int[]) encoded;
 
-        int[] child = new int[p1.length];
-        for (int i = 0; i < p1.length; i++) {
-            // Uniform crossover: 50% chance from p1 or p2
-            child[i] = rand.nextBoolean() ? p1[i] : p2[i];
-        }
-        return child;
-    }
+    // Example: Flip mutation
+    Random rand = new Random();
+    int idx = rand.nextInt(encoding.length);
+    encoding[idx] = 1 - encoding[idx]; // Flip 0 to 1 or 1 to 0
+}
+
 
     @Override
     public int getNumberOfVariables() {

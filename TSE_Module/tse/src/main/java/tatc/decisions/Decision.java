@@ -108,6 +108,23 @@ public abstract class Decision {
      * @param encoded The encoded architecture representation to be mutated.
      */
     public abstract void mutate(Object encoded);
+    /**
+ * Returns the highest key (solution ID) in the encodingMap.
+ * Assumes encodingMap uses String keys and is not empty.
+ * 
+ * @return The highest key in the encodingMap based on lexicographical order.
+ * @throws IllegalStateException if encodingMap is empty.
+ */
+    public Integer getHighestId() {
+        if (encodingMap.isEmpty()) {
+            throw new IllegalStateException("The encodingMap is empty. No highest ID can be determined.");
+        }
+        
+        // Retrieve the highest key in lexicographical order
+        return encodingMap.keySet().stream()
+                        .max(Integer::compareTo)
+                        .orElseThrow(() -> new IllegalStateException("Failed to find the highest ID."));
+    }
 
     /**
      * Applies crossover operators to generate a new offspring architecture from two parent 
@@ -128,4 +145,8 @@ public abstract class Decision {
     public abstract Object extractEncodingFromSolution(Solution solution, int offset);
     public abstract void addParentDecision(Decision decision);
     public abstract int[] getLastEncoding();
+    public abstract Object repairWithDependency(Object childEnc, Object parentEnc);
+    public List<Decision> getParentDecisions(){
+        return this.parentDecisions;
+    }
 }

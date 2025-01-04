@@ -29,7 +29,7 @@ public class TSEPublisher {
         MqttMessage message = new MqttMessage(content.getBytes());
         message.setQos(qos);
         mqttClient.publish(topic, message);
-        System.out.println("Message published to topic \"" + topic + "\": " + content);
+        //System.out.println("Message published to topic \"" + topic + "\": " + content);
     }
 
     // Disconnect from the MQTT broker
