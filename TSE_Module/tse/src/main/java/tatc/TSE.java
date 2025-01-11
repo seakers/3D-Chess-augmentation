@@ -28,7 +28,7 @@ public class TSE {
         Logger.getGlobal().addHandler(handler);
 
         // Configure parallel execution
-        int numThreads = 4; // Number of threads for parallel execution
+        int numThreads = 1; // Number of threads for parallel execution
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
 
         // Timestamp for unique output directories

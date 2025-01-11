@@ -68,18 +68,18 @@ def process_request(data):
             logger.debug('Starting cost evaluation...')
             cost = evaluate_architecture(architecture)
             logger.debug(f'Cost evaluation completed. Result: {cost}')
-
+            result_topic = data["result_topic"]
             # Prepare the result message
             result = {
                 'evaluator': 'SpaDes',
                 'workflow_id': workflow_id,
                 'results': {
                     'LifecycleCost': float(cost)
-                }
+                }   
             }
             # Publish the result
-            client.publish(RESULT_TOPIC, json.dumps(result))
-            logger.debug(f"Published result to topic {RESULT_TOPIC}: {result}")
+            client.publish(result_topic, json.dumps(result))
+            logger.debug(f"Published result to topic {result_topic}: {result}")
 
         else:
             logger.error('Missing required fields in the message.')
