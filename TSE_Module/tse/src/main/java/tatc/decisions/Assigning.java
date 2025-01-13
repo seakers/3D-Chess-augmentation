@@ -224,6 +224,12 @@ public Object extractEncodingFromSolution(Solution solution, int offset) {
     public void addParentDecision(Decision parent) {
         parentDecisions.add(parent);
     }
+
+    @Override
+    public Object repairWithDependency(Object childEnc, Object parentEnc) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'repairWithDependency'");
+    }
     
     
 }

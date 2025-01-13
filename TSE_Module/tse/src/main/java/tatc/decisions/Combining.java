@@ -212,6 +212,12 @@ public class Combining extends Decision {
         }   
         return alternatives.get(i).size()-1;
     }
+
+    @Override
+    public Object repairWithDependency(Object childEnc, Object parentEnc) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'repairWithDependency'");
+    }
     
     
 
