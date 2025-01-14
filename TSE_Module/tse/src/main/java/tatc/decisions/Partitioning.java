@@ -28,6 +28,7 @@ public class Partitioning extends Decision {
      */
     private List<Object> E;
     private Random rand = new Random();
+    private String entitiesSource;
 
     public Partitioning(ProblemProperties properties, String decisionName) {
         super(properties, decisionName);
@@ -43,9 +44,18 @@ public class Partitioning extends Decision {
     /**
      * Sets the set E of entities to be partitioned.
      */
-    public void setEntities(List<Map<String, Object>> entities) {
-        this.E = new ArrayList<>(entities);
+    public void setEntities(List<Object> entities) {
+        this.E = entities;
     }
+    public void setEntitiesSource(String entitiesSource) {
+        this.entitiesSource = entitiesSource;
+    }
+    
+    public String getEntitiesSource() {
+        return this.entitiesSource;
+    }
+
+
 
     @Override
     public void initializeDecisionVariables() {
@@ -328,54 +338,48 @@ public Object crossover(Object parent1, Object parent2) {
 
     @Override
     public Object randomEncoding() {
-        // Ensure parent decisions and their lastEncoding are defined
-        if (parentDecisions == null || parentDecisions.isEmpty()) {
-            throw new IllegalStateException("Partitioning decision " + decisionName + " requires at least one parent decision.");
+        int n = E.size();
+        if (n == 0) {
+            // Return an empty list of subsets
+            return new ArrayList<Object>();
         }
 
-        // Fetch the parent decision (e.g., DownSelecting)
-        Decision parent = parentDecisions.get(0); // Assuming the first parent is the relevant one
-        int[] parentLastEncoding = parent.getLastEncoding();
-
-        if (parentLastEncoding == null) {
-            throw new IllegalStateException("Parent decision " + parent.getDecisionName() + " has no last encoding available.");
-        }
-
-        // Filter the entities (E) based on the parent's last encoding
-        List<Map<String, Object>> selectedEntities = new ArrayList<>();
-        for (int i = 0; i < parentLastEncoding.length; i++) {
-            if (parentLastEncoding[i] == 1) { // Selected entities in the parent's encoding
-                if (i >= E.size()) {
-                    throw new IllegalStateException("Parent encoding index exceeds the size of E in partitioning decision " + decisionName);
-                }
-                selectedEntities.add((Map<String, Object>)E.get(i)); // Add selected entities as Map<String, Object>
+        // 1) Generate integer encoding (labels)
+        int[] encoding = new int[n];
+        encoding[0] = 1;
+        int maxLabel = 1;
+        for (int i = 1; i < n; i++) {
+            int newLabel = 1 + rand.nextInt(maxLabel + 1);
+            encoding[i] = newLabel;
+            if (newLabel > maxLabel) {
+                maxLabel = newLabel;
             }
         }
-
-        // Ensure that there are selected entities to partition
-        if (selectedEntities.isEmpty()) {
-            throw new IllegalStateException("No entities selected by parent decision " + parent.getDecisionName() + " for partitioning decision " + decisionName);
-        }
-
-        // // Update E to only include the selected entities
-        // E.clear();
-        // E.addAll(selectedEntities);
-
-        // Partitioning encoding logic
-        int n = selectedEntities.size();
-        int[] encoding = new int[n];
-        int maxSoFar = 0;
-        // For each subsequent element, assign it to a subset
-        for (int k = 1; k < n; k++) {
-            int newLabel = 1 + rand.nextInt(maxSoFar + 1);
-            encoding[k] = newLabel;
-            maxSoFar = maxLabelSoFar(encoding, k);
-
-        }
-
-        // Ensure encoding is valid
+        // Optional repair
         repair(encoding);
-        this.lastEncoding = encoding; // Store the generated encoding
+
+        // 2) Build subsets from labels
+        //   a) create list-of-lists
+        List<List<Object>> subsets = new ArrayList<>();
+        for (int label = 1; label <= maxLabel; label++) {
+            subsets.add(new ArrayList<>());
+        }
+        for (int i = 0; i < n; i++) {
+            int label = encoding[i];
+            subsets.get(label - 1).add(E.get(i));
+        }
+
+        // 3) Convert List<List<Object>> to List<Object>
+        //    i.e. each subset is an element in a List<Object>.
+        List<Object> finalResult = new ArrayList<>();
+        for (List<Object> subset : subsets) {
+            finalResult.add(subset);
+        }
+
+        // Keep track of your integer encoding if needed
+        this.lastEncoding = encoding;
+        this.result = finalResult;
+        // Return as List<Object> so that it matches code expecting `List<Object>`
         return encoding;
     }
 

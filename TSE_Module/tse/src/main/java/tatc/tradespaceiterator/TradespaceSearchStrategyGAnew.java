@@ -132,7 +132,6 @@ public abstract class TradespaceSearchStrategyGAnew implements TradespaceSearchS
         tatc.decisions.adg.Graph graph = buildGraphFromTSERequest(tseRequestJson, properties);
         // Determine number of objectives from properties
         int totalObjectives = properties.getObjectives().size();
-
         // Create and return a Problem that uses these decisions
         // GAnew should be updated to rely on the graph and its decisions rather than building them here
         return new GAnew(properties, graph, totalObjectives);

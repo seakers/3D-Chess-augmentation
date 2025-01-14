@@ -2,6 +2,7 @@ package tatc.decisions;
 
 import tatc.tradespaceiterator.ProblemProperties;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ public abstract class Decision {
     protected String decisionName;
     protected List<Decision> parentDecisions;
     protected int[] lastEncoding;
+    protected List<Object> result;
 
     /**
      * Constructs a Decision object given the problem properties and a decision name.
@@ -48,6 +50,7 @@ public abstract class Decision {
         this.properties = properties;
         this.decisionName = decisionName;
         this.encodingMap = new HashMap<Integer, int[]>();
+        this.parentDecisions = new ArrayList<>();
     }
 
     /**
@@ -124,6 +127,10 @@ public abstract class Decision {
         return encodingMap.keySet().stream()
                         .max(Integer::compareTo)
                         .orElseThrow(() -> new IllegalStateException("Failed to find the highest ID."));
+    }
+
+    public List<Object> getResult() {
+        return result;
     }
 
     /**

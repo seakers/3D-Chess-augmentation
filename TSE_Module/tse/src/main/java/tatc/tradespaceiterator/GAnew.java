@@ -195,19 +195,74 @@ public class GAnew extends AbstractProblem {
         return objectives;
     }
 
+    // @Override
+    // public Solution newSolution() {
+    //     // First, determine total number of variables by summing over all decisions
+    //     int totalVars = 0;
+    //     for (Decision d : decisions) {
+    //         totalVars += d.getNumberOfVariables();
+    //     }
+    //     AdgSolution sol = new AdgSolution(graph, properties, totalObjectives, totalVariables);
+    //     sol.setId(solutionCounter);
+    //     sol.randomizeSolution();
+    //     solutionCounter++;
+    //     return sol;
+    // }
     @Override
     public Solution newSolution() {
-        // First, determine total number of variables by summing over all decisions
-        int totalVars = 0;
+        // Step 1: Generate encodings, but don't store them in the solution yet
+        List<int[]> allEncodings = new ArrayList<>();
         for (Decision d : decisions) {
-            totalVars += d.getNumberOfVariables();
+            // Ensure inputs are set first (this might update entity sets, etc.)
+            this.graph.setInputs(d);
+    
+            // Generate a random encoding for this decision
+            Object encoded = d.randomEncoding();
+            int[] arr = (int[]) encoded;
+            allEncodings.add(arr);
         }
-        AdgSolution sol = new AdgSolution(graph, properties, totalObjectives, totalVariables);
-        sol.setId(solutionCounter);
-        sol.randomizeSolution();
+    
+        // Step 2: Compute total number of variables from concatenated encodings
+        int totalVars = 0;
+        for (int[] enc : allEncodings) {
+            totalVars += enc.length;
+        }
+    
+        // Now we can create the Solution object with the correct number of variables
+        // Assuming we already know the number of objectives (e.g., totalObjectives)
+        AdgSolution solution = new AdgSolution(graph, properties, totalObjectives, totalVars);    
+        // Step 3: Fill the solution with each decision's encoded representation
+        int offset = 0;
+        for (int i = 0; i < decisions.size(); i++) {
+            Decision d = decisions.get(i);
+            int[] arr = allEncodings.get(i);
+    
+            // For each index in arr, create a RealVariable
+            for (int j = 0; j < arr.length; j++) {
+                int maxOption = d.getMaxOptionForVariable(j);
+                // Suppose valid range is [0, maxOption - 1]
+                double lowerBound = 0.0;
+                double upperBound = (double)(maxOption - 1);
+    
+                RealVariable var = new RealVariable(lowerBound, upperBound);
+                var.setValue(arr[j]);  // integer -> double
+    
+                solution.setVariable(offset + j, var);
+            }
+            d.addEncodingById(solutionCounter, arr);
+            // Optionally: if you maintain an ID for this solution or if each decision
+            // tracks encodings by ID, store the encoding in the decision’s map
+            // e.g. d.addEncodingById(this.id, arr);
+    
+            offset += arr.length;
+        }
+        solution.setId(solutionCounter);
         solutionCounter++;
-        return sol;
+    
+        return solution;
     }
+    
+    
 
 
     @Override

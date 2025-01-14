@@ -21,6 +21,7 @@ public class AdgSolution extends Solution {
     private List<Decision> decisions;
     private ProblemProperties properties;
     private int id;
+    private Graph graph;
     /**
      * Constructs a new AdgSolution by randomly generating encodings for all decisions from the given graph.
      * @param graph The graph containing decisions in topological order
@@ -32,6 +33,7 @@ public class AdgSolution extends Solution {
         super(totalVariables, totalObjectives);
         this.properties = properties;
         this.decisions = graph.getTopoOrderedDecisions();
+        this.graph = graph;
         // Create a random encoding for each decision and store as RealVariables
     }
 
@@ -46,6 +48,7 @@ public class AdgSolution extends Solution {
     public void randomizeSolution(){
         int offset = 0;
         for (Decision d : decisions) {
+            this.graph.setInputs(d);
             Object encoded = d.randomEncoding(); 
             int[] arr = (int[]) encoded;
             for (int i = 0; i < arr.length; i++) {

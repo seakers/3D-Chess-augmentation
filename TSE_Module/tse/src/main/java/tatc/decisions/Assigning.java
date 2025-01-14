@@ -17,6 +17,8 @@ public class Assigning extends Decision {
     private List<Object> Lset; // Entities in L
     private List<Object> Rset; // Entities in R
     private Random rand = new Random();
+    private String lSource;
+    private String rSource;
 
     /**
      * Constructing an Assigning decision node.
@@ -36,6 +38,24 @@ public class Assigning extends Decision {
     public void setLset(List<Object> Lset) {
         this.Lset = new ArrayList<>(Lset);
     }
+    public void setLSource(String entitiesSource) {
+        this.lSource = entitiesSource;
+    }
+    
+    public String getLSource() {
+        return this.lSource;
+    }
+
+    public void setRSource(String rSource) {
+        this.rSource = rSource;
+    }
+    
+    public String getRSource() {
+        return this.rSource;
+    }
+
+
+
 
     /**
      * Set the R entities.
