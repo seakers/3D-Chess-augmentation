@@ -234,6 +234,34 @@ public Object extractEncodingFromSolution(Solution solution, int offset) {
         }
         return encoding;
     }
+    @Override
+    public void applyEncoding(int[] encoding) {
+        int n = Lset.size();
+        int m = Rset.size();
+        if (encoding.length != n * m) {
+            throw new IllegalArgumentException("Assigning mismatch: " + encoding.length
+                + " vs " + n + "*" + m);
+        }
+    
+        // Build a list of assignment records
+        List<Object> assignmentList = new ArrayList<>();
+    
+        for (int i = 0; i < n; i++) {
+            List<Object> assignedR = new ArrayList<>();
+            for (int j = 0; j < m; j++) {
+                if (encoding[i * m + j] == 1) {
+                    assignedR.add(Rset.get(j));
+                }
+            }
+            // For clarity, store each L element and its assigned set of R items in a Map
+            Map<String, Object> itemMap = new HashMap<>();
+            itemMap.put("L", Lset.get(i));
+            itemMap.put("AssignedR", assignedR);
+            assignmentList.add(itemMap);
+        }
+    
+        this.result = assignmentList;
+    }
 
     @Override
     public int getMaxOptionForVariable(int i) {

@@ -185,72 +185,70 @@ private void relabel(int[] partition) {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol) {
-        // Extract the decision-specific variables from TSERequest
-        JSONObject constVars = this.properties.getTsrObject()
-                .getJSONObject("designSpace")
-                .getJSONArray("spaceSegment")
-                .getJSONObject(0);
-        JSONArray partitioningVars = constVars.getJSONArray(decisionName);
+public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol) {
+    // Extract the decision-specific variables from TSERequest
+    JSONObject designSpace = this.properties.getTsrObject()
+            .getJSONObject("designSpace");
+    JSONObject spaceSegment = designSpace.getJSONArray("spaceSegment")
+            .getJSONObject(0);
 
-        List<Map<String, Object>> architectureParams = new ArrayList<>();
-        List<Object> selectedEntities = new ArrayList<>();
+    List<Map<String, Object>> architectureParams = new ArrayList<>();
+    List<Object> selectedEntities = this.E;
 
-        // Handle parent decision's influence (e.g., DownSelecting)
-        if (this.parentDecisions.get(0) instanceof DownSelecting) {
-            int[] lastParentEncoding = this.parentDecisions.get(0).getEncodingById(((AdgSolution)sol).getId());
-            for (int i = 0; i < E.size(); i++) {
-                if (lastParentEncoding[i] == 1) {
-                    selectedEntities.add(E.get(i));
-                }
-            }
-        } else {
-            selectedEntities = E; // If no parent or parent is not DownSelecting, use full entity set
-        }
-
-        // Validate encoding length
-        int[] chrom = (int[]) encoded;
-        if (chrom.length != selectedEntities.size()) {
-            throw new IllegalArgumentException("Encoded length does not match the size of selected entities.");
-        }
-
-        // Determine the number of subsets (max label in chrom)
-        int maxLabel = Arrays.stream(chrom).max().orElse(0);
-
-        // Create subsets based on encoding
-        List<List<Object>> subsets = new ArrayList<>(Collections.nCopies(maxLabel, null));
-        for (int i = 0; i < maxLabel; i++) {
-            subsets.set(i, new ArrayList<>());
-        }
-
-        for (int i = 0; i < chrom.length; i++) {
-            int label = chrom[i];
-            if (label < 1 || label > maxLabel) {
-                throw new IllegalArgumentException("Invalid label in encoding: " + label);
-            }
-            subsets.get(label - 1).add(((Map<String, JSONObject>) selectedEntities.get(i)).get("entity"));
-        }
-
-        // Process each architecture and create new decision mappings
-        for (int k = 0; k < partitioningVars.length(); k++) {
-            JSONObject insideVars = partitioningVars.getJSONObject(k);
-            JSONArray parentVars = insideVars.optJSONArray(parentDecisions.get(0).getDecisionName());
-
-            for (int l = 0; l < subsets.size(); l++) {
-                Map<String, Object> newDecisionMap = new HashMap<>();
-
-                if (parentVars != null) {
-                    insideVars.put(parentDecisions.get(0).getDecisionName(), subsets.get(l));
-                }
-                insideVars.put(decisionName, subsets.get(l));
-
-                newDecisionMap.put(decisionName, new JSONObject(insideVars.toString())); // Clone JSON object to prevent overwriting
-                architectureParams.add(newDecisionMap);
-            }
-        }
-
-        return architectureParams;
+    // Validate encoding length
+    int[] chrom = (int[]) encoded;
+    if (chrom.length != selectedEntities.size()) {
+        throw new IllegalArgumentException("Encoded length does not match the size of selected entities.");
     }
+
+    // Determine the number of subsets (max label in chrom)
+    int maxLabel = Arrays.stream(chrom).max().orElse(0);
+
+    // Create subsets based on encoding
+    List<List<Object>> subsets = new ArrayList<>(Collections.nCopies(maxLabel, null));
+    for (int i = 0; i < maxLabel; i++) {
+        subsets.set(i, new ArrayList<>());
+    }
+
+    for (int i = 0; i < chrom.length; i++) {
+        int label = chrom[i];
+        if (label < 1 || label > maxLabel) {
+            throw new IllegalArgumentException("Invalid label in encoding: " + label);
+        }
+        subsets.get(label - 1).add(selectedEntities.get(i)); // Store the entities in subsets
+    }
+
+    // Process each subset and construct the architecture
+    for (int k = 0; k < subsets.size(); k++) {
+        List<Object> subset = subsets.get(k);
+
+        // Initialize a new decision map for this subset
+        Map<String, Object> newDecisionMap = new HashMap<>();
+
+        // Fetch the fixed elements from TSERequest
+        JSONArray fixedSatellites = spaceSegment.getJSONArray("satellites");
+
+        // Add the subset to the map under its decision name
+        newDecisionMap.put(decisionName, subset);
+
+        // Combine fixed and variable parts
+        if ("satellites".equals(resultType)) {
+            List<JSONObject> satelliteConfigs = new ArrayList<>();
+            for (Object entity : subset) {
+                // Clone the fixed satellite config and attach the payload
+                JSONObject satellite = new JSONObject(fixedSatellites.getJSONObject(0).toString());
+                satellite.put("payload", entity);
+                satelliteConfigs.add(satellite);
+            }
+            newDecisionMap.put("satellites", satelliteConfigs);
+        }
+        // Add the constructed map to the architecture parameters
+        architectureParams.add(newDecisionMap);
+    }
+
+    return architectureParams;
+}
+
 
     @Override
     public int[] getLastEncoding() {
@@ -382,6 +380,56 @@ public Object crossover(Object parent1, Object parent2) {
         // Return as List<Object> so that it matches code expecting `List<Object>`
         return encoding;
     }
+
+    /**
+     * Applies an integer array where each element is a subset label (e.g., 1,2,3, ...).
+     * The i-th label indicates which subset E.get(i) belongs to.
+     * It stores a List<Object> of subsets in this.result,
+     * where each subset is itself a List<Object> of items sharing the same label.
+     */
+    @Override
+    public void applyEncoding(int[] encoding) {
+        if (encoding.length != E.size()) {
+            throw new IllegalArgumentException("Encoding length mismatch in Partitioning. "
+                + "Expected " + E.size() + " but got " + encoding.length);
+        }
+
+        // 1) Determine the maximum label
+        int maxLabel = 0;
+        for (int label : encoding) {
+            if (label > maxLabel) {
+                maxLabel = label;
+            }
+        }
+        // If there's no entity or all labels are 0, it's an edge case
+        // but let's proceed with "empty subsets" or handle it as needed.
+
+        // 2) Create an array of subsets (label from 1..maxLabel)
+        List<List<Object>> subsets = new ArrayList<>();
+        for (int label = 1; label <= maxLabel; label++) {
+            subsets.add(new ArrayList<>());
+        }
+
+        // 3) Assign each entity E[i] to the subset indicated by encoding[i]
+        for (int i = 0; i < encoding.length; i++) {
+            int label = encoding[i];
+            if (label > 0 && label <= maxLabel) {
+                subsets.get(label - 1).add(E.get(i));
+            }
+            // If label=0 or out of range, you could either ignore the item or
+            // handle it differently, depending on your convention.
+        }
+
+        // 4) Convert List<List<Object>> to a List<Object> (where each element is one subset).
+        List<Object> finalResult = new ArrayList<>();
+        for (List<Object> subset : subsets) {
+            finalResult.add(subset);
+        }
+
+        // 5) Store in this.result
+        this.result = finalResult;
+    }
+
 
 
 

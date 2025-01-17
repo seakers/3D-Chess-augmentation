@@ -158,22 +158,38 @@ public class GAnew extends AbstractProblem {
     //     }
     //     return archParams;
     // }
+    /**
+     * Decodes the entire solution by iterating over decisions in topological order.
+     * Each decision sets its inputs (e.g., from parent decisions or TSERequest),
+     * then decodes its portion of the solution and updates the shared architecture set.
+     */
     private List<Map<String, Object>> decodeSolution(Solution solution) {
-        // Start with a single empty architecture
+        // Start with a single "empty" architecture in the list
         List<Map<String, Object>> archSet = new ArrayList<>();
         archSet.add(new HashMap<>());
-        int offset = 0;
-        for(int i = 0; i< decisions.size()-1; i++){
-            Decision decision = decisions.get(i);
-            offset += decision.getNumberOfVariables();
 
+        int offset = 0;
+
+        // 1) Go in topological order, so that parents are decoded before children
+        for (Decision d : decisions) {
+            // a) Resolve the sets this decision needs (downSelecting 'E', assigning 'L' and 'R', etc.)
+            //    using a method similar to the code you posted above:
+            this.graph.setInputs(d);
+            Object encoded = d.extractEncodingFromSolution(solution, offset);
+            d.applyEncoding((int[])encoded);
+            // b) Extract the encoded integer[] from the MOEA solution
+            int numVars = d.getNumberOfVariables();
+            offset += numVars;
+
+            // c) Let the decision decode that portion against the current architecture set
+            archSet = d.decodeArchitecture(encoded, solution);
+            //   ^ This returns a new or updated list of architectures
+            //     e.g., for down-selecting or partitioning, etc.
         }
-        Decision lastDecision = decisions.get(decisions.size()-1);
-        Object encoded = lastDecision.extractEncodingFromSolution(solution, offset);
-        // Use the decision's decode method to transform archSet
-        archSet = lastDecision.decodeArchitecture(encoded, solution);
+
         return archSet;
     }
+
     
     
 

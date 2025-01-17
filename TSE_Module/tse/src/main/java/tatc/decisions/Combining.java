@@ -102,6 +102,11 @@ public class Combining extends Decision {
     public void addParentDecision(Decision parent) {
         parentDecisions.add(parent);
     }
+
+    @Override
+    public void applyEncoding(int[] encoding){
+        
+    }
     
 
     @Override

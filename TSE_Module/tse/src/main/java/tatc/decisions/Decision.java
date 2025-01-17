@@ -38,6 +38,7 @@ public abstract class Decision {
     protected List<Decision> parentDecisions;
     protected int[] lastEncoding;
     protected List<Object> result;
+    protected String resultType;
 
     /**
      * Constructs a Decision object given the problem properties and a decision name.
@@ -156,4 +157,11 @@ public abstract class Decision {
     public List<Decision> getParentDecisions(){
         return this.parentDecisions;
     }
+    public String getResultType(){
+        return this.resultType;
+    }
+    public void setResultType(String resultType){
+        this.resultType = resultType;
+    }
+    public abstract void applyEncoding(int[] encoding);
 }

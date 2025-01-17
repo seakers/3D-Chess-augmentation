@@ -422,7 +422,8 @@ public class Graph {
             String type = decObj.getString("type");
     
             Decision d = null;
-    
+            String resultType = decObj.getString("resultType");
+
             // 1) COMBINING
             if (type.equalsIgnoreCase("Combining")) {
                 Combining comb = new Combining(properties, decisionName);
@@ -659,9 +660,10 @@ public class Graph {
             // }
     
             // Put the newly created decision into the map
+            d.setResultType(resultType);
             this.decisions.put(decisionName, d);
         }
-    
+        
         // Store them in topological order for easy iteration
         for (String dn : topoOrder) {
             topoOrderedDecisions.add(decisions.get(dn));

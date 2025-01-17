@@ -216,6 +216,29 @@ public class DownSelecting extends Decision {
     // Return the bitstring encoding; the framework can store it if needed
     return encoding;
 }
+
+/**
+ * Applies an existing bitstring encoding (0/1) to the list of candidate entities E.
+ * It then stores in this.result the subset of E that was selected.
+ */
+@Override
+public void applyEncoding(int[] encoding) {
+    if (encoding.length != E.size()) {
+        throw new IllegalArgumentException("Encoding length mismatch in DownSelecting. "
+            + "Expected " + E.size() + " but got " + encoding.length);
+    }
+
+    List<Object> selected = new ArrayList<>();
+    for (int i = 0; i < encoding.length; i++) {
+        if (encoding[i] == 1) {
+            selected.add(E.get(i));
+        }
+    }
+
+    // Store the final subset in this.result
+    this.result = selected;
+}
+
 public List<Object> getResult() {
     return result;
 }
