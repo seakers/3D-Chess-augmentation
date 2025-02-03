@@ -1,5 +1,6 @@
 package tatc.decisions;
 
+import tatc.decisions.adg.Graph;
 import tatc.tradespaceiterator.ProblemProperties;
 
 import org.moeaframework.core.Solution;
@@ -101,7 +102,7 @@ public class DownSelecting extends Decision {
         }
     
         @Override
-        public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol) {
+        public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
             List<Map<String,Object>> currentArchitectures = new ArrayList<Map<String,Object>>();
             int[] chrom = (int[]) encoded;
             if (chrom.length != E.size()) {

@@ -95,7 +95,7 @@ public class AdgSolution extends Solution {
             offset += d.getNumberOfVariables();
     
             // Decode using the decision, which transforms or expands the architecture set
-            archSet = d.decodeArchitecture(encoded, this);
+            archSet = d.decodeArchitecture(encoded, this, graph);
         }
     
         if (archSet.isEmpty()) {
@@ -157,7 +157,7 @@ public class AdgSolution extends Solution {
         initialArchSet.add(new HashMap<>());
     
         // Decode architecture using the updated method
-        List<Map<String, Object>> resultArchSet = target.decodeArchitecture(encoded, this);
+        List<Map<String, Object>> resultArchSet = target.decodeArchitecture(encoded, this, graph);
     
         // Check the result
         if (resultArchSet.isEmpty()) {

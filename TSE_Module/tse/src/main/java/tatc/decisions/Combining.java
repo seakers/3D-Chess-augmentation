@@ -1,5 +1,6 @@
 package tatc.decisions;
 
+import tatc.decisions.adg.Graph;
 import tatc.tradespaceiterator.ProblemProperties;
 import java.util.*;
 
@@ -128,7 +129,7 @@ public class Combining extends Decision {
     }
 
     @Override
-    public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol) {
+    public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
         List<Map<String, Object>> architectures = new ArrayList<>();
         int[] chrom = (int[]) encoded;
         if (chrom.length != subDecisions.size()) {

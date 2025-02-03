@@ -1,5 +1,6 @@
 package tatc.decisions;
 
+import tatc.decisions.adg.Graph;
 import tatc.tradespaceiterator.ProblemProperties;
 
 import java.util.ArrayList;
@@ -102,7 +103,7 @@ public abstract class Decision {
      * @param encoded The encoded representation of the architecture.
      * @return A map of architecture parameters corresponding to the decision's encoding.
      */
-    public abstract List<Map<String,Object>> decodeArchitecture(Object encoded, Solution sol);
+    public abstract List<Map<String,Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph);
 
     /**
      * Applies mutation operators to the given encoded architecture representation.

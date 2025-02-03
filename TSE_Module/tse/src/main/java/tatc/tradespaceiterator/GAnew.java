@@ -167,28 +167,52 @@ public class GAnew extends AbstractProblem {
         // Start with a single "empty" architecture in the list
         List<Map<String, Object>> archSet = new ArrayList<>();
         archSet.add(new HashMap<>());
-
+    
         int offset = 0;
-
-        // 1) Go in topological order, so that parents are decoded before children
+    
+        // 1) Process each decision in topological order
         for (Decision d : decisions) {
-            // a) Resolve the sets this decision needs (downSelecting 'E', assigning 'L' and 'R', etc.)
-            //    using a method similar to the code you posted above:
+            // a) Resolve the inputs this decision needs
             this.graph.setInputs(d);
+    
+            // b) Extract the encoded portion for this decision from the MOEA solution
             Object encoded = d.extractEncodingFromSolution(solution, offset);
-            d.applyEncoding((int[])encoded);
-            // b) Extract the encoded integer[] from the MOEA solution
+            d.applyEncoding((int[]) encoded);
+    
             int numVars = d.getNumberOfVariables();
             offset += numVars;
-
-            // c) Let the decision decode that portion against the current architecture set
-            archSet = d.decodeArchitecture(encoded, solution);
-            //   ^ This returns a new or updated list of architectures
-            //     e.g., for down-selecting or partitioning, etc.
+    
+            // c) Decode the architecture for this decision
+            List<Map<String, Object>> updatedArchSet = new ArrayList<>();
+    
+            // Iterate over the current architecture set and update corresponding elements
+            for (int i = 0; i < archSet.size(); i++) {
+                Map<String, Object> currentArch = archSet.get(i);
+    
+                // Decode the architecture for the current element
+                List<Map<String, Object>> decodedForCurrent = d.decodeArchitecture(encoded, solution, graph);
+    
+                if (decodedForCurrent.isEmpty()) {
+                    // If no decoding results, just propagate the current architecture
+                    updatedArchSet.add(currentArch);
+                } else {
+                    // Otherwise, update each element in the current architecture
+                    for (Map<String, Object> decodedMap : decodedForCurrent) {
+                        // Create a new map by merging the current architecture with the decoded map
+                        Map<String, Object> updatedArch = new HashMap<>(currentArch);
+                        updatedArch.putAll(decodedMap);
+                        updatedArchSet.add(updatedArch);
+                    }
+                }
+            }
+    
+            // Update the architecture set with the new results
+            archSet = updatedArchSet;
         }
-
+    
         return archSet;
     }
+    
 
     
     

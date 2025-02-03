@@ -1,8 +1,10 @@
 package tatc.decisions;
 
+import tatc.decisions.adg.Graph;
 import tatc.tradespaceiterator.ProblemProperties;
 import java.util.*;
 
+import org.json.JSONObject;
 import org.moeaframework.core.Solution;
 import org.moeaframework.core.variable.RealVariable;
 
@@ -118,49 +120,103 @@ public class Assigning extends Decision {
     }
 
     @Override
-    public List<Map<String, Object>> decodeArchitecture(Object encoded,Solution sol) {
-        int[] chrom = (int[]) encoded;
-        int n = Lset.size();
-        int m = Rset.size();
-    
-        if (chrom.length != n * m) {
-            throw new IllegalArgumentException("Encoded length does not match n*m for assigning decision.");
-        }
-    
-        // List to store the results
-        List<Map<String, Object>> resultList = new ArrayList<>();
-    
-        // Loop over each element in Lset
-        for (int i = 0; i < n; i++) {
-            // Extract the attributes of the L element
-            Object lElement = Lset.get(i);
-            Map<String, Object> elementMap = new HashMap<>();
-    
-            if (lElement instanceof Map) {
-                // If Lset elements are maps, copy the key-value pairs (like "altitude": 500, "inclination": 45)
-                elementMap.putAll((Map<String, Object>) lElement);
-            } else {
-                // If Lset is just a list of simple elements, we'll name it generically
-                elementMap.put("L_value", lElement);
-            }
-    
-            // Extract the R assignments corresponding to this L element
-            Set<Object> assignedR = new HashSet<>();
-            for (int j = 0; j < m; j++) {
-                if (chrom[i * m + j] == 1) {
-                    assignedR.add(Rset.get(j));
-                }
-            }
-    
-            // Add the R assignments to the hashmap
-            elementMap.put(decisionName, assignedR); // Use decisionName as the key for the R assignments
-    
-            // Add the element map to the result list
-            resultList.add(elementMap);
-        }
-    
-        return resultList;
+public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
+    int[] chrom = (int[]) encoded;
+    int n = Lset.size();
+    int m = Rset.size();
+
+    if (chrom.length != n * m) {
+        throw new IllegalArgumentException("Encoded length does not match n*m for assigning decision.");
     }
+
+    // List to store the results
+    List<Map<String, Object>> resultList = new ArrayList<>();
+
+    // Resolve the sources for Lset and Rset
+    List<Object> resolvedLset = resolveSetFromSource(this.lSource, graph);
+    List<Object> resolvedRset = resolveSetFromSource(this.rSource, graph);
+
+    // Determine the keys for Lset and Rset in the result map
+    String lKey = graph.getDecisionsMap().containsKey(this.lSource) 
+                ? graph.getDecisionsMap().get(this.lSource).getResultType() 
+                : this.lSource;
+
+    String rKey = graph.getDecisionsMap().containsKey(this.rSource) 
+                ? graph.getDecisionsMap().get(this.rSource).getResultType() 
+                : this.rSource;
+
+    // Initialize the result list to store mappings of (L, R) pairs
+    // Define sizes
+    int lSize = resolvedLset.size();
+    int rSize = resolvedRset.size();
+
+    // Iterate over the chromosome
+    for (int chromIndex = 0; chromIndex < chrom.length; chromIndex++) {
+        if (chrom[chromIndex] == 1) {
+            // Determine the indices for L and R based on the chromosome structure
+            int rIndex = chromIndex / lSize; // Which R element this corresponds to
+            int lIndex = chromIndex % lSize; // Which L element this corresponds to
+
+            // Get the corresponding L and R elements
+            Object lElement = resolvedLset.get(lIndex);
+            Object rElement = resolvedRset.get(rIndex);
+
+            // Create a map to store this (L, R) pair
+            Map<String, Object> pairMap = new HashMap<>();
+
+            // Add L element to the map
+            if (lElement instanceof Map) {
+                pairMap.put(lKey, lElement);
+            } else {
+                pairMap.put(lKey, createJSONObjectForResultType(lKey, lElement));
+            }
+
+            // Add R element to the map
+            if (rElement instanceof Map) {
+                pairMap.put(rKey, rElement);
+            } else {
+                pairMap.put(rKey, createJSONObjectForResultType(rKey, rElement));
+            }
+
+            // Add the pair map to the result list
+            resultList.add(pairMap);
+        }
+    }
+
+    return resultList;
+
+    }
+
+/**
+ * Resolves a set based on the source name.
+ */
+private List<Object> resolveSetFromSource(String source, Graph graph) {
+    if (graph.getDecisionsMap().containsKey(source)) {
+        Decision sourceDecision = graph.getDecisionsMap().get(source);
+        return sourceDecision.getResult();
+    } else {
+        return this.properties.getDistinctValuesForVariable(source);
+    }
+}
+
+/**
+ * Creates a JSON object for the given result type and source element.
+ */
+private JSONObject createJSONObjectForResultType(String resultType, Object sourceElement) {
+    JSONObject jsonObject = new JSONObject();
+
+    if ("satellites".equals(resultType)) {
+        jsonObject.put("satellite", sourceElement);
+    } else if ("orbit".equals(resultType)) {
+        jsonObject.put("orbit", sourceElement);
+    } else if ("payload".equals(resultType)) {
+        jsonObject.put("payload", sourceElement);
+    }
+
+    return jsonObject;
+}
+
+    
     
     
     @Override

@@ -1,6 +1,7 @@
 package tatc.decisions;
 
 import tatc.decisions.adg.AdgSolution;
+import tatc.decisions.adg.Graph;
 import tatc.tradespaceiterator.ProblemProperties;
 
 import org.json.JSONArray;
@@ -185,7 +186,7 @@ private void relabel(int[] partition) {
 
     @Override
     @SuppressWarnings("unchecked")
-public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol) {
+public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
     // Extract the decision-specific variables from TSERequest
     JSONObject designSpace = this.properties.getTsrObject()
             .getJSONObject("designSpace");
@@ -229,8 +230,6 @@ public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol
         JSONArray fixedSatellites = spaceSegment.getJSONArray("satellites");
 
         // Add the subset to the map under its decision name
-        newDecisionMap.put(decisionName, subset);
-
         // Combine fixed and variable parts
         if ("satellites".equals(resultType)) {
             List<JSONObject> satelliteConfigs = new ArrayList<>();
@@ -245,7 +244,6 @@ public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol
         // Add the constructed map to the architecture parameters
         architectureParams.add(newDecisionMap);
     }
-
     return architectureParams;
 }
 
