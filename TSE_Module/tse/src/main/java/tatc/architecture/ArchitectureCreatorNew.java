@@ -121,52 +121,50 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         // Relative spacing (f)
         int f = getIntFromArchOrJson("relativeSpacing", archParameters, constJson, 1);
 
-        // Orbit parameters
-        JSONObject orbitJson = constJson.getJSONObject("orbit");
+        List<Orbit> listOrbits = getOrbitsFromConstJsonOrArchParams(constJson, archParameters);
+        // // Altitude
+        // double altitude = getDoubleFromArchOrJson("altitude", archParameters, orbitJson);
 
-        // Altitude
-        double altitude = getDoubleFromArchOrJson("altitude", archParameters, orbitJson);
+        // // Inclination
+        // double inclination = getDoubleFromArchOrJson("inclination", archParameters, orbitJson);
 
-        // Inclination
-        double inclination = getDoubleFromArchOrJson("inclination", archParameters, orbitJson);
+        // // Eccentricity
+        // double eccentricity = getDoubleFromArchOrJson("eccentricity", archParameters, orbitJson, 0.0);
 
-        // Eccentricity
-        double eccentricity = getDoubleFromArchOrJson("eccentricity", archParameters, orbitJson, 0.0);
+        // // Epoch
+        // String epoch = archParameters.containsKey("epoch") ? (String) archParameters.get("epoch") : "2020-01-01T00:00:00Z";
+        //  // Compute semimajor axis
+        //  double semimajoraxis = altitude + Utilities.EARTH_RADIUS_KM;
 
-        // Epoch
-        String epoch = archParameters.containsKey("epoch") ? (String) archParameters.get("epoch") : "2020-01-01T00:00:00Z";
-         // Compute semimajor axis
-         double semimajoraxis = altitude + Utilities.EARTH_RADIUS_KM;
+        // // Walker parameters
+        // final int s = t / p; // Number of satellites per plane
+        // final double pu = 2 * FastMath.PI / t; // Pattern unit
+        // final double delAnom = pu * p; // In-plane spacing between satellites
+        // final double delRaan = pu * s; // Node spacing
+        // final double phasing = pu * f;
+        // final double refAnom = 0;
+        // final double refRaan = 0;
+        // final double refPerigee = 0;
+        // double delPerigee = eccentricity != 0.0 ? delRaan : 0.0;
 
-        // Walker parameters
-        final int s = t / p; // Number of satellites per plane
-        final double pu = 2 * FastMath.PI / t; // Pattern unit
-        final double delAnom = pu * p; // In-plane spacing between satellites
-        final double delRaan = pu * s; // Node spacing
-        final double phasing = pu * f;
-        final double refAnom = 0;
-        final double refRaan = 0;
-        final double refPerigee = 0;
-        double delPerigee = eccentricity != 0.0 ? delRaan : 0.0;
-
-        // Create list of orbits
-        List<Orbit> listOrbits = new ArrayList<>();
-        for (int planeNum = 0; planeNum < p; planeNum++) {
-            for (int satNum = 0; satNum < s; satNum++) {
-                Orbit orbit = new Orbit(
-                    orbitJson.optString("orbitType", "CIRCULAR"),
-                    altitude,
-                    semimajoraxis,
-                    inclination,
-                    eccentricity,
-                    FastMath.toDegrees(refPerigee + planeNum * delPerigee),
-                    FastMath.toDegrees(refRaan + planeNum * delRaan),
-                    FastMath.toDegrees((refAnom + satNum * delAnom + phasing * planeNum) % (2. * FastMath.PI)),
-                    epoch,
-                    null
-                );
-                listOrbits.add(orbit);
-            }}
+        // // Create list of orbits
+        // List<Orbit> listOrbits = new ArrayList<>();
+        // for (int planeNum = 0; planeNum < p; planeNum++) {
+        //     for (int satNum = 0; satNum < s; satNum++) {
+        //         Orbit orbit = new Orbit(
+        //             orbitJson.optString("orbitType", "CIRCULAR"),
+        //             altitude,
+        //             semimajoraxis,
+        //             inclination,
+        //             eccentricity,
+        //             FastMath.toDegrees(refPerigee + planeNum * delPerigee),
+        //             FastMath.toDegrees(refRaan + planeNum * delRaan),
+        //             FastMath.toDegrees((refAnom + satNum * delAnom + phasing * planeNum) % (2. * FastMath.PI)),
+        //             epoch,
+        //             null
+        //         );
+        //         listOrbits.add(orbit);
+        //     }}
         // Satellite
         JSONArray satellitesJsonArray = constJson.getJSONArray("satellites");
         if (satellitesJsonArray.length() == 0) {
@@ -235,9 +233,103 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
             throw new IllegalArgumentException("Missing required integer parameter: " + key);
         }
     }
+    public List<Orbit> getOrbitsFromConstJsonOrArchParams(JSONObject constJson, Map<String, Object> archParameters) {
+        List<Orbit> orbits = new ArrayList<>();
+    
+        // Extract number of satellites
+        int t = getIntFromArchOrJson("numberSatellites", archParameters, constJson);
+        String constellationType = constJson.optString("constellationType", "DELTA_HOMOGENEOUS");
+    
+        // Case 1: Orbit is a decision variable → Get it from archParameters
+        if (constJson.has("orbit") && constJson.get("orbit") instanceof JSONArray) {
+            if (!archParameters.containsKey("orbit")) {
+                throw new IllegalArgumentException("Orbit decision variable is missing from archParameters.");
+            }
+    
+            // Retrieve assigned orbit configurations from archParameters (always a JSONObject)
+            JSONObject assignedOrbitsJson = (JSONObject) archParameters.get("orbit");
+                    // Compute semimajor axis
+            // Number of planes (p)
+            int p = getIntFromArchOrJson("numberPlanes", archParameters, constJson);
+
+            // Relative spacing (f)
+            int f = getIntFromArchOrJson("relativeSpacing", archParameters, constJson, 1);
+            assignedOrbitsJson.put("numberPlanes", p);
+            assignedOrbitsJson.put("relativeSpacing", f);
+            assignedOrbitsJson.put("numberSatellites", t);
+            // Convert the assigned JSONObject into an Orbit list
+            orbits = createOrbitFromJsonOrArchParams(assignedOrbitsJson, archParameters);
+        }
+        // Case 2: Orbit is explicitly defined in constJson (Fixed Orbit Case)
+        else if (constJson.has("orbit") && constJson.get("orbit") instanceof JSONObject) {
+            JSONObject orbitJson = constJson.getJSONObject("orbit");
+            orbits = createOrbitFromJsonOrArchParams(orbitJson, archParameters);
+        } else {
+            throw new IllegalArgumentException("No valid orbit information found in constJson or archParameters.");
+        }
+    
+        return orbits;
+    }
+    
+    /**
+     * Creates an orbit from JSON or archParameters.
+     */
+    private List<Orbit> createOrbitFromJsonOrArchParams(JSONObject orbitJson, Map<String, Object> archParameters) {
+        String orbitType = getStringFromArchOrJson("orbitType", archParameters, orbitJson, "CIRCULAR");
+        double altitude = getDoubleFromArchOrJson("altitude", archParameters, orbitJson);
+        double inclination = getDoubleFromArchOrJson("inclination", archParameters, orbitJson);
+        double eccentricity = getDoubleFromArchOrJson("eccentricity", archParameters, orbitJson, 0.0);
+        String epoch = getStringFromArchOrJson("epoch", archParameters, orbitJson, "2020-01-01T00:00:00Z");
+        int p = orbitJson.getInt("numberPlanes");
+        int f = orbitJson.getInt("relativeSpacing");
+        int t = orbitJson.getInt("numberSatellites");
+        double semimajorAxis = altitude + Utilities.EARTH_RADIUS_KM;
+        // Walker parameters
+        final int s = t / p; // Number of satellites per plane
+        final double pu = 2 * FastMath.PI / t; // Pattern unit
+        final double delAnom = pu * p; // In-plane spacing between satellites
+        final double delRaan = pu * s; // Node spacing
+        final double phasing = pu * f;
+        final double refAnom = 0;
+        final double refRaan = 0;
+        final double refPerigee = 0;
+        double delPerigee = eccentricity != 0.0 ? delRaan : 0.0;
+
+        // Create list of orbits
+        List<Orbit> listOrbits = new ArrayList<>();
+        for (int planeNum = 0; planeNum < p; planeNum++) {
+            for (int satNum = 0; satNum < s; satNum++) {
+                Orbit orbit = new Orbit(
+                    orbitJson.optString("orbitType", "CIRCULAR"),
+                    altitude,
+                    semimajorAxis,
+                    inclination,
+                    eccentricity,
+                    FastMath.toDegrees(refPerigee + planeNum * delPerigee),
+                    FastMath.toDegrees(refRaan + planeNum * delRaan),
+                    FastMath.toDegrees((refAnom + satNum * delAnom + phasing * planeNum) % (2. * FastMath.PI)),
+                    epoch,
+                    null
+                );
+                listOrbits.add(orbit);
+            }}
+    
+        return listOrbits;
+    }
+    
+    private String getStringFromArchOrJson(String key, Map<String, Object> archParameters, JSONObject jsonObject, String defaultValue) {
+        if (archParameters.containsKey(key)) {
+            return (String) archParameters.get(key);
+        } else if (jsonObject.has(key)) {
+            return jsonObject.getString(key);
+        } else {
+            return defaultValue;
+        }
+    }
+    
     
     private double getDoubleFromArchOrJson(String key, Map<String, Object> archParameters, JSONObject jsonObject) {
-        return getDoubleFromArchOrJson(key, archParameters, jsonObject, null);
+        return getDoubleFromArchOrJson(key, archParameters, jsonObject.getJSONObject("orbit"), 400.0);
     }
     
     private double getDoubleFromArchOrJson(String key, Map<String, Object> archParameters, JSONObject jsonObject, Double defaultValue) {
