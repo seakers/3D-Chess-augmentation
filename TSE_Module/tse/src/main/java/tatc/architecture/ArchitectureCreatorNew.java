@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -170,12 +171,26 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         if (satellitesJsonArray.length() == 0) {
             throw new IllegalArgumentException("No satellites specified in constellation JSON");
         }
+        JSONObject satelliteJson;
         List<Satellite> sats = new ArrayList<Satellite>();
+        if (archParameters.containsKey("satellites")){
+            Object satellitesObj = archParameters.get("satellites");
+
+            satellitesJsonArray = new JSONArray((List<?>) satellitesObj);
+        }
+        else{
+            satellitesJsonArray = constJson.getJSONArray("satellites");
+
+        }
         for(Orbit orbit : listOrbits){
-            JSONObject satelliteJson = satellitesJsonArray.getJSONObject(0);
+            for(int i = 0; i<satellitesJsonArray.length(); i++){
+                JSONObject satelliJsonObject = satellitesJsonArray.getJSONObject(i);
+                Satellite satellite = createSatelliteFromJson(satelliJsonObject, archParameters, orbit);
+                sats.add(satellite);
+            }
+
             // Create Satellite object
-            Satellite satellite = createSatelliteFromJson(satelliteJson, archParameters, orbit);
-            sats.add(satellite);
+
         }
         
         // Secondary payload
@@ -238,6 +253,11 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
     
         // Extract number of satellites
         int t = getIntFromArchOrJson("numberSatellites", archParameters, constJson);
+        // Number of planes (p)
+        int p = getIntFromArchOrJson("numberPlanes", archParameters, constJson);
+
+        // Relative spacing (f)
+        int f = getIntFromArchOrJson("relativeSpacing", archParameters, constJson, 1);
         String constellationType = constJson.optString("constellationType", "DELTA_HOMOGENEOUS");
     
         // Case 1: Orbit is a decision variable → Get it from archParameters
@@ -249,11 +269,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
             // Retrieve assigned orbit configurations from archParameters (always a JSONObject)
             JSONObject assignedOrbitsJson = (JSONObject) archParameters.get("orbit");
                     // Compute semimajor axis
-            // Number of planes (p)
-            int p = getIntFromArchOrJson("numberPlanes", archParameters, constJson);
 
-            // Relative spacing (f)
-            int f = getIntFromArchOrJson("relativeSpacing", archParameters, constJson, 1);
             assignedOrbitsJson.put("numberPlanes", p);
             assignedOrbitsJson.put("relativeSpacing", f);
             assignedOrbitsJson.put("numberSatellites", t);
@@ -263,6 +279,9 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         // Case 2: Orbit is explicitly defined in constJson (Fixed Orbit Case)
         else if (constJson.has("orbit") && constJson.get("orbit") instanceof JSONObject) {
             JSONObject orbitJson = constJson.getJSONObject("orbit");
+            orbitJson.put("numberPlanes", p);
+            orbitJson.put("relativeSpacing", f);
+            orbitJson.put("numberSatellites", t);
             orbits = createOrbitFromJsonOrArchParams(orbitJson, archParameters);
         } else {
             throw new IllegalArgumentException("No valid orbit information found in constJson or archParameters.");
@@ -329,10 +348,13 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
     
     
     private double getDoubleFromArchOrJson(String key, Map<String, Object> archParameters, JSONObject jsonObject) {
-        return getDoubleFromArchOrJson(key, archParameters, jsonObject.getJSONObject("orbit"), 400.0);
+        return getDoubleFromArchOrJson(key, archParameters, jsonObject, 400.0);
     }
     
     private double getDoubleFromArchOrJson(String key, Map<String, Object> archParameters, JSONObject jsonObject, Double defaultValue) {
+        if(jsonObject.has("orbit")){
+            jsonObject = jsonObject.getJSONObject("orbit");
+        }
         if (archParameters.containsKey(key)) {
             return ((Number) archParameters.get(key)).doubleValue();
         } else if (jsonObject.has(key)) {
@@ -405,51 +427,79 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
     
         return satellite;
     }
+    public static HashMap<String, Object> jsonToHashMap(JSONObject jsonObj) {
+        HashMap<String, Object> map = new HashMap<>();
+        Iterator<String> keys = jsonObj.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object value = jsonObj.get(key);
+            map.put(key, value);
+        }
+        return map;
+    }
     public List<Instrument> getPayloadFromArchOrJson(JSONObject satelliteJson, Map<String, Object> archParameters) {
         List<Instrument> payload = new ArrayList<>();
-    
+        
         // Check if 'payload' is defined in archParameters
         Object payloadObj = archParameters.get("payload");
+    
         if (payloadObj != null) {
-            if (payloadObj instanceof HashSet || payloadObj instanceof HashMap) {
-            // Payload is a HashSet of instrument parameters
-            HashSet<?> payloadSet = (HashSet<?>) payloadObj;
-            for (Object instrumentObj : payloadSet) {
-                if (instrumentObj instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> instrumentParams = (Map<String, Object>) instrumentObj;
-                    // Create Instrument from parameters
-                    Instrument instrument = new Instrument(instrumentParams);
-                    payload.add(instrument);
-                } else if (instrumentObj instanceof JSONObject) {
-                    JSONObject instrumentJson = (JSONObject) instrumentObj;
-                    // Create Instrument from JSON
+            // Convert payloadObj to a Collection of instrument objects
+            Collection<?> instrumentCollection = null;
+            if (payloadObj instanceof JSONObject) {
+                // Convert JSONObject to a HashMap and then get its values
+                HashMap<String, Object> payloadMap = jsonToHashMap((JSONObject) payloadObj);
+                instrumentCollection = payloadMap.values();
+            } else if (payloadObj instanceof HashMap) {
+                instrumentCollection = ((HashMap<?, ?>) payloadObj).values();
+            } else if (payloadObj instanceof Collection) {
+                instrumentCollection = (Collection<?>) payloadObj;
+            } else {
+                System.err.println("Unsupported payload object type in archParameters: " + payloadObj.getClass().getName());
+            }
+            
+            if (instrumentCollection != null) {
+                for (Object payload_ : instrumentCollection) {
+                    if (payload_ instanceof ArrayList) {
+                        for(Object instrument : (ArrayList) payload_){
+                            if(instrument instanceof JSONObject){
+                                // Create Instrument from JSON object
+                                Instrument instrument_i = createInstrumentFromJson((JSONObject) instrument, archParameters);
+                                payload.add(instrument_i);
+                            }
+
+                        }
+
+                    } else if (payload_ instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> instrumentParams = (Map<String, Object>) payload_;
+                        // Create Instrument from parameter map
+                        Instrument instrument = new Instrument(instrumentParams);
+                        payload.add(instrument);
+                    } else {
+                        System.err.println("Unsupported instrument object type in payload: " + payload_.getClass().getName());
+                    }
+                }
+            } else {
+                System.err.println("Invalid payload format in archParameters.");
+            }
+        } else {
+            // Fallback: get payload from satelliteJson
+            JSONArray payloadJsonArray = satelliteJson.optJSONArray("payload");
+            if (payloadJsonArray != null) {
+                for (int i = 0; i < payloadJsonArray.length(); i++) {
+                    JSONObject instrumentJson = payloadJsonArray.getJSONObject(i);
                     Instrument instrument = createInstrumentFromJson(instrumentJson, archParameters);
                     payload.add(instrument);
-                } else {
-                    // Handle other types if necessary
-                    System.err.println("Unsupported instrument object type in archParameters payload.");
                 }
+            } else {
+                System.err.println("Payload is not defined in satelliteJson.");
             }
-        } else {
-            System.err.println("Invalid payload format in archParameters.");
         }
-    } else {
-        // Payload is not in archParameters; get it from satelliteJson
-        JSONArray payloadJsonArray = satelliteJson.optJSONArray("payload");
-        if (payloadJsonArray != null) {
-            for (int i = 0; i < payloadJsonArray.length(); i++) {
-                JSONObject instrumentJson = payloadJsonArray.getJSONObject(i);
-                Instrument instrument = createInstrumentFromJson(instrumentJson, archParameters);
-                payload.add(instrument);
-            }
-        } else {
-            System.err.println("Payload is not defined in satelliteJson.");
-        }
-    }
-    
+        
         return payload;
     }
+    
     
     
     private Instrument createInstrumentFromJson(JSONObject instrumentJson, Map<String, Object> archParameters) {

@@ -579,6 +579,7 @@ public class Graph {
                 downSelect.initializeDecisionVariables();
                 d = downSelect;
             }
+            
     
             // 4) PARTITIONING
             else if (type.equalsIgnoreCase("Partitioning")) {
@@ -669,6 +670,32 @@ public class Graph {
             topoOrderedDecisions.add(decisions.get(dn));
         }
     }
+
+            /**
+         * Returns a set of leaf decisions (decisions that are not parents of any other decision).
+         */
+        public Set<String> getLeafDecisions() {
+            Set<String> allDecisions = new HashSet<>(decisions.keySet());
+            Set<String> parentDecisions = new HashSet<>();
+
+            // Identify all decisions that are parents
+            for (Decision d : decisions.values()) {
+                List<Decision> parents = d.getParentDecisions();
+
+
+                if (parents != null) {
+                    for(Decision de : parents){
+                        parentDecisions.add(de.getDecisionName());
+                    }
+                }
+            }
+
+            // Leaf decisions = all decisions - parent decisions
+            allDecisions.removeAll(parentDecisions);
+
+            return allDecisions;
+        }
+
 
     public void setInputs(Decision d) {
         // Example: we either fetch from a parent decision's 'getResult()' 

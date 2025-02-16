@@ -170,28 +170,35 @@ public class GAnew extends AbstractProblem {
     
         int offset = 0;
     
-        // 1) Process each decision in topological order
+        // Get the last-layer decision nodes (leaf nodes in the decision graph)
+        Set<String> leafDecisionNames = graph.getLeafDecisions();
+
         for (Decision d : decisions) {
+            // Skip decoding if the decision is not in the last layer
+
+
             // a) Resolve the inputs this decision needs
-            this.graph.setInputs(d);
-    
+            graph.setInputs(d);
+
             // b) Extract the encoded portion for this decision from the MOEA solution
             Object encoded = d.extractEncodingFromSolution(solution, offset);
             d.applyEncoding((int[]) encoded);
-    
+
             int numVars = d.getNumberOfVariables();
             offset += numVars;
-    
+
             // c) Decode the architecture for this decision
             List<Map<String, Object>> updatedArchSet = new ArrayList<>();
-    
+            if (!leafDecisionNames.contains(d.getDecisionName())) {
+                continue;
+            }
             // Iterate over the current architecture set and update corresponding elements
             for (int i = 0; i < archSet.size(); i++) {
                 Map<String, Object> currentArch = archSet.get(i);
-    
+
                 // Decode the architecture for the current element
                 List<Map<String, Object>> decodedForCurrent = d.decodeArchitecture(encoded, solution, graph);
-    
+
                 if (decodedForCurrent.isEmpty()) {
                     // If no decoding results, just propagate the current architecture
                     updatedArchSet.add(currentArch);
@@ -205,10 +212,11 @@ public class GAnew extends AbstractProblem {
                     }
                 }
             }
-    
+
             // Update the architecture set with the new results
             archSet = updatedArchSet;
         }
+
     
         return archSet;
     }
