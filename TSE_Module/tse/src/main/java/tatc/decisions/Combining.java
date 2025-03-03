@@ -31,6 +31,10 @@ public class Combining extends Decision {
      */
     private List<List<Object>> alternatives;
     private Random rand = new Random();
+    private List<String> subDecisionsSource;
+    private List<String> alternativesSource;
+    private List<List<Object>> subDecisionsData;
+
 
     /**
      * Constructs a Combining decision node.
@@ -50,6 +54,15 @@ public class Combining extends Decision {
         // In this simplified approach, we do nothing here since 
         // sub-decisions and alternatives will be provided externally.
     }
+    public void setSubDecisionsSource(List<String> subDecisionsSource){
+        this.subDecisionsSource = subDecisionsSource;
+    }
+    public void setSubDecisionsData(List<List<Object>> subdecisionData){
+        this.subDecisionsData = subdecisionData;
+    }
+    public List<List<Object>> getSubDecisionsData(){
+        return this.subDecisionsData;
+    }
 
     /**
      * Sets the sub-decisions that form this combining decision.
@@ -58,13 +71,20 @@ public class Combining extends Decision {
     public void setSubDecisions(List<String> subDecisions) {
         this.subDecisions = new ArrayList<>(subDecisions);
     }
+    // For the alternatives
+    public void setAlternativesSource(List<String> altKeys) {
+        this.alternativesSource = altKeys;
+    }
+    public List<String> getAlternativesSource() {
+        return this.alternativesSource;
+    }
 
     /**
      * Sets the alternatives for each sub-decision.
      * @param alternatives a list (for each sub-decision) of the sub-decision's possible values
      */
     public void setAlternatives(List<List<Object>> alternatives) {
-        if (alternatives.size() != subDecisions.size()) {
+        if (alternatives.size() != subDecisionsData.size()) {
             throw new IllegalArgumentException("Number of alternatives lists must match number of sub-decisions.");
         }
         this.alternatives = new ArrayList<>();
@@ -105,8 +125,40 @@ public class Combining extends Decision {
     }
 
     @Override
-    public void applyEncoding(int[] encoding){
-        
+    public void applyEncoding(int[] encoding) {
+        // 1) Check length matches subDecisionsData (each dimension)
+        if (encoding.length != subDecisionsData.size()) {
+            throw new IllegalArgumentException(
+                "Combining applyEncoding length mismatch. Expected " 
+                + subDecisionsData.size() + " but got " + encoding.length
+            );
+        }
+    
+        // 2) Build a list to store the chosen alternatives (one per dimension)
+        List<Object> chosenAlternatives = new ArrayList<>();
+    
+        // 3) For each dimension i, we pick the alternative indicated by encoding[i]
+        for (int i = 0; i < encoding.length; i++) {
+            int chosenIndex = encoding[i];
+            // If alternatives.get(i) is empty or chosenIndex out-of-range, skip or clamp
+            if (i >= alternatives.size() || alternatives.get(i).isEmpty()) {
+                chosenAlternatives.add(null);
+                continue;
+            }
+            List<Object> altList = alternatives.get(i);
+            if (chosenIndex < 0 || chosenIndex >= altList.size()) {
+                // Either skip or clamp. Here let's skip:
+                chosenAlternatives.add(null);
+            } else {
+                chosenAlternatives.add(altList.get(chosenIndex));
+            }
+        }
+    
+        // 4) Store these chosen alternatives as this decision's partial result
+        //    We keep it as a List<Object> for consistency with your framework
+        this.result = chosenAlternatives;
+        // Optionally store this as lastEncoding if you need
+        this.lastEncoding = encoding;
     }
     
 
@@ -130,20 +182,87 @@ public class Combining extends Decision {
 
     @Override
     public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
-        List<Map<String, Object>> architectures = new ArrayList<>();
+        // Cast the encoded object to int[]
         int[] chrom = (int[]) encoded;
-        if (chrom.length != subDecisions.size()) {
-            throw new IllegalArgumentException("Encoded chromosome length does not match number of sub-decisions.");
+        // Prepare a container for the decoded list
+        List<Map<String, Object>> decoding = new ArrayList<>();
+    
+        // Retrieve the distinct alternatives for this decision's result type 
+        // e.g. if resultType = "orbit", this might be an array of orbit objects
+        List<Object> resultAlternatives = properties.getDistinctValuesForVariable(resultType);
+        if (resultAlternatives == null || resultAlternatives.isEmpty()) {
+            // If no alternatives found, return an empty list
+            return decoding;
         }
-
-        Map<String, Object> arch = new LinkedHashMap<>();
-        for (int i=0; i<chrom.length; i++) {
-            Object chosenVal = alternatives.get(i).get(chrom[i]);
-            arch.put(subDecisions.get(i), chosenVal);
+    
+        // For each gene in the chromosome
+        for (int i = 0; i < chrom.length; i++) {
+            int selection = chrom[i];
+    
+            // Safety check: clamp or skip invalid indices
+            if (selection < 0 || selection >= resultAlternatives.size()) {
+                // You could throw an exception, skip, or clamp. Here we skip:
+                continue;
+            }
+    
+            Object selectedAlternative = resultAlternatives.get(selection);
+    
+            // Create a map with the resultType as key, and the chosen alternative as value
+            Map<String, Object> mapWithType = new HashMap<>();
+            mapWithType.put(resultType, selectedAlternative);
+    
+            // Add this map to the decoding list
+            decoding.add(mapWithType);
         }
-        architectures.add(arch);
-        return architectures;
+    
+        return decoding;
     }
+    
+    // @Override
+    // public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
+    //     // Convert the encoded solution to an int array (binary representation)
+    //     int[] chrom = (int[]) encoded;
+    
+    //     // Let n = # of sub-decision items
+    //     int n = subDecisionsData.size();
+    //     // Let m = # of alternative items
+    //     int m = alternatives.size();
+    
+    //     // The expected chromosome length is n*m
+    //     if (chrom.length != n ) {
+    //         throw new IllegalArgumentException("Combining decision: Encoded length ("
+    //             + chrom.length + ") does not match n*m (" + (n*m) + ").");
+    //     }
+    
+    //     // The final result is a list of (subDecision, alternative) pairs
+    //     List<Map<String, Object>> resultList = new ArrayList<>();
+    
+    //     // For each gene in the chromosome
+    //     for (int idx = 0; idx < chrom.length; idx++) {
+    //         if (chrom[idx] == 1) {
+    //             // We interpret idx as a row-major index:
+    //             // altIndex = idx / n  => which alternative
+    //             // subIndex = idx % n  => which sub-decision
+    //             int altIndex = idx / n;
+    //             int subIndex = idx % n;
+    
+    //             // Retrieve the sub-decision item
+    //             Object subDecItem = subDecisionsData.get(subIndex);
+    //             // Retrieve the alternative item
+    //             Object altItem = alternatives.get(altIndex);
+    
+    //             // Build a map describing the combination
+    //             Map<String, Object> pairMap = new LinkedHashMap<>();
+    //             pairMap.put("subDecisionItem", subDecItem);
+    //             pairMap.put("alternativeItem", altItem);
+    
+    //             resultList.add(pairMap);
+    //         }
+    //     }
+    
+    //     return resultList;
+    // }
+    
     @Override
     public Object extractEncodingFromSolution(Solution solution, int offset) {
         int length = getNumberOfVariables(); // equals subDecisions.size()
@@ -190,23 +309,55 @@ public class Combining extends Decision {
 
         return child;
     }
-
     @Override
     public int getNumberOfVariables() {
-        // In the combining pattern, each sub-decision is represented by one variable (an index).
-        // Thus, the number of variables equals the number of sub-decisions.
-        return subDecisions.size();
+        int sdSize = (subDecisionsData == null) ? 0 : subDecisionsData.size();
+        int altSize = (alternatives == null) ? 0 : alternatives.size();
+        // Return the larger dimension count
+        return Math.max(sdSize, altSize);
     }
+    
     @Override
     public Object randomEncoding() {
-        int[] encoding = new int[subDecisions.size()];
-        for (int i = 0; i < subDecisions.size(); i++) {
-            // For each sub-decision, pick a random index from its set of alternatives
-            int numAlternatives = alternatives.get(i).size();
-            encoding[i] = rand.nextInt(numAlternatives-1);
+        // dimensionCount = number of combining dimensions
+        int dimensionCount = subDecisionsData.size();
+    
+        // Create the integer chromosome (one index per dimension)
+        int[] encoding = new int[dimensionCount];
+        // We'll also build a list of chosen objects as the partial result
+        List<Object> chosenAlternatives = new ArrayList<>();
+    
+        // For each dimension i, randomly pick an alternative
+        for (int i = 0; i < dimensionCount; i++) {
+            // The i-th alternatives list
+            List<Object> altList = alternatives.get(i);
+            if (altList == null || altList.isEmpty()) {
+                // If no alternatives, default to 0 or skip
+                encoding[i] = 0;
+                chosenAlternatives.add(null);
+                continue;
+            }
+    
+            int numAlts = altList.size();
+            int selectedIdx = rand.nextInt(numAlts); // random index in [0, numAlts-1]
+            encoding[i] = selectedIdx;
+    
+            // Retrieve the actual alternative object
+            Object chosenAlt = altList.get(selectedIdx);
+            chosenAlternatives.add(chosenAlt);
         }
+    
+        // Store the chosen alternatives as this decision's partial result
+        this.result = chosenAlternatives;
+        // Keep track of the encoding
+        this.lastEncoding = encoding;
+    
+        // Return the chromosome
         return encoding;
     }
+    
+    
+    
     @Override
     public int[] getLastEncoding() {
         return lastEncoding;
@@ -223,6 +374,11 @@ public class Combining extends Decision {
     public Object repairWithDependency(Object childEnc, Object parentEnc) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'repairWithDependency'");
+    }
+
+    public List<String> getSubDecisionsSource() {
+        // TODO Auto-generated method stub
+        return subDecisionsSource;
     }
     
     

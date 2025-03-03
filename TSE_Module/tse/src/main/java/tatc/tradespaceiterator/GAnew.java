@@ -10,6 +10,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import tatc.decisions.Combining;
+import tatc.decisions.ConstructionNode;
 import tatc.decisions.Decision;
 import tatc.decisions.Partitioning;
 import tatc.decisions.adg.AdgSolution;
@@ -163,63 +164,99 @@ public class GAnew extends AbstractProblem {
      * Each decision sets its inputs (e.g., from parent decisions or TSERequest),
      * then decodes its portion of the solution and updates the shared architecture set.
      */
-    private List<Map<String, Object>> decodeSolution(Solution solution) {
-        // Start with a single "empty" architecture in the list
-        List<Map<String, Object>> archSet = new ArrayList<>();
-        archSet.add(new HashMap<>());
+    // private List<Map<String, Object>> decodeSolution(Solution solution) {
+    //     // Start with a single "empty" architecture in the list
+    //     List<Map<String, Object>> archSet = new ArrayList<>();
+    //     archSet.add(new HashMap<>());
     
+    //     int offset = 0;
+    
+    //     // Get the last-layer decision nodes (leaf nodes in the decision graph)
+    //     Set<String> leafDecisionNames = graph.getLeafDecisions();
+
+    //     for (Decision d : decisions) {
+    //         // Skip decoding if the decision is not in the last layer
+
+
+    //         // a) Resolve the inputs this decision needs
+    //         graph.setInputs(d);
+
+    //         // b) Extract the encoded portion for this decision from the MOEA solution
+    //         Object encoded = d.extractEncodingFromSolution(solution, offset);
+    //         d.applyEncoding((int[]) encoded);
+
+    //         int numVars = d.getNumberOfVariables();
+    //         offset += numVars;
+
+    //         // c) Decode the architecture for this decision
+    //         List<Map<String, Object>> updatedArchSet = new ArrayList<>();
+    //         if (!leafDecisionNames.contains(d.getDecisionName())) {
+    //             continue;
+    //         }
+    //         // Iterate over the current architecture set and update corresponding elements
+    //         for (int i = 0; i < archSet.size(); i++) {
+    //             Map<String, Object> currentArch = archSet.get(i);
+
+    //             // Decode the architecture for the current element
+    //             List<Map<String, Object>> decodedForCurrent = d.decodeArchitecture(encoded, solution, graph);
+
+    //             if (decodedForCurrent.isEmpty()) {
+    //                 // If no decoding results, just propagate the current architecture
+    //                 updatedArchSet.add(currentArch);
+    //             } else {
+    //                 // Otherwise, update each element in the current architecture
+    //                 for (Map<String, Object> decodedMap : decodedForCurrent) {
+    //                     // Create a new map by merging the current architecture with the decoded map
+    //                     Map<String, Object> updatedArch = new HashMap<>(currentArch);
+    //                     updatedArch.putAll(decodedMap);
+    //                     updatedArchSet.add(updatedArch);
+    //                 }
+    //             }
+    //         }
+
+    //         // Update the architecture set with the new results
+    //         archSet = updatedArchSet;
+    //     }
+
+    
+    //     return archSet;
+    // }
+
+    private List<Map<String, Object>> decodeSolution(Solution solution) {
         int offset = 0;
     
-        // Get the last-layer decision nodes (leaf nodes in the decision graph)
-        Set<String> leafDecisionNames = graph.getLeafDecisions();
-
+        // 1) Decode ALL decisions in topological order, but do not merge
         for (Decision d : decisions) {
-            // Skip decoding if the decision is not in the last layer
-
-
-            // a) Resolve the inputs this decision needs
+            // (a) Set inputs from parent decisions/TSERequest
             graph.setInputs(d);
-
-            // b) Extract the encoded portion for this decision from the MOEA solution
+    
+            // (b) Extract encoding & apply
             Object encoded = d.extractEncodingFromSolution(solution, offset);
             d.applyEncoding((int[]) encoded);
-
-            int numVars = d.getNumberOfVariables();
-            offset += numVars;
-
-            // c) Decode the architecture for this decision
-            List<Map<String, Object>> updatedArchSet = new ArrayList<>();
-            if (!leafDecisionNames.contains(d.getDecisionName())) {
-                continue;
-            }
-            // Iterate over the current architecture set and update corresponding elements
-            for (int i = 0; i < archSet.size(); i++) {
-                Map<String, Object> currentArch = archSet.get(i);
-
-                // Decode the architecture for the current element
-                List<Map<String, Object>> decodedForCurrent = d.decodeArchitecture(encoded, solution, graph);
-
-                if (decodedForCurrent.isEmpty()) {
-                    // If no decoding results, just propagate the current architecture
-                    updatedArchSet.add(currentArch);
-                } else {
-                    // Otherwise, update each element in the current architecture
-                    for (Map<String, Object> decodedMap : decodedForCurrent) {
-                        // Create a new map by merging the current architecture with the decoded map
-                        Map<String, Object> updatedArch = new HashMap<>(currentArch);
-                        updatedArch.putAll(decodedMap);
-                        updatedArchSet.add(updatedArch);
-                    }
-                }
-            }
-
-            // Update the architecture set with the new results
-            archSet = updatedArchSet;
-        }
-
+            offset += d.getNumberOfVariables();
     
-        return archSet;
+            // (c) Decode
+            List<Map<String, Object>> partialDecoded = d.decodeArchitecture(encoded, solution, graph);
+    
+            // (d) Store the result inside the decision for later reference
+        }
+    
+        // 2) Find the ConstructionNode, call its decodeArchitecture again.
+        //    This time, the node can gather all partial results from each parent's getResult().
+        for (Decision d : decisions) {
+            if (d instanceof ConstructionNode) {
+                // ConstructionNode typically ignores 'encoded',
+                // but we can pass null or an empty array if needed.
+                return d.decodeArchitecture(null, solution, graph);
+            }
+        }
+    
+        // 3) If no construction node was found, return an empty list
+        return new ArrayList<>();
     }
+    
+    
+
     
 
     
@@ -243,24 +280,14 @@ public class GAnew extends AbstractProblem {
         return objectives;
     }
 
-    // @Override
-    // public Solution newSolution() {
-    //     // First, determine total number of variables by summing over all decisions
-    //     int totalVars = 0;
-    //     for (Decision d : decisions) {
-    //         totalVars += d.getNumberOfVariables();
-    //     }
-    //     AdgSolution sol = new AdgSolution(graph, properties, totalObjectives, totalVariables);
-    //     sol.setId(solutionCounter);
-    //     sol.randomizeSolution();
-    //     solutionCounter++;
-    //     return sol;
-    // }
     @Override
     public Solution newSolution() {
         // Step 1: Generate encodings, but don't store them in the solution yet
         List<int[]> allEncodings = new ArrayList<>();
         for (Decision d : decisions) {
+            if(d instanceof ConstructionNode){
+                break;
+            }
             // Ensure inputs are set first (this might update entity sets, etc.)
             this.graph.setInputs(d);
     
@@ -283,29 +310,53 @@ public class GAnew extends AbstractProblem {
         int offset = 0;
         for (int i = 0; i < decisions.size(); i++) {
             Decision d = decisions.get(i);
+            // If construction node, stop
+            if (d instanceof ConstructionNode) {
+                break;
+            }
+        
+            // Retrieve the integer array (already encoded) for this decision
             int[] arr = allEncodings.get(i);
-    
-            // For each index in arr, create a RealVariable
+        
+            // For each integer in arr, create a RealVariable
             for (int j = 0; j < arr.length; j++) {
                 int maxOption = d.getMaxOptionForVariable(j);
-                // Suppose valid range is [0, maxOption - 1]
+                // Ensure maxOption is at least 1 to avoid negative or zero range
+                if (maxOption < 1) {
+                    maxOption = 1;
+                }
+        
+                // The valid range is [0, (maxOption - 1)]
                 double lowerBound = 0.0;
-                double upperBound = (double)(maxOption - 1);
-    
+                double upperBound = maxOption - 1;
+        
+                // Clamp the encoded value into [0, maxOption - 1]
+                double clampedValue = arr[j];
+                if (clampedValue < lowerBound) {
+                    clampedValue = lowerBound;
+                } else if (clampedValue > upperBound) {
+                    clampedValue = upperBound;
+                }
+        
+                // Create the variable with safe bounds
                 RealVariable var = new RealVariable(lowerBound, upperBound);
-                var.setValue(arr[j]);  // integer -> double
-    
+                var.setValue(clampedValue);
+        
+                // Place the variable in the MOEA Framework solution
                 solution.setVariable(offset + j, var);
             }
+        
+            // Optionally track this encoding in the decision's map
             d.addEncodingById(solutionCounter, arr);
-            // Optionally: if you maintain an ID for this solution or if each decision
-            // tracks encodings by ID, store the encoding in the decision’s map
-            // e.g. d.addEncodingById(this.id, arr);
-    
+        
+            // Advance the offset
             offset += arr.length;
         }
+        
+        // Mark the ID for the solution
         solution.setId(solutionCounter);
         solutionCounter++;
+        
     
         return solution;
     }

@@ -119,7 +119,7 @@ public class Assigning extends Decision {
         return encoding;
     }
 
-    @Override
+@Override
 public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
     int[] chrom = (int[]) encoded;
     int n = Lset.size();

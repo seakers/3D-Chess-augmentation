@@ -4,6 +4,7 @@ import tatc.decisions.adg.Graph;
 import tatc.tradespaceiterator.ProblemProperties;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,23 @@ public abstract class Decision {
         this.encodingMap = new HashMap<Integer, int[]>();
         this.parentDecisions = new ArrayList<>();
     }
+    @Override
+    public Decision clone() {
+        try {
+            Decision cloned = (Decision) super.clone();
+            cloned.parentDecisions = new ArrayList<>(this.parentDecisions);
+            cloned.encodingMap = new HashMap<>();
+            for (Map.Entry<Integer, int[]> entry : this.encodingMap.entrySet()) {
+                cloned.encodingMap.put(entry.getKey(), Arrays.copyOf(entry.getValue(), entry.getValue().length));
+            }
+            cloned.lastEncoding = (this.lastEncoding != null) ? Arrays.copyOf(this.lastEncoding, this.lastEncoding.length) : null;
+            cloned.result = (this.result != null) ? new ArrayList<>(this.result) : null;
+            return cloned;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError(); // Should never happen since we're Cloneable
+        }
+    }
+
 
     /**
      * Retrieves the decision name.

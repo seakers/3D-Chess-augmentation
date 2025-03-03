@@ -39,7 +39,7 @@ public class TSE {
             int threadId = i + 1; // Unique ID for each thread
             String topic = "TSE" + threadId; // Generate topic as TSE + thread ID
             //String requestFile = "TSERequests/TSERequestClimateCentricGADSPA.json";
-            String requestFile = "TSERequests/TSERequestClimateCentricGADSPAnew.json";
+            String requestFile = "TSERequests/TSERequestClimateCentricDSPAC.json";
             String outputDir = String.format("TSE_Module/tse/results/results_%s_%d", timestamp, threadId);
 
             executor.submit(() -> {
