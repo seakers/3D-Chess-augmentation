@@ -21,11 +21,15 @@ public class TSE {
 
     public static void main(String[] args) {
         // Setup logger
+        Logger logger = Logger.getGlobal();
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            logger.log(Level.SEVERE, "Uncaught exception in thread " + thread.getName(), throwable);
+        });
         Level level = Level.FINEST;
-        Logger.getGlobal().setLevel(level);
+        logger.setLevel(level);
         ConsoleHandler handler = new ConsoleHandler();
         handler.setLevel(level);
-        Logger.getGlobal().addHandler(handler);
+        logger.addHandler(handler);
 
         // Configure parallel execution
         int numThreads = 1; // Number of threads for parallel execution
@@ -38,8 +42,12 @@ public class TSE {
         for (int i = 0; i < numThreads; i++) {
             int threadId = i + 1; // Unique ID for each thread
             String topic = "TSE" + threadId; // Generate topic as TSE + thread ID
-            //String requestFile = "TSERequests/TSERequestClimateCentricGADSPA.json";
-            String requestFile = "TSERequests/TSERequestClimateCentricDSPAC.json";
+
+            // Example: pick a TSERequest file
+            // Change these paths as needed for your environment.
+            // String requestFile = "TSERequests/TSERequestClimateCentricGADSPA.json";
+            String requestFile = "TSERequests/TSERequestClimateCentricDSPAC_test.json";
+
             String outputDir = String.format("TSE_Module/tse/results/results_%s_%d", timestamp, threadId);
 
             executor.submit(() -> {
@@ -60,11 +68,25 @@ public class TSE {
                     long endTime = System.nanoTime();
 
                     // Log execution time
-                    Logger.getGlobal().finest(String.format("[%s] Took %.4f sec", threadLocalTopic.get(), (endTime - startTime) / Math.pow(10, 9)));
+                    logger.finest(String.format(
+                        "[%s] Took %.4f sec",
+                        threadLocalTopic.get(),
+                        (endTime - startTime) / Math.pow(10, 9)
+                    ));
                 } catch (IOException e) {
-                    Logger.getGlobal().severe("Error creating directories: " + e.getMessage());
+                    // Log full stack trace (including line number)
+                    logger.log(
+                        Level.SEVERE,
+                        "Error creating directories: " + e.getMessage(),
+                        e
+                    );
                 } catch (Exception e) {
-                    Logger.getGlobal().severe("Error executing TSE: " + e.getMessage());
+                    // Log full stack trace (including line number)
+                    logger.log(
+                        Level.SEVERE,
+                        "Error executing TSE: " + e.getMessage(),
+                        e
+                    );
                 }
             });
         }
@@ -75,7 +97,7 @@ public class TSE {
             // Wait for all threads to complete
         }
 
-        Logger.getGlobal().info("All tasks completed.");
+        logger.info("All tasks completed.");
     }
 
     // Accessor method for retrieving the thread-specific topic

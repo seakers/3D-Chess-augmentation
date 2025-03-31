@@ -1,5 +1,6 @@
 package tatc.tradespaceiterator;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -7,6 +8,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
+
+import tatc.TSEWorkflowGenerator;
+
 import org.json.JSONArray;
 
 public class TSERequestParser {
@@ -17,8 +21,11 @@ public class TSERequestParser {
      * @param tseRequest The JSONObject representing the TSE request.
      * @return A Map where the key is the metric name and the value is the evaluator name.
      */
+    private static final Map<String, String> envVars = new HashMap<>();
+
     public Map<String, String> getEvaluatorsForObjectives(JSONObject tseRequest) {
         Map<String, String> objectivesAndEvaluators = new HashMap<>();
+
 
         // Extract the publish_metric_requests that maps metrics to evaluators
         JSONObject publish = tseRequest.getJSONObject("evaluation")
@@ -34,6 +41,23 @@ public class TSERequestParser {
         }
 
         return objectivesAndEvaluators;
+    }
+
+    public static void loadDotEnv(String envFilePath) throws IOException {
+        List<String> lines = Files.readAllLines(Paths.get(envFilePath));
+        for (String line : lines) {
+            // Skip comments and empty lines
+            if (line.trim().isEmpty() || line.trim().startsWith("#")) {
+                continue;
+            }
+            // Parse KEY=VALUE
+            String[] parts = line.split("=", 2);
+            if (parts.length == 2) {
+                String key = parts[0].trim();
+                String value = parts[1].trim();
+                envVars.put(key, value);
+            }
+        }
     }
 
     /**
@@ -56,28 +80,70 @@ public class TSERequestParser {
      * @return A Map where the key is the evaluator name and the value is a list of function names.
      */
     public Map<String, JSONObject> getWorkflow(JSONObject tseRequest) {
-        Map<String, JSONObject> evaluatorFunctions = new HashMap<>();
+    // 1) Load environment variables (e.g., from your .env file)
+    try {
+        loadDotEnv("C:\\Users\\dfornos\\Desktop\\3D-CHESS-aumentation-MQTT\\3D-Chess-augmentation\\.env");
+    } catch (IOException e) {
+        System.err.println("Error loading .env file: " + e.getMessage());
+    }
+    String neo4jUri  = envVars.get("NEO4J_URI");
+    String neo4jUser = envVars.get("NEO4J_USERNAME");
+    String neo4jPass = envVars.get("NEO4J_PASSWORD");
 
-        // Get the workflow array
-        JSONArray workflow = tseRequest.getJSONObject("evaluation").getJSONArray("workflow");
+    try {
+        // 2) Create the TSEWorkflowGenerator using the credentials
+        TSEWorkflowGenerator wg = new TSEWorkflowGenerator(neo4jUri, neo4jUser, neo4jPass);
 
-        // Loop through each evaluator's workflow
-        for (int i = 0; i < workflow.length(); i++) {
-            JSONObject evaluatorObject = workflow.getJSONObject(i);
-            String evaluatorName = evaluatorObject.getString("evaluator");
+        // 3) Generate the full evaluation workflow structure.
+        //    This method returns a Map<String,Object> with a key "evaluation" that contains both 
+        //    the "TSE" block and the "workflow" array.
+        Map<String, Object> newWorkflowMap = wg.generateWorkflow(tseRequest);
+        JSONObject newWorkflowJSON = new JSONObject(newWorkflowMap);
+        
+        // Extract the "evaluation" block from the generated workflow.
+        JSONObject newEvaluation = newWorkflowJSON.getJSONObject("evaluation");
+        
+        // 4) Replace the original evaluation part in the input tseRequest with the new one.
+        tseRequest.put("evaluation", newEvaluation);
+        
+        // 5) Save the entire (modified) tseRequest to a file.
+        // Get the file path from the system property
+        String inputFilePath = System.getProperty("tatc.input");
+        java.io.File inputFile = new java.io.File(inputFilePath);
 
-            // Get the functions implemented by this evaluator
-            JSONObject implementedFunctions = evaluatorObject.getJSONObject("implementedFunctions");
+        // Get the parent directory of the input file
+        String inputDir = inputFile.getParent();
 
-            // Collect function names from the workflow
-            List<String> functions = new ArrayList<>(implementedFunctions.keySet());
+        // Construct the output file path by appending the file name to the directory
+        String outputFilePath = inputDir + java.io.File.separator + "modified_tseRequest.json";
 
-            // Add to the map of evaluators and the functions they are responsible for
-            evaluatorFunctions.put(evaluatorName, implementedFunctions);
+        try (FileWriter fw = new FileWriter(outputFilePath)) {
+            fw.write(tseRequest.toString(4)); // pretty-print with 4 spaces
+        } catch (IOException e) {
+            System.err.println("Error writing modified tseRequest: " + e.getMessage());
         }
 
+        
+        // 6) Now extract evaluator functions from the workflow array inside the evaluation.
+        JSONArray workflowArray = newEvaluation.getJSONArray("workflow");
+        Map<String, JSONObject> evaluatorFunctions = new HashMap<>();
+        for (int i = 0; i < workflowArray.length(); i++) {
+            JSONObject evaluatorObject = workflowArray.getJSONObject(i);
+            String evaluatorName = evaluatorObject.getString("evaluator");
+            
+            // Get the functions implemented by this evaluator.
+            JSONObject implementedFunctions = evaluatorObject.getJSONObject("implementedFunctions");
+            evaluatorFunctions.put(evaluatorName, implementedFunctions);
+        }
+        
         return evaluatorFunctions;
+        
+    } catch (Exception e) {
+        throw new RuntimeException("Failed to build workflow from Neo4j: " + e.getMessage(), e);
     }
+}
+
+    
     public Map<String, String> getMetricRequestsTopics(JSONObject tseRequest) {
         Map<String, String> metricTopicsMap = new HashMap<>();
 

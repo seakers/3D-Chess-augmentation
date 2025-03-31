@@ -4,6 +4,7 @@ import tatc.ResultIO;
 import tatc.TSE;
 import tatc.TSEPublisher;
 import tatc.TSESubscriber;
+import tatc.TSEWorkflowGenerator;
 import tatc.architecture.specifications.Architecture;
 import tatc.architecture.specifications.CompoundObjective;
 import tatc.architecture.specifications.Objective;
@@ -90,6 +91,7 @@ public class TradespaceSearchExecutive {
             JSONObject tseRequest = new JSONObject(content);
             String tatcRoot = System.getProperty("tatc.root");
             Map<String, JSONObject> evaluators = parser.getWorkflow(tseRequest);
+            
             // Store the parsed evaluators and metrics
             this.evaluators = evaluators;
             if (evaluators.containsKey("SpaDes")) {
@@ -115,7 +117,16 @@ public class TradespaceSearchExecutive {
             } else {
                 System.out.println("TAT-C is not in the list of cost evaluators.");
             }
-            TradespaceSearch tsr = JSONIO.readJSON( new File(System.getProperty("tatc.input")),
+            String inputFilePath = System.getProperty("tatc.input");
+            java.io.File inputFile = new java.io.File(inputFilePath);
+    
+            // Get the parent directory of the input file
+            String inputDir = inputFile.getParent();
+    
+            // Construct the output file path by appending the file name to the directory
+            String outputFilePath = inputDir + java.io.File.separator + "modified_tseRequest.json";
+    
+            TradespaceSearch tsr = JSONIO.readJSON( new File(outputFilePath),
             TradespaceSearch.class);
     
             ProblemProperties searchProperties = this.createProblemProperties(tsr,tseRequest);
