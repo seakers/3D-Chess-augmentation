@@ -1,5 +1,6 @@
 package tatc.decisions;
 
+import tatc.decisions.adg.AdgSolution;
 import tatc.decisions.adg.Graph;
 import tatc.tradespaceiterator.ProblemProperties;
 import java.util.*;
@@ -265,13 +266,7 @@ public class Combining extends Decision {
     
     @Override
     public Object extractEncodingFromSolution(Solution solution, int offset) {
-        int length = getNumberOfVariables(); // equals subDecisions.size()
-        int[] encoding = new int[length];
-        for (int i = 0; i < length; i++) {
-            double val = ((RealVariable)solution.getVariable(offset + i)).getValue();
-            encoding[i] = (int)Math.round(val);
-        }
-        return encoding;
+        return this.encodingMap.get(((AdgSolution)solution).getId());
     }
 
     @Override
@@ -290,32 +285,48 @@ public class Combining extends Decision {
 
     @Override
     public Object crossover(Object parent1, Object parent2) {
-        // Uniform crossover
         int[] p1 = (int[]) parent1;
         int[] p2 = (int[]) parent2;
-        if (p1.length != p2.length) {
-            throw new IllegalArgumentException("Parents differ in length. Cannot crossover.");
-        }
-
-        int[] child = new int[p1.length];
-        for (int i=0; i<p1.length; i++) {
-            // 50% chance from p1 or p2
-            if (rand.nextBoolean()) {
+        int len1 = p1.length;
+        int len2 = p2.length;
+        int childLen = Math.max(len1, len2);
+        int[] child = new int[childLen];
+        
+        for (int i = 0; i < childLen; i++) {
+            boolean p1Available = (i < len1);
+            boolean p2Available = (i < len2);
+            
+            if (p1Available && p2Available) {
+                child[i] = rand.nextBoolean() ? p1[i] : p2[i];
+            } else if (p1Available) {
                 child[i] = p1[i];
-            } else {
+            } else if (p2Available) {
                 child[i] = p2[i];
             }
         }
-
+        
+        // Repair the child encoding to enforce ascending order constraints.        
         return child;
     }
+    
+    // @Override
+    // public int getNumberOfVariables() {
+    //     int sdSize = (subDecisionsData == null) ? 0 : subDecisionsData.size();
+    //     int altSize = (alternatives == null) ? 0 : alternatives.size();
+    //     // Return the larger dimension count
+    //     return Math.max(sdSize, altSize);
+    // }
+
     @Override
     public int getNumberOfVariables() {
-        int sdSize = (subDecisionsData == null) ? 0 : subDecisionsData.size();
-        int altSize = (alternatives == null) ? 0 : alternatives.size();
-        // Return the larger dimension count
-        return Math.max(sdSize, altSize);
+        // If subDecisionsData is null, return 0
+        if (subDecisionsData == null) {
+            return 0;
+        }
+        // Usually, each sub-decision dimension is one "slot" in the encoding
+        return subDecisionsData.size();
     }
+
     
     @Override
     public Object randomEncoding() {
@@ -369,12 +380,45 @@ public class Combining extends Decision {
         }   
         return alternatives.get(i).size()-1;
     }
-
     @Override
     public Object repairWithDependency(Object childEnc, Object parentEnc) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'repairWithDependency'");
+        // Cast encodings to int arrays.
+        int[] childEncoding = (int[]) childEnc;
+        int[] parentEncoding = (int[]) parentEnc;
+    
+        // Compute the number of subsets selected in the parent (max label in parent's encoding)
+        int nSubsets = 0;
+        for (int val : parentEncoding) {
+            if (val > nSubsets) {
+                nSubsets = val;
+            }
+        }
+        
+        // If the child encoding already has the correct length, return it.
+        if (childEncoding.length == nSubsets) {
+            return childEncoding;
+        }
+        
+        // Otherwise, create a new encoding of length nSubsets.
+        int[] repaired = new int[nSubsets];
+        for (int i = 0; i < nSubsets; i++) {
+            if (i < childEncoding.length) {
+                // Copy existing value for indices available in the original encoding.
+                repaired[i] = childEncoding[i];
+            } else {
+                // For new dimensions, generate a random valid index.
+                // getMaxOptionForVariable(i) returns the maximum number of alternatives for dimension i.
+                int maxOption = getMaxOptionForVariable(i);
+                if (maxOption < 1) {
+                    maxOption = 1; // Ensure at least one valid alternative.
+                }
+                repaired[i] = rand.nextInt(maxOption);
+            }
+        }
+        
+        return repaired;
     }
+    
 
     public List<String> getSubDecisionsSource() {
         // TODO Auto-generated method stub

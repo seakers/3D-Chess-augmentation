@@ -272,40 +272,92 @@ public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol
     }
 
     @Override
-public Object crossover(Object parent1, Object parent2) {
-    int[] p1 = (int[]) parent1;
-    int[] p2 = (int[]) parent2;
-
-    // 1) Determine the child's length as the max of parent lengths
-    int childLen = Math.max(p1.length, p2.length);
-    int[] child = new int[childLen];
-
-    // 2) Uniform crossover in overlapping region
-    int minLen = Math.min(p1.length, p2.length);
-    for (int i = 0; i < minLen; i++) {
-        child[i] = rand.nextBoolean() ? p1[i] : p2[i];
-    }
-
-    // 3) Copy remaining tail from whichever parent is longer
-    if (p1.length < p2.length) {
-        // p2 is longer: copy leftover from p2
-        for (int i = minLen; i < childLen; i++) {
-            child[i] = p2[i];
+    public Object crossover(Object parent1, Object parent2) {
+        int[] p1 = (int[]) parent1;
+        int[] p2 = (int[]) parent2;
+        int n1 = p1.length;
+        int n2 = p2.length;
+        int nShort = Math.min(n1, n2);
+        int nLong  = Math.max(n1, n2);
+    
+        // Child has length = longer of the two parent lengths
+        int[] child = new int[nLong];
+    
+        // ----------------------------
+        // 1) Cycle crossover in the overlapping region [0..nShort-1]
+        // ----------------------------
+        boolean[] visited = new boolean[nShort];
+        Arrays.fill(visited, false);
+        int cycle = 0;
+    
+        for (int i = 0; i < nShort; i++) {
+            if (!visited[i]) {
+                // Start a new cycle at index i
+                int index = i;
+                do {
+                    visited[index] = true;
+                    // Even cycles => copy from p1, Odd cycles => copy from p2
+                    child[index] = (cycle % 2 == 0) ? p1[index] : p2[index];
+    
+                    // Find next index in the cycle
+                    int nextIndex = -1;
+                    for (int j = 0; j < nShort; j++) {
+                        if (!visited[j] && p1[j] == p2[index]) {
+                            nextIndex = j;
+                            break;
+                        }
+                    }
+                    if (nextIndex == -1) {
+                        break;
+                    }
+                    index = nextIndex;
+                } while (index != i);
+                cycle++;
+            }
         }
-    } else if (p2.length < p1.length) {
-        // p1 is longer: copy leftover from p1
-        for (int i = minLen; i < childLen; i++) {
-            child[i] = p1[i];
+    
+        // ----------------------------
+        // 2) Copy leftover region
+        //    Indices >= nShort
+        // ----------------------------
+        // If p1 is longer, copy leftover from p1; 
+        // if p2 is longer, copy leftover from p2
+        // if both are the same length => no leftover
+        if (n1 > nShort) {
+            // leftover portion in p1 => [nShort..(n1-1)]
+            // copy them to child
+            for (int i = nShort; i < n1; i++) {
+                child[i] = p1[i];
+            }
         }
+        if (n2 > nShort) {
+            // leftover portion in p2 => [nShort..(n2-1)]
+            // If both parents have leftover, you can pick from p1 or p2
+            // or do random. Here, we assume p2 overwrites p1 if both have leftover:
+            for (int i = nShort; i < n2; i++) {
+                child[i] = p2[i];
+            }
+        }
+    
+        // ----------------------------
+        // 3) For any unvisited indices < nShort, if they were not assigned,
+        //    default them to p1[i]. (Should be assigned by cycle, but just in case)
+        // ----------------------------
+        for (int i = 0; i < nShort; i++) {
+            if (!visited[i]) {
+                child[i] = p1[i];
+            }
+        }
+    
+        // ----------------------------
+        // 4) Repair the child's encoding to enforce ascending labeling constraints
+        // ----------------------------
+        repair(child);
+    
+        return child;
     }
-    // If p1.length == p2.length, no leftover region to copy.
-
-    // 4) Repair child to ensure valid labeling, etc.
-    repair(child);
-
-    return child;
-}
-
+    
+    
 
     @Override
     public int getNumberOfVariables() {
@@ -387,47 +439,56 @@ public Object crossover(Object parent1, Object parent2) {
      */
     @Override
     public void applyEncoding(int[] encoding) {
-        if (encoding.length != E.size()) {
-            throw new IllegalArgumentException("Encoding length mismatch in Partitioning. "
-                + "Expected " + E.size() + " but got " + encoding.length);
+        // Handle case where E is null or empty
+        if (E == null || E.isEmpty()) {
+            this.result = new ArrayList<>();
+            return;
         }
-
-        // 1) Determine the maximum label
+    
+        // Ensure we don't go out of bounds
+        int n = Math.min(encoding.length, E.size());
+    
+        // Determine the max label in the portion we actually use
         int maxLabel = 0;
-        for (int label : encoding) {
-            if (label > maxLabel) {
-                maxLabel = label;
+        for (int i = 0; i < n; i++) {
+            if (encoding[i] > maxLabel) {
+                maxLabel = encoding[i];
             }
         }
-        // If there's no entity or all labels are 0, it's an edge case
-        // but let's proceed with "empty subsets" or handle it as needed.
-
-        // 2) Create an array of subsets (label from 1..maxLabel)
+    
+        // Create the subset lists
         List<List<Object>> subsets = new ArrayList<>();
         for (int label = 1; label <= maxLabel; label++) {
             subsets.add(new ArrayList<>());
         }
-
-        // 3) Assign each entity E[i] to the subset indicated by encoding[i]
-        for (int i = 0; i < encoding.length; i++) {
+    
+        // Assign each entity E[i] to the subset indicated by encoding[i]
+        for (int i = 0; i < n; i++) {
             int label = encoding[i];
             if (label > 0 && label <= maxLabel) {
                 subsets.get(label - 1).add(E.get(i));
             }
-            // If label=0 or out of range, you could either ignore the item or
-            // handle it differently, depending on your convention.
         }
-
-        // 4) Convert List<List<Object>> to a List<Object> (where each element is one subset).
-        List<Object> finalResult = new ArrayList<>();
-        for (List<Object> subset : subsets) {
-            finalResult.add(subset);
+    
+        // Handle cases where encoding.length > E.size()
+        // (meaning the encoding array has extra labels beyond E's size)
+        if (encoding.length > E.size()) {
+            for (int i = E.size(); i < encoding.length; i++) {
+                int label = encoding[i];
+                if (label > 0 && label <= maxLabel) {
+                    // Store "placeholder" items for extra labels
+                    subsets.get(label - 1).add("Placeholder_Item_" + i);
+                }
+            }
         }
-
-        // 5) Store in this.result
+    
+        // Convert subsets to a List<Object>
+        List<Object> finalResult = new ArrayList<>(subsets);
+    
+        // Store in this.result
         this.result = finalResult;
     }
-
+    
 
 
 
@@ -459,35 +520,43 @@ public Object crossover(Object parent1, Object parent2) {
      */
     private void repair(int[] chrom) {
         if (chrom.length == 0) return;
+        
+        // Enforce the first gene is always 1.
         chrom[0] = 1;
-
         int maxLabelSoFar = 1;
+        
+        // Ensure each subsequent gene is within [1, maxLabelSoFar+1]
         for (int k = 1; k < chrom.length; k++) {
             int val = chrom[k];
-            if (val < 1) val = 1;
-            if (val > maxLabelSoFar + 1) val = maxLabelSoFar + 1;
+            if (val < 1) {
+                val = 1;
+            }
+            if (val > maxLabelSoFar + 1) {
+                val = maxLabelSoFar + 1;
+            }
             chrom[k] = val;
             if (val > maxLabelSoFar) {
                 maxLabelSoFar = val;
             }
         }
-
-        // Remove gaps in labeling (e.g., if we have labels {1,3}, re-label 3 as 2)
-        // Collect used labels
+        
+        // Remove any gaps by reassigning labels to be consecutive.
+        // For example, if chrom = [1, 3, 3, 1], the distinct labels are {1, 3},
+        // and we remap them to {1, 2}.
         Set<Integer> usedLabels = new TreeSet<>();
-        for (int v : chrom) usedLabels.add(v);
-
-        List<Integer> sortedLabels = new ArrayList<>(usedLabels);
-        // Create a map from old label to new label (no gaps)
-        Map<Integer,Integer> labelMap = new HashMap<>();
-        for (int i = 0; i < sortedLabels.size(); i++) {
-            labelMap.put(sortedLabels.get(i), i+1);
+        for (int v : chrom) {
+            usedLabels.add(v);
         }
-
+        List<Integer> sortedLabels = new ArrayList<>(usedLabels);
+        Map<Integer, Integer> labelMap = new HashMap<>();
+        for (int i = 0; i < sortedLabels.size(); i++) {
+            labelMap.put(sortedLabels.get(i), i + 1);
+        }
         for (int i = 0; i < chrom.length; i++) {
             chrom[i] = labelMap.get(chrom[i]);
         }
     }
+    
 
     private int maxLabelSoFar(int[] chrom, int k) {
         int maxLabel = 1;

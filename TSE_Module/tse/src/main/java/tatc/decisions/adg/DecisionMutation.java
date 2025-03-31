@@ -7,15 +7,21 @@ import org.moeaframework.core.variable.RealVariable;
 
 import tatc.architecture.variable.IntegerVariable;
 import tatc.decisions.Decision;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 public class DecisionMutation implements Variation {
 
     private List<Decision> decisions;
     private Random rand = new Random();
+    private Map<Decision, Object> childFragments;  // <--- store child fragment for each decision node
+
 
     public DecisionMutation(List<Decision> decisions) {
         this.decisions = decisions;
+        this.childFragments = new HashMap<>();
     }
 
     @Override
@@ -28,21 +34,59 @@ public class DecisionMutation implements Variation {
         if (parents.length != 1) {
             throw new IllegalArgumentException("This operator requires one parent.");
         }
-
+    
         Solution parent = parents[0];
+        // Create a new child solution
         Solution child = parent.copy();
-
+    
         int offset = 0;
+    
+        // We assume 'decisions' is in topological order (parents before children)
         for (Decision d : decisions) {
             int vars = d.getNumberOfVariables();
+    
+            // 1) Extract the child's partial encoding
             Object encodedChild = extractEncoded(child, offset, vars);
+    
+            // 2) Mutate child encoding
             d.mutate(encodedChild);
+    
+            // 3) Inject child's updated partial encoding back into solution
             injectEncoded(child, offset, encodedChild);
+    
+            // 4) Store this updated fragment in childFragments so that dependent nodes can retrieve it
+            childFragments.put(d, encodedChild);
+    
+            // 5) If this decision depends on a parent, do the repair with the parent's partial encoding
+            if (!d.getParentDecisions().isEmpty()) {
+                // We assume a single parent for now
+                Decision parentNode = d.getParentDecisions().get(0);
+    
+                // Retrieve the parent's updated partial encoding from childFragments
+                // which should have been put there in a previous iteration
+                Object parentEnc = childFragments.get(parentNode);
+    
+                // Only do the repair if we actually have the parent's fragment
+                if (parentEnc != null) {
+                    encodedChild = d.repairWithDependency(encodedChild, parentEnc);
+    
+                    // Re-inject after repair
+                    injectEncoded(child, offset, encodedChild);
+    
+                    // Update childFragments again
+                    childFragments.put(d, encodedChild);
+                } else {
+                    // If it's still null, you might either skip repair or throw an error
+                    // throw new IllegalStateException("Parent encoding not found for " + parentNode);
+                }
+            }
+    
             offset += vars;
         }
-
+    
         return new Solution[] { child };
     }
+    
 
     private Object extractEncoded(Solution sol, int offset, int requestedLength) {
     // The final returned array must be exactly requestedLength in size

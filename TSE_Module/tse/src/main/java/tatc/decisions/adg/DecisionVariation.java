@@ -6,6 +6,7 @@ import org.moeaframework.core.Variation;
 import org.moeaframework.core.variable.EncodingUtils;
 import org.moeaframework.core.variable.RealVariable;
 
+import tatc.decisions.ConstructionNode;
 import tatc.decisions.Decision;
 
 import java.util.ArrayList;
@@ -33,41 +34,6 @@ public class DecisionVariation implements Variation {
         // For mutation-only, 1. If you plan to handle both in one class, define accordingly.
         return 2; // Assuming crossover here
     }
-
-    // @Override
-    // public Solution[] evolve(Solution[] parents) {
-    //     // Example: apply crossover to produce one child
-    //     // 1) Decode each parent's architecture for each decision
-    //     // 2) Apply decision crossover
-    //     // 3) Re-encode into child's solution
-
-    //     if (parents.length != 2) {
-    //         throw new IllegalArgumentException("This operator requires two parents.");
-    //     }
-
-    //     Solution p1 = parents[0];
-    //     Solution p2 = parents[1];
-
-    //     // Create child solution (copy structure from p1)
-    //     Solution child = p1.copy();
-
-    //     int offset = 0;
-    //     for (Decision d : decisions) {
-    //         int vars = d.getNumberOfVariables();
-    //         // Extract parent's encoded representation
-    //         Object encodedP1 = extractEncoded(p1, offset, vars);
-    //         Object encodedP2 = extractEncoded(p2, offset, vars);
-
-    //         // Apply crossover using the decision's method
-    //         Object encodedChild = d.crossover(encodedP1, encodedP2);
-
-    //         // Put child's encoding back into solution variables
-    //         injectEncoded(child, offset, encodedChild);
-    //         offset += vars;
-    //     }
-
-    //     return new Solution[] { child };
-    // }
     @Override
     public Solution[] evolve(Solution[] parents) {
         if (parents.length != 2) {
@@ -84,13 +50,14 @@ public class DecisionVariation implements Variation {
         int childId = 0;
         for (int nodeIndex = 0; nodeIndex < decisions.size(); nodeIndex++) {
             Decision d = decisions.get(nodeIndex);
-            int vars = d.getNumberOfVariables();
+            if(d instanceof ConstructionNode){
+                continue;
+            }
             int maxId = d.getHighestId();
             childId = maxId+1;
-    
             // --- 1) Extract each parent's fragment
-            Object p1Encoded = extractEncoded(p1, offset, vars);
-            Object p2Encoded = extractEncoded(p2, offset, vars);
+            Object p1Encoded = d.getEncodingById(((AdgSolution)p1).getId());
+            Object p2Encoded = d.getEncodingById(((AdgSolution)p2).getId());
     
             // --- 2) Cross them to get child's encoded fragment
             Object childEncoded = d.crossover(p1Encoded, p2Encoded);
@@ -109,7 +76,7 @@ public class DecisionVariation implements Variation {
                 // Then call a specialized "repairWithDependency"
                 childEncoded = d.repairWithDependency(childEncoded, childParentEncoded);
             }
-    
+            int vars = ((int[])childEncoded).length;
             // --- 4) Inject child's final fragment into the solution
             injectEncoded(child, offset, childEncoded);
     
