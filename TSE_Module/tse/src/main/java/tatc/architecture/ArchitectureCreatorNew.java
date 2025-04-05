@@ -460,7 +460,12 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
             
             if (instrumentCollection != null) {
                 for (Object payload_ : instrumentCollection) {
-                    if (payload_ instanceof ArrayList) {
+
+                    if(payload_ instanceof JSONObject){
+                        Instrument instrument_i = createInstrumentFromJson((JSONObject) payload_, archParameters);
+                        payload.add(instrument_i);
+                    }
+                    else if (payload_ instanceof ArrayList) {
                         for(Object instrument : (ArrayList) payload_){
                             if(instrument instanceof JSONObject){
                                 // Create Instrument from JSON object

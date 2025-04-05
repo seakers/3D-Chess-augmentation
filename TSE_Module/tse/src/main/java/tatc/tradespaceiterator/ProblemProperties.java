@@ -52,7 +52,7 @@ public class ProblemProperties {
         instance = this;
         this.tsrJson = tsrJson;
         TSERequestParser parser = new TSERequestParser();
-        evaluators = parser.getWorkflow(tsrJson);
+        evaluators = parser.getWorkflowFromTse(tsrJson);
         metricTopics = parser.getMetricRequestsTopics(tsrJson);
     }
 

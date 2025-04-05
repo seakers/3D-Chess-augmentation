@@ -214,15 +214,15 @@ public class Graph {
     
                 // We'll create the Lset from parent's enumerations
                 List<Map<String, Object>> parentArchs = new ArrayList<>();
-                if (parentDecision != null) {
-                    for (Object archObj : parentDecision.enumerateArchitectures()) {
-                        parentArchs.add((Map<String, Object>) archObj);
-                    }
-                } else {
-                    // No parent
-                    throw new IllegalArgumentException("Assigning decision " + decisionName
-                        + " requires a parent to form Lset.");
-                }
+                // if (parentDecision != null) {
+                //     for (Object archObj : parentDecision.enumerateArchitectures()) {
+                //         parentArchs.add((Map<String, Object>) archObj);
+                //     }
+                // } else {
+                //     // No parent
+                //     throw new IllegalArgumentException("Assigning decision " + decisionName
+                //         + " requires a parent to form Lset.");
+                // }
                 List<Object> Lset = new ArrayList<>();;
                 List<Object> Rset = new ArrayList<>();;
                 
@@ -436,6 +436,9 @@ public class Graph {
 
                 if (parents != null) {
                     for(Decision de : parents){
+                        if(de == null){
+                            continue;
+                        }
                         parentDecisions.add(de.getDecisionName());
                     }
                 }

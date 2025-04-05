@@ -139,6 +139,7 @@ public class GAnew extends AbstractProblem {
 
     private List<Map<String, Object>> decodeSolution(Solution solution) {
         int offset = 0;
+        Set<String> leafDecision = graph.getLeafDecisions();
     
         // 1) Decode ALL decisions in topological order, but do not merge
         for (Decision d : decisions) {
@@ -149,22 +150,26 @@ public class GAnew extends AbstractProblem {
             Object encoded = d.extractEncodingFromSolution(solution, offset);
             d.applyEncoding((int[]) encoded);
             offset += d.getNumberOfVariables();
-    
+
             // (c) Decode
             List<Map<String, Object>> partialDecoded = d.decodeArchitecture(encoded, solution, graph);
-    
+            if (d instanceof ConstructionNode){
+                return d.decodeArchitecture(null, solution, graph);
+            }else if(!(decisions.get(decisions.size()-1) instanceof ConstructionNode) && leafDecision.contains(d.getDecisionName())){
+                return partialDecoded;
+            }
             // (d) Store the result inside the decision for later reference
         }
     
-        // 2) Find the ConstructionNode, call its decodeArchitecture again.
-        //    This time, the node can gather all partial results from each parent's getResult().
-        for (Decision d : decisions) {
-            if (d instanceof ConstructionNode) {
-                // ConstructionNode typically ignores 'encoded',
-                // but we can pass null or an empty array if needed.
-                return d.decodeArchitecture(null, solution, graph);
-            }
-        }
+        // // 2) Find the ConstructionNode, call its decodeArchitecture again.
+        // //    This time, the node can gather all partial results from each parent's getResult().
+        // for (Decision d : decisions) {
+        //     if (d instanceof ConstructionNode) {
+        //         // ConstructionNode typically ignores 'encoded',
+        //         // but we can pass null or an empty array if needed.
+        //         return d.decodeArchitecture(null, solution, graph);
+        //     }
+        // }
     
         // 3) If no construction node was found, return an empty list
         return new ArrayList<>();

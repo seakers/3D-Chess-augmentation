@@ -119,73 +119,63 @@ public class Assigning extends Decision {
         return encoding;
     }
 
-@Override
-public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
-    int[] chrom = (int[]) encoded;
-    int n = Lset.size();
-    int m = Rset.size();
-
-    if (chrom.length != n * m) {
-        throw new IllegalArgumentException("Encoded length does not match n*m for assigning decision.");
-    }
-
-    // List to store the results
-    List<Map<String, Object>> resultList = new ArrayList<>();
-
-    // Resolve the sources for Lset and Rset
-    List<Object> resolvedLset = resolveSetFromSource(this.lSource, graph);
-    List<Object> resolvedRset = resolveSetFromSource(this.rSource, graph);
-
-    // Determine the keys for Lset and Rset in the result map
-    String lKey = graph.getDecisionsMap().containsKey(this.lSource) 
-                ? graph.getDecisionsMap().get(this.lSource).getResultType() 
-                : this.lSource;
-
-    String rKey = graph.getDecisionsMap().containsKey(this.rSource) 
-                ? graph.getDecisionsMap().get(this.rSource).getResultType() 
-                : this.rSource;
-
-    // Initialize the result list to store mappings of (L, R) pairs
-    // Define sizes
-    int lSize = resolvedLset.size();
-    int rSize = resolvedRset.size();
-
-    // Iterate over the chromosome
-    for (int chromIndex = 0; chromIndex < chrom.length; chromIndex++) {
-        if (chrom[chromIndex] == 1) {
-            // Determine the indices for L and R based on the chromosome structure
-            int rIndex = chromIndex / lSize; // Which R element this corresponds to
-            int lIndex = chromIndex % lSize; // Which L element this corresponds to
-
-            // Get the corresponding L and R elements
-            Object lElement = resolvedLset.get(lIndex);
-            Object rElement = resolvedRset.get(rIndex);
-
-            // Create a map to store this (L, R) pair
-            Map<String, Object> pairMap = new HashMap<>();
-
-            // Add L element to the map
-            if (lElement instanceof Map) {
-                pairMap.put(lKey, lElement);
-            } else {
-                pairMap.put(lKey, createJSONObjectForResultType(lKey, lElement));
-            }
-
-            // Add R element to the map
-            if (rElement instanceof Map) {
-                pairMap.put(rKey, rElement);
-            } else {
-                pairMap.put(rKey, createJSONObjectForResultType(rKey, rElement));
-            }
-
-            // Add the pair map to the result list
-            resultList.add(pairMap);
+    @Override
+    public List<Map<String, Object>> decodeArchitecture(Object encoded, Solution sol, Graph graph) {
+        int[] chrom = (int[]) encoded;
+        int n = Lset.size();
+        int m = Rset.size();
+        if (chrom.length != n * m) {
+            throw new IllegalArgumentException("Encoded length does not match n*m for assigning decision.");
         }
+    
+        // Resolve the sources for Lset and Rset.
+        List<Object> resolvedLset = resolveSetFromSource(this.lSource, graph);
+        List<Object> resolvedRset = resolveSetFromSource(this.rSource, graph);
+    
+        // Determine keys to use for L and R in the final map.
+        String lKey = graph.getDecisionsMap().containsKey(this.lSource)
+                ? graph.getDecisionsMap().get(this.lSource).getResultType()
+                : this.lSource;
+        String rKey = graph.getDecisionsMap().containsKey(this.rSource)
+                ? graph.getDecisionsMap().get(this.rSource).getResultType()
+                : this.rSource;
+    
+        // Group L elements by their corresponding R index.
+        // Map: rIndex -> List of L elements.
+        Map<Integer, List<Object>> rIndexToLList = new HashMap<>();
+        int lSize = resolvedLset.size();
+        for (int chromIndex = 0; chromIndex < chrom.length; chromIndex++) {
+            if (chrom[chromIndex] == 1) {
+                int rIndex = chromIndex / lSize;
+                int lIndex = chromIndex % lSize;
+                Object lElement = resolvedLset.get(lIndex);
+                // If lElement is not a Map, wrap it using our helper.
+                // if (!(lElement instanceof Map)) {
+                //     lElement = createJSONObjectForResultType(lKey, lElement);
+                // }
+                rIndexToLList.computeIfAbsent(rIndex, k -> new ArrayList<>()).add(lElement);
+            }
+        }
+    
+        // Build the final result: one map per R element.
+        List<Map<String, Object>> resultList = new ArrayList<>();
+        for (Map.Entry<Integer, List<Object>> entry : rIndexToLList.entrySet()) {
+            int rIndex = entry.getKey();
+            List<Object> lElements = entry.getValue();
+            Object rElement = resolvedRset.get(rIndex);
+            if (!(rElement instanceof Map)) {
+                rElement = createJSONObjectForResultType(rKey, rElement);
+            }
+            Map<String, Object> map = new HashMap<>();
+            map.put(rKey, rElement);
+            // Here we store the list of L elements under lKey.
+            map.put(lKey, lElements);
+            resultList.add(map);
+        }
+    
+        return resultList;
     }
-
-    return resultList;
-
-    }
+    
 
 /**
  * Resolves a set based on the source name.
@@ -331,9 +321,62 @@ public Object extractEncodingFromSolution(Solution solution, int offset) {
 
     @Override
     public Object repairWithDependency(Object childEnc, Object parentEnc) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'repairWithDependency'");
+        // Cast the inputs to integer arrays.
+        int[] childChrom = (int[]) childEnc;
+        
+        // Expected dimensions: n * m, where n = Lset.size() and m = Rset.size()
+        int n = Lset.size();
+        int m = Rset.size();
+        int expectedLength = n * m;
+        
+        // 1. Resize the encoding if necessary.
+        if (childChrom.length != expectedLength) {
+            int[] repaired = new int[expectedLength];
+            // Copy as many elements as possible from childChrom.
+            for (int i = 0; i < Math.min(childChrom.length, expectedLength); i++) {
+                repaired[i] = childChrom[i];
+            }
+            // Fill remaining positions with 0.
+            for (int i = childChrom.length; i < expectedLength; i++) {
+                repaired[i] = 0;
+            }
+            childChrom = repaired;
+        }
+        
+        // 2. Enforce that each L element (each column) is assigned at most once.
+        // The encoding mapping: for index i (0 <= i < n*m):
+        //    lIndex = i % n, rIndex = i / n.
+        // For each L element (column index i), ensure that at most one row has a value 1.
+        for (int i = 0; i < n; i++) {
+            int onesCount = 0;
+            for (int r = 0; r < m; r++) {
+                int index = r * n + i;
+                if (childChrom[index] == 1) {
+                    onesCount++;
+                }
+            }
+            // If more than one assignment exists for this L element, keep the first one and clear the rest.
+            if (onesCount > 1) {
+                boolean kept = false;
+                for (int r = 0; r < m; r++) {
+                    int index = r * n + i;
+                    if (childChrom[index] == 1) {
+                        if (!kept) {
+                            kept = true; // keep the first encountered 1
+                        } else {
+                            childChrom[index] = 0; // clear any additional 1's
+                        }
+                    }
+                }
+            }
+        }
+        
+        // (Optional) You might also want to ensure that each L element has at least one assignment.
+        // For now, we leave columns with no assignment unchanged.
+        
+        return childChrom;
     }
+    
     
     
 }

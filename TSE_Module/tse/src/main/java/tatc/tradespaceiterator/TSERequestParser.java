@@ -22,6 +22,7 @@ public class TSERequestParser {
      * @return A Map where the key is the metric name and the value is the evaluator name.
      */
     private static final Map<String, String> envVars = new HashMap<>();
+    private Map<String, JSONObject> workflowResult = new HashMap<>();
 
     public Map<String, String> getEvaluatorsForObjectives(JSONObject tseRequest) {
         Map<String, String> objectivesAndEvaluators = new HashMap<>();
@@ -135,7 +136,7 @@ public class TSERequestParser {
             JSONObject implementedFunctions = evaluatorObject.getJSONObject("implementedFunctions");
             evaluatorFunctions.put(evaluatorName, implementedFunctions);
         }
-        
+        this.workflowResult = evaluatorFunctions;
         return evaluatorFunctions;
         
     } catch (Exception e) {
@@ -162,6 +163,30 @@ public class TSERequestParser {
         }
 
         return metricTopicsMap;
+    }
+
+    public Map<String, JSONObject> getWorkflowFromTse(JSONObject tseRequest) {
+        Map<String, JSONObject> evaluatorFunctions = new HashMap<>();
+
+        // Get the workflow array
+        JSONArray workflow = tseRequest.getJSONObject("evaluation").getJSONArray("workflow");
+
+        // Loop through each evaluator's workflow
+        for (int i = 0; i < workflow.length(); i++) {
+            JSONObject evaluatorObject = workflow.getJSONObject(i);
+            String evaluatorName = evaluatorObject.getString("evaluator");
+
+            // Get the functions implemented by this evaluator
+            JSONObject implementedFunctions = evaluatorObject.getJSONObject("implementedFunctions");
+
+            // Collect function names from the workflow
+            List<String> functions = new ArrayList<>(implementedFunctions.keySet());
+
+            // Add to the map of evaluators and the functions they are responsible for
+            evaluatorFunctions.put(evaluatorName, implementedFunctions);
+        }
+
+        return evaluatorFunctions;
     }
 
     /**
