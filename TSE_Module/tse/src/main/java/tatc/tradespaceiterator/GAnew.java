@@ -8,6 +8,10 @@ import java.io.IOException;
 import java.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
 
 import tatc.decisions.Combining;
 import tatc.decisions.ConstructionNode;
@@ -30,6 +34,7 @@ public class GAnew extends AbstractProblem {
     private int counter;
     private int solutionCounter;
     private Graph graph;
+    private String callbackUrl;
     /**
      * Constructs a GA problem from the given properties and a list of decisions.
      * 
@@ -46,6 +51,8 @@ public class GAnew extends AbstractProblem {
         this.counter = 0;
         this.graph = graph;
         this.solutionCounter = 0;
+        // Get callback URL from properties
+        this.callbackUrl = properties.getTsrObject().optString("callbackUrl", null);
     }
 
     // Utility to sum up variables from each decision
@@ -107,9 +114,8 @@ public class GAnew extends AbstractProblem {
             try{
                 HashMap<String, Double> objectivesResults = evaluateArchitecture(architectureJsonFile, properties);
                 Summary.writeSummaryFileGA(objectivesResults, solution, this.counter, decisions);
+                
                 // Set solution objectives
-                // Suppose the problem defines how many objectives and their order
-                // Just iterate over them from objectivesResults
                 int objIndex = 0;
                 for (Map.Entry<String, Double> obj : objectivesResults.entrySet()){
                     String type = properties.getObjectives().get(objIndex).getParent().getType();
@@ -121,6 +127,11 @@ public class GAnew extends AbstractProblem {
                     }
                     solution.setObjective(objIndex++, objective);
                     if (objIndex >= solution.getNumberOfObjectives()) break;
+                }
+
+                // If callback URL is set, send the solution via HTTP
+                if (callbackUrl != null) {
+                    sendSolution(solution, objectivesResults);
                 }
 
             }catch (IOException e) {
@@ -198,6 +209,59 @@ public class GAnew extends AbstractProblem {
             }
         }
         return objectives;
+    }
+
+    private void sendSolution(Solution solution, HashMap<String, Double> objectivesResults) {
+        try {
+            // Create JSON payload
+            JSONObject payload = new JSONObject();
+            
+            // Add design variables
+            JSONObject designVariables = new JSONObject();
+            for (int i = 0; i < solution.getNumberOfVariables(); i++) {
+                RealVariable var = (RealVariable) solution.getVariable(i);
+                designVariables.put("var" + i, var.getValue());
+            }
+            payload.put("designVariables", designVariables);
+            
+            // Add objectives
+            JSONObject objectives = new JSONObject();
+            for (Map.Entry<String, Double> entry : objectivesResults.entrySet()) {
+                objectives.put(entry.getKey(), entry.getValue());
+            }
+            payload.put("objectives", objectives);
+            
+            // Add solution ID
+            payload.put("solutionId", solutionCounter++);
+
+            System.out.println("Sending solution #" + (solutionCounter-1) + " to callback URL: " + callbackUrl);
+            System.out.println("Objectives: " + objectives.toString(2));
+
+            // Send HTTP POST request
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(callbackUrl))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+                .build();
+
+            // Send request asynchronously to not block the GA
+            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenAccept(response -> {
+                    if (response.statusCode() != 200) {
+                        System.err.println("Failed to send solution: " + response.statusCode());
+                    } else {
+                        System.out.println("Successfully sent solution #" + (solutionCounter-1));
+                    }
+                })
+                .exceptionally(e -> {
+                    System.err.println("Error sending solution: " + e.getMessage());
+                    return null;
+                });
+
+        } catch (Exception e) {
+            System.err.println("Error preparing solution for HTTP: " + e.getMessage());
+        }
     }
 
     @Override

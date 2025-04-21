@@ -25,7 +25,7 @@ import java.util.Map;
 import tatc.TSESubscriber;
 import tatc.TSESubscriber;
 import tatc.tradespaceiterator.TSERequestParser;
-
+import tatc.tradespaceiterator.ProblemProperties;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -41,6 +41,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.moeaframework.core.Solution;
 /**
  * TradespaceSearchExecutive class which reads TradespaceSearchRequest.json, creates the problem properties,
  * and calls a search strategy (e.g. Full Factorial or Genetic Algorithm).
@@ -156,6 +157,54 @@ public class TradespaceSearchExecutive {
 
 
     }
+
+    // in TradespaceSearchExecutive.java
+
+    /**
+     * Exactly the same logic as your file‑based run(),
+     * but takes a parsed JSON instead of reading from disk.
+     */
+    // public void run(JSONObject tseRequestJson) throws Exception {
+    //     // 1) set up your directories exactly as before
+    //     this.setDirectories();
+
+    //     // 2) parse out the evaluators/workflow
+    //     TSERequestParser parser = new TSERequestParser();
+    //     Map<String, JSONObject> evaluators = parser.getWorkflow(tseRequestJson);
+    //     this.evaluators = evaluators;
+
+    //     // 3) spin up any Python servers you need just like in the old run()
+    //     PythonServerManager serverManager = new PythonServerManager();
+    //     String tatcRoot = System.getProperty("tatc.root");
+    //     if (evaluators.containsKey("SpaDes")) {
+    //         String evalPath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "SpaDes";
+    //         // serverManager.startServer(5000, evalPath + File.separator + "mqtt_manager.py");
+    //     }
+    //     if (evaluators.containsKey("TAT-C")) {
+    //         String evalPath = tatcRoot + File.separator + "Evaluators_Module" + File.separator + "TAT-C";
+    //         // serverManager.startServer(5001, evalPath + File.separator + "mqtt_manager.py");
+    //     }
+
+    //     // 4) now load the modified TSERequest that your parser spits out
+    //     //    (you were doing this via System.getProperty("tatc.input") before)
+    //     Path modifiedJson = Paths.get(oPath, "modified_tseRequest.json");
+    //     TradespaceSearch tsr = JSONIO.readJSON(modifiedJson.toFile(), TradespaceSearch.class);
+
+    //     // 5) build properties + strategy + publisher/subscriber just like before
+    //     ProblemProperties props = createProblemProperties(tsr, tseRequestJson);
+    //     TradespaceSearchStrategy problem = createTradespaceSearchtrategy(tsr, props);
+
+    //     TSEPublisher   pub = new TSEPublisher("tcp://localhost:1883", "TSE_Client_Pub");
+    //     TSESubscriber  sub = new TSESubscriber("tcp://localhost:1883", "TSE_Client_Sub");
+
+    //     // 6) run the search
+    //     problem.start();
+
+    //     // 7) clean up the cache like before
+    //     Path cacheDir = Paths.get(System.getProperty("tatc.output"), "cache");
+    //     ResultIO.deleteDirectory(cacheDir.toFile());
+    // }
+
     /**
      * Method that evaluates an arch.json file using the architecture evaluator (arch_eval.py) located in
      * the demo folder. In this method we are calling python from java.
@@ -194,7 +243,7 @@ public class TradespaceSearchExecutive {
 
         // Create a CountDownLatch to wait for all metric results
         //CountDownLatch latch = new CountDownLatch(expectedMetrics.size());
-        CountDownLatch latch = new CountDownLatch(evaluators.size());
+        CountDownLatch latch = new CountDownLatch(metricTopics.size());
 
         try {
             // Connect to the MQTT broker
@@ -202,7 +251,7 @@ public class TradespaceSearchExecutive {
             subscriber.connect();
 
             // Subscribe to the result topic
-            String resultTopic = TSE.getSubscriptionTopic();
+            String resultTopic = "TSE/results";  // Fixed topic for results
             subscriber.subscribe(resultTopic, qos, (topic, payload) -> {
                 try {
                     JSONObject responseJson = new JSONObject(payload);

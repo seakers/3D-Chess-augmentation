@@ -79,6 +79,32 @@ public abstract class TradespaceSearchStrategyGA implements TradespaceSearchStra
      * Number of evaluations between successive rule mining algorithm applications
      */
     int getNFEtriggerDM;
+    /**
+     * Solution callback interface
+     */
+    public interface SolutionCallback {
+        void onSolution(Solution solution);
+    }
+    
+    private SolutionCallback solutionCallback;
+
+    /**
+     * Sets the solution callback
+     * @param callback The callback to be called when a solution is found
+     */
+    public void setSolutionCallback(SolutionCallback callback) {
+        this.solutionCallback = callback;
+    }
+
+    /**
+     * Calls the solution callback if set
+     * @param solution The solution to pass to the callback
+     */
+    protected void notifySolutionCallback(Solution solution) {
+        if (solutionCallback != null) {
+            solutionCallback.onSolution(solution);
+        }
+    }
 
     /**
      * Constructs an genetic algorithm search strategy

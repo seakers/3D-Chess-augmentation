@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.7.0</version>
+        <relativePath/>
+    </parent>
+    
     <groupId>seakers</groupId>
     <artifactId>tatc-ml-tse</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
+    
     <dependencies>
         <dependency>
             <groupId>org.orekit</groupId>
@@ -43,6 +52,10 @@
             <scope>compile</scope>        
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
             <groupId>seakers</groupId>
             <artifactId>mopAOS</artifactId>
             <version>1.0</version>
@@ -57,16 +70,23 @@
             <artifactId>neo4j-java-driver</artifactId>
             <version>4.4.0</version>
         </dependency>
-
-
     </dependencies>
+    
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
+    
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>tatc.TSEApplication</mainClass>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -75,7 +95,7 @@
                     <createDependencyReducedPom>false</createDependencyReducedPom>
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                            <mainClass>tatc.TSE</mainClass>
+                            <mainClass>tatc.TSEApplication</mainClass>
                         </transformer>
                     </transformers>
                     <artifactSet>

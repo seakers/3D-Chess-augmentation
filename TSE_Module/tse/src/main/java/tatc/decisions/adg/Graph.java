@@ -7,6 +7,7 @@ import org.moeaframework.core.variable.RealVariable;
 import jmetal.core.Solution;
 import tatc.decisions.*;
 import tatc.tradespaceiterator.ProblemProperties;
+import tatc.tradespaceiterator.TSERequestParser;
 
 import java.util.*;
 
@@ -139,18 +140,20 @@ public class Graph {
                 // "alternatives" => direct TSERequest keys (e.g., "orbit") 
                 // We'll still store the *strings*, so setInputs(...) can (optionally) fetch them,
                 // or you can fetch them right away. Up to you. 
-                if (!decObj.has("alternatives")) {
-                    throw new IllegalArgumentException(
-                        "Combining decision \"" + decisionName + "\" must specify \"alternatives\"."
-                    );
-                }
-                JSONArray altArr = decObj.getJSONArray("alternatives");
-                List<String> altKeys = new ArrayList<>();
-                for (int i = 0; i < altArr.length(); i++) {
-                    altKeys.add(altArr.getString(i));
-                }
+                // if (!decObj.has("alternatives")) {
+                //     throw new IllegalArgumentException(
+                //         "Combining decision \"" + decisionName + "\" must specify \"alternatives\"."
+                //     );
+                // }
+                //JSONArray altArr = decObj.getJSONArray("alternatives");
+                // TSERequestParser parser = new TSERequestParser();
+                
+                // List<String> altKeys = new ArrayList<>();
+                // for (int i = 0; i < altArr.length(); i++) {
+                //     altKeys.add(altArr.getString(i));
+                // }
                 // Store the *keys*, so setInputs(...) can handle them
-                comb.setAlternativesSource(altKeys);
+                comb.setAlternativesSource(subDecisionNames);
             
                 // If there are parents for this combining node, handle them
                 if (decObj.has("parents")) {
@@ -628,12 +631,13 @@ public class Graph {
                         if (altValues == null) {
                             altValues = new ArrayList<>();
                         }
-                    }
-        
-                    // replicate altValues for each sub-decision item
-                    for (int i = 0; i < totalItems; i++) {
                         allAlternatives.add(altValues);
                     }
+        
+                    // // replicate altValues for each sub-decision item
+                    // for (int i = 0; i < totalItems; i++) {
+                    //     allAlternatives.add(altValues);
+                    // }
                 }
             }
         

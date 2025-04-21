@@ -85,9 +85,9 @@ public class Combining extends Decision {
      * @param alternatives a list (for each sub-decision) of the sub-decision's possible values
      */
     public void setAlternatives(List<List<Object>> alternatives) {
-        if (alternatives.size() != subDecisionsData.size()) {
-            throw new IllegalArgumentException("Number of alternatives lists must match number of sub-decisions.");
-        }
+        // if (alternatives.size() != subDecisionsData.size()) {
+        //     throw new IllegalArgumentException("Number of alternatives lists must match number of sub-decisions.");
+        // }
         this.alternatives = new ArrayList<>();
         for (List<Object> alt : alternatives) {
             this.alternatives.add(new ArrayList<>(alt));
@@ -128,12 +128,12 @@ public class Combining extends Decision {
     @Override
     public void applyEncoding(int[] encoding) {
         // 1) Check length matches subDecisionsData (each dimension)
-        if (encoding.length != subDecisionsData.size()) {
-            throw new IllegalArgumentException(
-                "Combining applyEncoding length mismatch. Expected " 
-                + subDecisionsData.size() + " but got " + encoding.length
-            );
-        }
+        // if (encoding.length != subDecisionsData.size()) {
+        //     throw new IllegalArgumentException(
+        //         "Combining applyEncoding length mismatch. Expected " 
+        //         + subDecisionsData.size() + " but got " + encoding.length
+        //     );
+        // }
     
         // 2) Build a list to store the chosen alternatives (one per dimension)
         List<Object> chosenAlternatives = new ArrayList<>();
@@ -187,34 +187,41 @@ public class Combining extends Decision {
         int[] chrom = (int[]) encoded;
         // Prepare a container for the decoded list
         List<Map<String, Object>> decoding = new ArrayList<>();
+        Map<String, Object> decodedMap = new HashMap<String, Object>();
+        for (int i = 0; i < chrom.length; i++) {
+            Object decodedValue = alternatives.get(i).get(chrom[i]);
+            String decodedKey = alternativesSource.get(i);
+            decodedMap.put(decodedKey, decodedValue);
+        }
+        decoding.add(decodedMap);
     
         // Retrieve the distinct alternatives for this decision's result type 
         // e.g. if resultType = "orbit", this might be an array of orbit objects
-        List<Object> resultAlternatives = properties.getDistinctValuesForVariable(resultType);
-        if (resultAlternatives == null || resultAlternatives.isEmpty()) {
-            // If no alternatives found, return an empty list
-            return decoding;
-        }
+        // List<Object> resultAlternatives = properties.getDistinctValuesForVariable(resultType);
+        // if (resultAlternatives == null || resultAlternatives.isEmpty()) {
+        //     // If no alternatives found, return an empty list
+        //     return decoding;
+        // }
     
-        // For each gene in the chromosome
-        for (int i = 0; i < chrom.length; i++) {
-            int selection = chrom[i];
+        // // For each gene in the chromosome
+        // for (int i = 0; i < chrom.length; i++) {
+        //     int selection = chrom[i];
     
-            // Safety check: clamp or skip invalid indices
-            if (selection < 0 || selection >= resultAlternatives.size()) {
-                // You could throw an exception, skip, or clamp. Here we skip:
-                continue;
-            }
+        //     // Safety check: clamp or skip invalid indices
+        //     if (selection < 0 || selection >= resultAlternatives.size()) {
+        //         // You could throw an exception, skip, or clamp. Here we skip:
+        //         continue;
+        //     }
     
-            Object selectedAlternative = resultAlternatives.get(selection);
+        //     Object selectedAlternative = resultAlternatives.get(selection);
     
-            // Create a map with the resultType as key, and the chosen alternative as value
-            Map<String, Object> mapWithType = new HashMap<>();
-            mapWithType.put(resultType, selectedAlternative);
+        //     // Create a map with the resultType as key, and the chosen alternative as value
+        //     Map<String, Object> mapWithType = new HashMap<>();
+        //     mapWithType.put(resultType, selectedAlternative);
     
-            // Add this map to the decoding list
-            decoding.add(mapWithType);
-        }
+        //     // Add this map to the decoding list
+        //     decoding.add(mapWithType);
+        // }
     
         return decoding;
     }
@@ -331,7 +338,7 @@ public class Combining extends Decision {
     @Override
     public Object randomEncoding() {
         // dimensionCount = number of combining dimensions
-        int dimensionCount = subDecisionsData.size();
+        int dimensionCount = alternatives.size();
     
         // Create the integer chromosome (one index per dimension)
         int[] encoding = new int[dimensionCount];
