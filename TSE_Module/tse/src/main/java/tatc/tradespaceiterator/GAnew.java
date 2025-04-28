@@ -53,6 +53,7 @@ public class GAnew extends AbstractProblem {
         this.solutionCounter = 0;
         // Get callback URL from properties
         this.callbackUrl = properties.getTsrObject().optString("callbackUrl", null);
+        System.out.println("GAnew initialized with callback URL: " + this.callbackUrl);
     }
 
     // Utility to sum up variables from each decision
@@ -191,7 +192,6 @@ public class GAnew extends AbstractProblem {
     
 
     
-    
 
     /**
      * Evaluate architecture by calling TradespaceSearchExecutive.
@@ -236,6 +236,7 @@ public class GAnew extends AbstractProblem {
 
             System.out.println("Sending solution #" + (solutionCounter-1) + " to callback URL: " + callbackUrl);
             System.out.println("Objectives: " + objectives.toString(2));
+            System.out.println("Design Variables: " + designVariables.toString(2));
 
             // Send HTTP POST request
             HttpClient client = HttpClient.newHttpClient();

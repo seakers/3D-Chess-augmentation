@@ -26,7 +26,7 @@ import org.moeaframework.core.Solution;
 import org.moeaframework.core.NondominatedPopulation;
 
 @RestController
-@RequestMapping("/daphne")
+@RequestMapping("/tse")
 public class DaphneRequestController {
     private static final Logger logger = LoggerFactory.getLogger(DaphneRequestController.class);
 
@@ -40,6 +40,10 @@ public class DaphneRequestController {
     public ResponseEntity<TSEResponse> receiveTseRequest(@RequestBody String rawJson) {
         // parse into JSONObject
         JSONObject tseRequest = new JSONObject(rawJson);
+        
+        // Log callback URL
+        String callbackUrl = tseRequest.optString("callbackUrl", null);
+        logger.info("Received TSERequest with callback URL: {}", callbackUrl);
 
         // extract workflowId from the JSON
         String wfid = tseRequest.optString("workflowId", "unknown");

@@ -116,7 +116,10 @@ public class Graph {
             String type = decObj.getString("type");
     
             Decision d = null;
-            String resultType = decObj.getString("resultType");
+            String resultType = "object";
+            if (decObj.has("resultType")){
+                resultType = decObj.getString("resultType");
+            }
             // 1) COMBINING
             if (type.equalsIgnoreCase("Combining")) {
                 Combining comb = new Combining(properties, decisionName);
