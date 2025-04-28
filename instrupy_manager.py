@@ -42,8 +42,11 @@ def calculate_media_metrics(json_data):
             metrics_list = sample.get("instantaneous_metrics", {})
             for metrics in metrics_list:
                 # Accumulate each metric if it exists in the data
-                metrics_totals["SNR"] += metrics.get("SNR", 0)
-                metrics_totals["dynamic_range"] += metrics.get("dynamic_range", 0)
+                if metrics.get("signal_to_noise_ratio", 1) == 0:
+                    metrics_totals["SNR"] += 1
+                else:
+                    metrics_totals["SNR"] += metrics.get("signal_to_noise_ratio", 1)
+
                 metrics_totals["along_track_resolution"] += metrics.get("along_track_resolution", 0)
                 metrics_totals["cross_track_resolution"] += metrics.get("cross_track_resolution", 0)
                 metrics_totals["noise_equivalent_delta_T"] += metrics.get("noise_equivalent_delta_T", 0)
@@ -57,20 +60,20 @@ def calculate_media_metrics(json_data):
 
     # Define weights for each metric, assigning higher or lower influence based on mission priorities
     weights = {
-        "SNR": 0.25,  # High weight, as SNR is critical for image clarity
-        "dynamic_range": 0.2,  # Important for range of detectable values
-        "along_track_resolution": 0.15,  # Lower is better, inversely related, so weight adjusted accordingly
-        "cross_track_resolution": 0.15,  # Similar to above
-        "noise_equivalent_delta_T": 0.25  # Lower is better, critical for thermal sensitivity
+        "SNR": 0.5,  # High weight, as SNR is critical for image clarity
+        "dynamic_range": 0.1,  # Important for range of detectable values
+        "along_track_resolution": 0.10,  # Lower is better, inversely related, so weight adjusted accordingly
+        "cross_track_resolution": 0.20,  # Similar to above
+        "noise_equivalent_delta_T": 0.1  # Lower is better, critical for thermal sensitivity
     }
 
     # Calculate weighted InstrumentScore based on whether higher or lower values are desirable
     if count > 0:
         instrument_score = (
-            weights["SNR"] * metrics_averages["SNR"] +
-            weights["dynamic_range"] * 10*math.log10(metrics_averages["dynamic_range"]) +
+            weights["SNR"] * 10*math.log10(metrics_averages["SNR"]if metrics_averages["SNR"] else 1) +
+            weights["dynamic_range"] * 10*math.log10(metrics_averages["dynamic_range"]if metrics_averages["dynamic_range"] and metrics_averages["dynamic_range"]!=0 else 1)+
             weights["along_track_resolution"] * (1 / metrics_averages["along_track_resolution"] if metrics_averages["along_track_resolution"] else 0) +
-            weights["cross_track_resolution"] * (1 / metrics_averages["cross_track_resolution"] if metrics_averages["cross_track_resolution"] else 0) +
+            weights["cross_track_resolution"] * (1 / metrics_averages["cross_track_resolution"] if metrics_averages["cross_track_resolution"] else 0)+
             weights["noise_equivalent_delta_T"] * (1 / metrics_averages["noise_equivalent_delta_T"] if metrics_averages["noise_equivalent_delta_T"] else 0)
         )
     else:

@@ -3,12 +3,13 @@
 import paho.mqtt.client as mqtt
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import os
 import threading
+import requests  # Added for HTTP communication
 
 # Import the InstruPy specific modules
-from instrupy_manager import data_metrics_instrupy
+from instrupy_manager import data_metrics_instrupy, calculate_media_metrics
 from eose.datametrics import DataMetricsRequest, DataMetricsResponse
 from pydantic import parse_obj_as
 
@@ -24,7 +25,7 @@ class InstruPyEvaluator:
 
     # Implemented functions and metrics (hardcoded)
     IMPLEMENTED_FUNCTIONS = {
-        'InstrumentPerformance': data_metrics_instrupy,
+        'InstrumentModel': data_metrics_instrupy,
     }
 
     METRICS = ['IncidenceAngle', 'LookAngle', 'ObservationRange', 'SolarZenith', 'InstrumentScore']
@@ -129,29 +130,21 @@ class InstruPyEvaluator:
                 self.logger.debug(f'Processing request for workflow ID: {workflow_id}')
                 self.logger.debug(f'Function to execute: {function_name}')
                 architecture = data['architecture']
-                # Extract the request object
+                # Extract the dependencies
                 dependencies = data.get('dependencies')
-                # Parse the DataMetricsRequest object
-                #request = parse_obj_as(DataMetricsRequest, request_data)
-
                 # Execute the requested function
                 result_data = self.execute_function(function_name, dependencies, architecture)
 
                 # Prepare the result message
-                # result = {
-                #     'evaluator': 'InstruPy',
-                #     'workflow_id': workflow_id,
-                #     'function': function_name,
-                #     'results': result_data.model_dump(),
-                # }
                 result = {
                     'evaluator': 'InstruPy',
-                    'workflow_id': 0,
+                    'workflow_id': workflow_id,
                     'function': function_name,
-                    'results': {'InstrumentScore':10},
+                    'results': result_data,
                 }
+
                 # Determine the result topic
-                result_topic = f"{self.RESULT_TOPIC_PREFIX}/{workflow_id}/{function_name}"
+                result_topic = f"{self.RESULT_TOPIC_PREFIX}/{function_name}"
 
                 # Publish the result
                 self.client.publish(result_topic, json.dumps(result))
@@ -165,6 +158,14 @@ class InstruPyEvaluator:
             self.logger.exception("Exception details:")
 
     def execute_function(self, function_name, dependencies, architecture):
+        """
+        Executes the specified function with the given request, handling dependencies via HTTP.
+
+        :param function_name: Name of the function to execute.
+        :param dependencies: A dictionary of dependencies required for the function.
+        :param architecture: The architecture data.
+        :return: Result data from the function execution.
+        """
         function = self.IMPLEMENTED_FUNCTIONS.get(function_name)
         if not function:
             raise ValueError(f"Function {function_name} is not implemented.")
@@ -172,86 +173,49 @@ class InstruPyEvaluator:
         self.logger.debug(f"Executing function: {function_name}")
 
         dependency_results = {}
-        dependency_events = {}
-        dependency_clients = {}
 
-        # Define the callback outside the loop
-        def on_dependency_message(client, userdata, msg):
-            dep_name = userdata['dependency_name']
-            dep_event = userdata['dependency_event']
-            dep_results = userdata['dependency_results']
-            self.logger.debug(f"Dependency message received for {dep_name}")
-            try:
-                result_data = json.loads(msg.payload.decode())
-                dep_results[dep_name] = result_data
-                self.logger.debug(f"Setting event for dependency {dep_name}")
-                dep_event.set()
-                self.logger.debug(f"Event set for dependency {dep_name}")
-            except Exception as e:
-                self.logger.error(f"Error processing dependency message: {str(e)}")
-                self.logger.exception("Exception details:")
+        # For each dependency, send HTTP request and get the result
+        if dependencies and function_name in dependencies:
+            for dependency_name in dependencies[function_name]['dependencies']:
+                # Get the URL for the dependency
+                dependency_url = dependencies[function_name]['dependencies'][dependency_name]
+                self.logger.debug(f"Requesting dependency {dependency_name} from {dependency_url}")
 
-        # For each dependency
-        for dependency_name in dependencies[function_name]['dependencies']:
-            client_id = f"{self.CLIENT_ID}_{function_name}_{dependency_name}"
-            dependency_event = threading.Event()
-            dependency_events[dependency_name] = dependency_event
+                # Build the request payload
+                request_payload = {
+                    'architecture': architecture,
+                    'workflow_id': architecture.get('workflow_id', 0),
+                    'function': dependency_name,
+                }
 
-            dependency_client = mqtt.Client(
-                client_id=client_id,
-                protocol=mqtt.MQTTv311,
-                transport="tcp",
-            )
+                try:
+                    # Send the request to the dependency via HTTP POST
+                    response = requests.post(dependency_url, json=request_payload)
+                    response.raise_for_status()  # Raise an exception for HTTP errors
 
-            dependency_client.user_data_set({
-                'dependency_name': dependency_name,
-                'dependency_event': dependency_event,
-                'dependency_results': dependency_results
-            })
+                    # Parse the response
+                    result_data = response.json()
+                    dependency_results[dependency_name] = json.loads(result_data['results'][0])
 
-            dependency_client.on_message = on_dependency_message
+                    self.logger.debug(f"Received result for dependency {dependency_name}: {result_data}")
 
-            dependency_client.connect(self.BROKER_ADDRESS, self.BROKER_PORT, keepalive=60)
+                except requests.exceptions.RequestException as e:
+                    self.logger.error(f"Error requesting dependency {dependency_name}: {str(e)}")
+                    self.logger.exception("Exception details:")
+                    raise
+        mission_start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        mission_duration = timedelta(hours=2)
 
-            result_topic = f"evaluators/InstruPy/results/{dependency_name}"
-            dependency_client.subscribe(result_topic)
-            self.logger.debug(f"Subscribed to dependency result topic: {result_topic}")
-
-            dependency_client.loop_start()
-            dependency_clients[dependency_name] = dependency_client
-
-            request = {
-                'architecture': architecture,
-                'workflow_id': architecture.get('workflow_id', 0),
-                'function': dependency_name,
-                'result_topic': result_topic
-            }
-
-            publish_request_topic = dependencies[function_name]['dependencies'][dependency_name]
-            dependency_client.publish(publish_request_topic, json.dumps(request))
-            self.logger.debug(f"Published dependency request to topic {publish_request_topic}: {request}")
-
-        # Wait for all dependencies
-        for dependency_name in dependencies[function_name]['dependencies']:
-            dependency_event = dependency_events[dependency_name]
-            self.logger.debug(f"Waiting for dependency {dependency_name}")
-            # if not dependency_event.wait(timeout=300):
-            #     self.logger.error(f"Did not receive result from dependency {dependency_name}")
-            #     raise TimeoutError(f"Timeout waiting for dependency {dependency_name}")
-            self.logger.debug(f"Received result for dependency {dependency_name}")
-
-            # Stop and disconnect the client
-            dependency_client = dependency_clients[dependency_name]
-            dependency_client.loop_stop()
-            dependency_client.disconnect()
-            self.logger.debug(f"Disconnected client for dependency {dependency_name}")
-
-        # Execute the main function
-        result = function(architecture, dependency_results)
+        request = DataMetricsRequest(
+            start=mission_start,
+            duration=mission_duration,
+            **dependency_results["AccessResponse"],
+            **dependency_results["OrbitPropagation"]
+        )
+        # All dependencies have been resolved, execute the main function
+        result = function(request)
         self.logger.debug(f"Function {function_name} execution completed.")
         return result
-
-
 
 if __name__ == '__main__':
     evaluator = InstruPyEvaluator()
