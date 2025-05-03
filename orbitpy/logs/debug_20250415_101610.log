@@ -1,0 +1,5 @@
+2025-04-15 10:16:10,923 - INFO - Starting TAT-C HTTP server... Log file is initialized.
+2025-04-15 10:16:10,945 - INFO - Connected to MQTT Broker!
+2025-04-15 10:19:55,658 - DEBUG - Processing architecture ID: 0
+2025-04-15 10:19:55,658 - DEBUG - Function to execute: AccessResponse
+2025-04-15 10:19:55,658 - DEBUG - Executing function: AccessResponse

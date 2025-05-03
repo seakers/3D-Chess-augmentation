@@ -1,0 +1,21 @@
+2025-04-15 12:37:59,458 - INFO - Starting TAT-C HTTP server... Log file is initialized.
+2025-04-15 12:37:59,475 - INFO - Connected to MQTT Broker!
+2025-04-15 12:39:00,803 - DEBUG - Processing architecture ID: 0
+2025-04-15 12:39:00,804 - DEBUG - Function to execute: AccessResponse
+2025-04-15 12:39:00,804 - DEBUG - Executing function: AccessResponse
+2025-04-15 12:40:00,522 - ERROR - Error processing request: 'NoneType' object has no attribute 'orientation'
+2025-04-15 12:40:00,523 - ERROR - Exception details:
+Traceback (most recent call last):
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 145, in handle_request
+    result_data = evaluator.execute_function(function_name, architecture)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 112, in execute_function
+    result = function(architecture)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 410, in perform_access_response
+    access_response = access_orbitpy(request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 238, in access_orbitpy
+    or satellite.satellite_bus.orientation
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'orientation'

@@ -1,0 +1,22 @@
+2025-04-15 12:50:50,644 - INFO - Starting TAT-C HTTP server... Log file is initialized.
+2025-04-15 12:50:50,664 - INFO - Connected to MQTT Broker!
+2025-04-15 12:51:26,666 - DEBUG - Processing architecture ID: 0
+2025-04-15 12:51:26,666 - DEBUG - Function to execute: AccessResponse
+2025-04-15 12:51:26,666 - DEBUG - Executing function: AccessResponse
+2025-04-15 12:53:20,265 - DEBUG - Function AccessResponse execution completed.
+2025-04-15 12:53:48,972 - DEBUG - Processing architecture ID: 0
+2025-04-15 12:53:48,973 - DEBUG - Function to execute: OrbitPropagation
+2025-04-15 12:53:48,973 - DEBUG - Executing function: OrbitPropagation
+2025-04-15 12:53:48,974 - ERROR - Error processing request: 'dict' object has no attribute 'frame'
+2025-04-15 12:53:48,974 - ERROR - Exception details:
+Traceback (most recent call last):
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 145, in handle_request
+    result_data = evaluator.execute_function(function_name, architecture)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 112, in execute_function
+    result = function(architecture)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 70, in propagate_orbitpy
+    if request.frame != CartesianReferenceFrame.ICRF:
+       ^^^^^^^^^^^^^
+AttributeError: 'dict' object has no attribute 'frame'

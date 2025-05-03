@@ -1,0 +1,40 @@
+2025-04-14 18:54:48,798 - INFO - Starting TAT-C HTTP server... Log file is initialized.
+2025-04-14 18:54:48,805 - INFO - Connected to MQTT Broker!
+2025-04-14 18:55:21,977 - DEBUG - Processing architecture ID: 0
+2025-04-14 18:55:21,977 - DEBUG - Function to execute: AccessResponse
+2025-04-14 18:55:21,977 - DEBUG - Executing function: AccessResponse
+2025-04-14 18:55:22,076 - ERROR - Error processing request: 'NoneType' object has no attribute 'orientation'
+2025-04-14 18:55:22,076 - ERROR - Exception details:
+Traceback (most recent call last):
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 145, in handle_request
+    result_data = evaluator.execute_function(function_name, architecture)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 112, in execute_function
+    result = function(architecture)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 406, in perform_access_response
+    access_response = access_orbitpy(request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 238, in access_orbitpy
+    or satellite.satellite_bus.orientation
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'orientation'
+2025-04-15 10:00:57,851 - DEBUG - Processing architecture ID: 0
+2025-04-15 10:00:57,851 - DEBUG - Function to execute: AccessResponse
+2025-04-15 10:00:57,851 - DEBUG - Executing function: AccessResponse
+2025-04-15 10:00:57,893 - ERROR - Error processing request: 'NoneType' object has no attribute 'orientation'
+2025-04-15 10:00:57,893 - ERROR - Exception details:
+Traceback (most recent call last):
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 145, in handle_request
+    result_data = evaluator.execute_function(function_name, architecture)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 112, in execute_function
+    result = function(architecture)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 406, in perform_access_response
+    access_response = access_orbitpy(request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 238, in access_orbitpy
+    or satellite.satellite_bus.orientation
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'orientation'

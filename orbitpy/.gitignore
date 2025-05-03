@@ -1,0 +1,55 @@
+
+
+
+# objects, executables, core dumps
+*.DS_Store
+*.o
+*.exe
+core
+*.a
+*.d
+*.csv
+*.out
+
+# compiled Python
+*.pyc
+
+# Python egg metadata, regenerated from source files by setuptools.
+*.egg-info
+
+# Setuptools distribution folder.
+/dist/
+
+# untracked subdirectories
+.vscode
+.ipynb_checkpoints
+desktop.ini
+docs/_build/*
+!docs/_static/.gitkeep
+!docs/_templates/.gitkeep
+docs/generated/*
+
+propcov/tests/tests-cpp/bin/SystemTest_Analysis
+propcov/build/
+*.so
+
+tests/temp
+tests/test_coveragecalculator/temp
+tests/validation/temp
+
+TBD/oci/bin/genCovGrid
+TBD/oci/bin/orbitpropcov_grid
+TBD/oci/bin/orbitpropcov_popts
+TBD/oci/bin/pnt_opts_with_gp_in_fov_cov_calc
+TBD/oci/bin/j2_analytical_propagator
+TBD/oci/bin/gp_in_fov_cov_calc
+TBD/oci/bin/sensor_fov_projector
+TBD/oci/bin/pnt_axis_sphere_intsec_cov_calc
+TBD/examples/flood_case_ground_stn_contacts/*
+TBD/examples/20201024_adcs_paper/*
+TBD/examples/exampleTest/*
+TBD/examples/20201102_500kmSAR/*
+
+# Exceptions to the above rules
+!tests/test_data/*
+!examples/gnssr_conus/Grid_WLFP_Day_1_Aug_1_2020.csv

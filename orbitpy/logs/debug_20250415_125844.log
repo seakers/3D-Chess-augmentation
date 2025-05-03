@@ -1,0 +1,10 @@
+2025-04-15 12:58:44,369 - INFO - Starting TAT-C HTTP server... Log file is initialized.
+2025-04-15 12:58:44,385 - INFO - Connected to MQTT Broker!
+2025-04-15 12:59:24,402 - DEBUG - Processing architecture ID: 0
+2025-04-15 12:59:24,402 - DEBUG - Function to execute: AccessResponse
+2025-04-15 12:59:24,403 - DEBUG - Executing function: AccessResponse
+2025-04-15 12:59:34,303 - DEBUG - Function AccessResponse execution completed.
+2025-04-15 12:59:34,803 - DEBUG - Processing architecture ID: 0
+2025-04-15 12:59:34,804 - DEBUG - Function to execute: OrbitPropagation
+2025-04-15 12:59:34,804 - DEBUG - Executing function: OrbitPropagation
+2025-04-15 12:59:49,381 - DEBUG - Function OrbitPropagation execution completed.

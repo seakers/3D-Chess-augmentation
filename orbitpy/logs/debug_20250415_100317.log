@@ -1,0 +1,39 @@
+2025-04-15 10:03:17,675 - INFO - Starting TAT-C HTTP server... Log file is initialized.
+2025-04-15 10:03:17,685 - INFO - Connected to MQTT Broker!
+2025-04-15 10:04:01,829 - DEBUG - Processing architecture ID: 0
+2025-04-15 10:04:01,829 - DEBUG - Function to execute: AccessResponse
+2025-04-15 10:04:01,829 - DEBUG - Executing function: AccessResponse
+2025-04-15 10:04:01,857 - ERROR - Error processing request: PassiveOpticalScanner instrument type is not supported. Only 'BasicSensor' instrument type is supported.
+2025-04-15 10:04:01,858 - ERROR - Exception details:
+Traceback (most recent call last):
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 145, in handle_request
+    result_data = evaluator.execute_function(function_name, architecture)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 112, in execute_function
+    result = function(architecture)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 406, in perform_access_response
+    access_response = access_orbitpy(request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 220, in access_orbitpy
+    raise ValueError(
+ValueError: PassiveOpticalScanner instrument type is not supported. Only 'BasicSensor' instrument type is supported.
+2025-04-15 10:04:54,266 - DEBUG - Processing architecture ID: 0
+2025-04-15 10:04:54,267 - DEBUG - Function to execute: AccessResponse
+2025-04-15 10:04:54,267 - DEBUG - Executing function: AccessResponse
+2025-04-15 10:04:59,041 - ERROR - Error processing request: cannot access local variable 'access_records' where it is not associated with a value
+2025-04-15 10:04:59,041 - ERROR - Exception details:
+Traceback (most recent call last):
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 145, in handle_request
+    result_data = evaluator.execute_function(function_name, architecture)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/http_manager_orbitpy.py", line 112, in execute_function
+    result = function(architecture)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 406, in perform_access_response
+    access_response = access_orbitpy(request)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/instrupy_orbitpy/orbitpy/orbitpy/orbitpy_manager.py", line 387, in access_orbitpy
+    return AccessResponse(
+           ^^^^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'access_records' where it is not associated with a value

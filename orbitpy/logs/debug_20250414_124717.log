@@ -1,0 +1,3 @@
+2025-04-14 12:47:17,648 - INFO - Starting TAT-C HTTP server... Log file is initialized.
+2025-04-14 12:47:17,658 - INFO - Connected to MQTT Broker!
+2025-04-14 17:27:54,789 - WARNING - Unexpected disconnection from MQTT Broker. Return code: 7
