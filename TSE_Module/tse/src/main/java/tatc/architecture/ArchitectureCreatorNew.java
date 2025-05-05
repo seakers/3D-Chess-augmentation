@@ -9,6 +9,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.nio.file.Files;
+import java.io.FileWriter;
 
 import org.apache.commons.math3.util.FastMath;
 import org.json.JSONArray;
@@ -22,13 +27,18 @@ import tatc.architecture.specifications.Constellation;
 import tatc.architecture.specifications.FieldOfView;
 import tatc.architecture.specifications.GroundNetwork;
 import tatc.architecture.specifications.Instrument;
+import tatc.architecture.specifications.MissionConcept;
 import tatc.architecture.specifications.Orbit;
 import tatc.architecture.specifications.Orientation;
 import tatc.architecture.specifications.Satellite;
+import tatc.tradespaceiterator.ProblemProperties;
 import tatc.util.JSONIO;
 import tatc.util.TLESatellite;
 import tatc.util.Utilities;
-
+import java.time.*;
+import tatc.util.OrbitalTimeUtils;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 public class ArchitectureCreatorNew implements ArchitectureMethods{
 
     /**
@@ -41,6 +51,13 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
      */
     private GroundNetwork groundNetwork;
 
+    private ProblemProperties properties;
+
+    /**
+     * Static field to store the timestamped results path
+     */
+    private static String timestampedResultsPath = null;
+
     /**
      * Planet labs data base for ad-hoc constellations
      */
@@ -49,9 +66,10 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
     /**
      * Initializes an architecture creator
      */
-    public ArchitectureCreatorNew(){
+    public ArchitectureCreatorNew(ProblemProperties properties){
         this.constellations = new ArrayList<>();
         this.groundNetwork = null;
+        this.properties = properties;
     }
 
     public JSONObject addHomogeneousWalker(JSONObject constJson, Map<String, Object> archParameters) {
@@ -123,50 +141,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         int f = getIntFromArchOrJson("relativeSpacing", archParameters, constJson, 1);
 
         List<Orbit> listOrbits = getOrbitsFromConstJsonOrArchParams(constJson, archParameters);
-        // // Altitude
-        // double altitude = getDoubleFromArchOrJson("altitude", archParameters, orbitJson);
-
-        // // Inclination
-        // double inclination = getDoubleFromArchOrJson("inclination", archParameters, orbitJson);
-
-        // // Eccentricity
-        // double eccentricity = getDoubleFromArchOrJson("eccentricity", archParameters, orbitJson, 0.0);
-
-        // // Epoch
-        // String epoch = archParameters.containsKey("epoch") ? (String) archParameters.get("epoch") : "2020-01-01T00:00:00Z";
-        //  // Compute semimajor axis
-        //  double semimajoraxis = altitude + Utilities.EARTH_RADIUS_KM;
-
-        // // Walker parameters
-        // final int s = t / p; // Number of satellites per plane
-        // final double pu = 2 * FastMath.PI / t; // Pattern unit
-        // final double delAnom = pu * p; // In-plane spacing between satellites
-        // final double delRaan = pu * s; // Node spacing
-        // final double phasing = pu * f;
-        // final double refAnom = 0;
-        // final double refRaan = 0;
-        // final double refPerigee = 0;
-        // double delPerigee = eccentricity != 0.0 ? delRaan : 0.0;
-
-        // // Create list of orbits
-        // List<Orbit> listOrbits = new ArrayList<>();
-        // for (int planeNum = 0; planeNum < p; planeNum++) {
-        //     for (int satNum = 0; satNum < s; satNum++) {
-        //         Orbit orbit = new Orbit(
-        //             orbitJson.optString("orbitType", "CIRCULAR"),
-        //             altitude,
-        //             semimajoraxis,
-        //             inclination,
-        //             eccentricity,
-        //             FastMath.toDegrees(refPerigee + planeNum * delPerigee),
-        //             FastMath.toDegrees(refRaan + planeNum * delRaan),
-        //             FastMath.toDegrees((refAnom + satNum * delAnom + phasing * planeNum) % (2. * FastMath.PI)),
-        //             epoch,
-        //             null
-        //         );
-        //         listOrbits.add(orbit);
-        //     }}
-        // Satellite
+    
         JSONArray satellitesJsonArray = constJson.getJSONArray("satellites");
         if (satellitesJsonArray.length() == 0) {
             throw new IllegalArgumentException("No satellites specified in constellation JSON");
@@ -198,16 +173,6 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
                                 (Boolean) archParameters.get("secondaryPayload") : 
                                 constJson.optBoolean("secondaryPayload", false);
 
-        // Check for valid parameters
-        // if (t <= 0 || p <= 0) {
-        //     throw new IllegalArgumentException(String.format("Expected t>0, p>0. Found t=%d and p=%d", t, p));
-        // }
-        // if ((t % p) != 0) {
-        //     throw new IllegalArgumentException(String.format("Incompatible values for total number of satellites t=%d and number of planes p=%d. t must be divisible by p.", t, p));
-        // }
-        // if (f < 0 || f > p - 1) {
-        //     throw new IllegalArgumentException(String.format("Expected 0 <= f <= p-1. Found f=%d and p=%d.", f, p));
-        // }
         if (archParameters.containsKey("payload")) {
         Object payloadObj = archParameters.get("payload");
         if (payloadObj instanceof Collection && ((Collection<?>) payloadObj).isEmpty()) {
@@ -268,11 +233,23 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
     
             // Retrieve assigned orbit configurations from archParameters (always a JSONObject)
             JSONObject assignedOrbitsJson = (JSONObject) archParameters.get("orbit");
-                    // Compute semimajor axis
-
+            
+            // Add constellation parameters
             assignedOrbitsJson.put("numberPlanes", p);
             assignedOrbitsJson.put("relativeSpacing", f);
             assignedOrbitsJson.put("numberSatellites", t);
+
+            // If there's a nested orbit object, flatten it by moving its parameters up
+            if (assignedOrbitsJson.has("orbit") && assignedOrbitsJson.get("orbit") instanceof JSONObject) {
+                JSONObject nestedOrbit = assignedOrbitsJson.getJSONObject("orbit");
+                // Copy all parameters from nested orbit to the parent
+                for (String key : nestedOrbit.keySet()) {
+                    assignedOrbitsJson.put(key, nestedOrbit.get(key));
+                }
+                // Remove the nested orbit object
+                assignedOrbitsJson.remove("orbit");
+            }
+
             // Convert the assigned JSONObject into an Orbit list
             orbits = createOrbitFromJsonOrArchParams(assignedOrbitsJson, archParameters);
         }
@@ -294,15 +271,59 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
      * Creates an orbit from JSON or archParameters.
      */
     private List<Orbit> createOrbitFromJsonOrArchParams(JSONObject orbitJson, Map<String, Object> archParameters) {
-        String orbitType = getStringFromArchOrJson("orbitType", archParameters, orbitJson, "CIRCULAR");
+        String orbitType = getStringFromArchOrJson("orbitType", archParameters, orbitJson, "LEO");
         double altitude = getDoubleFromArchOrJson("altitude", archParameters, orbitJson);
         double inclination = getDoubleFromArchOrJson("inclination", archParameters, orbitJson);
         double eccentricity = getDoubleFromArchOrJson("eccentricity", archParameters, orbitJson, 0.0);
-        String epoch = getStringFromArchOrJson("epoch", archParameters, orbitJson, "2020-01-01T00:00:00Z");
+        String epoch;
+        if (properties != null && 
+            properties.getTradespaceSearch() != null && 
+            properties.getTradespaceSearch().getMission() != null && 
+            properties.getTradespaceSearch().getMission().getStart() != null) {
+            epoch = properties.getTradespaceSearch().getMission().getStart();
+            System.out.println("Epoch: " + epoch);
+        } else {
+            epoch = "2020-01-01T00:00:00Z"; // Default epoch if mission start is not available
+            System.out.println("Warning: Using default epoch as mission start time is not available");
+        }
         int p = orbitJson.getInt("numberPlanes");
         int f = orbitJson.getInt("relativeSpacing");
         int t = orbitJson.getInt("numberSatellites");
         double semimajorAxis = altitude + Utilities.EARTH_RADIUS_KM;
+        
+        // default: no LT constraint  → keep your old refRaan=0
+        Double ltanHours = null;
+
+        // 1) explicit field in JSON wins
+        if (orbitJson.has("localTimeAscendingNode")) {
+            ltanHours = orbitJson.getDouble("localTimeAscendingNode");
+        } else {
+            // 2) otherwise look for keywords in orbitType
+            String orbitTypeStr = orbitType.toUpperCase();
+            if (orbitTypeStr.contains("SSO")) {
+                if (orbitTypeStr.contains("DD")) {        // Dawn‑Dusk
+                    ltanHours = 6.0;                      // ascending ≈ 06:00, descending ≈ 18:00
+                } else if (orbitTypeStr.contains("PM")) { // Afternoon crossing
+                    ltanHours = 13.5;                     // 13:30 LTAN, common for e.g. Aqua
+                } else if (orbitTypeStr.contains("AM")) { // Morning crossing
+                    ltanHours = 10.5;                     // 10:30 LTAN (MODIS/ Terra style)
+                }
+            }
+        }
+        System.out.println("LTAN: " + ltanHours);
+
+        /*  ────── compute refRaan ────── */
+        double refRaanDeg = 0.0;
+        if (ltanHours != null) {
+            ZonedDateTime epochUtc = ZonedDateTime.parse(epoch);
+            refRaanDeg = OrbitalTimeUtils.raanFromLTAN(ltanHours, epochUtc);
+        }
+        String localSolarTimeAscendingNode = ltanHours != null ? 
+            OrbitalTimeUtils.ltanToIsoTime(ltanHours) : 
+            "00:00:00"; // Default value when no LTAN is specified
+
+        /* keep the rest exactly as you had, but replace refRaan */
+        double refRaan = FastMath.toRadians(refRaanDeg);
         // Walker parameters
         final int s = t / p; // Number of satellites per plane
         final double pu = 2 * FastMath.PI / t; // Pattern unit
@@ -310,7 +331,6 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         final double delRaan = pu * s; // Node spacing
         final double phasing = pu * f;
         final double refAnom = 0;
-        final double refRaan = 0;
         final double refPerigee = 0;
         double delPerigee = eccentricity != 0.0 ? delRaan : 0.0;
 
@@ -319,7 +339,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         for (int planeNum = 0; planeNum < p; planeNum++) {
             for (int satNum = 0; satNum < s; satNum++) {
                 Orbit orbit = new Orbit(
-                    orbitJson.optString("orbitType", "CIRCULAR"),
+                    orbitType,
                     altitude,
                     semimajorAxis,
                     inclination,
@@ -328,7 +348,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
                     FastMath.toDegrees(refRaan + planeNum * delRaan),
                     FastMath.toDegrees((refAnom + satNum * delAnom + phasing * planeNum) % (2. * FastMath.PI)),
                     epoch,
-                    null
+                    localSolarTimeAscendingNode
                 );
                 listOrbits.add(orbit);
             }}
@@ -612,17 +632,94 @@ public void addGroundNetwork(GroundNetwork groundNetwork){
             }
             counterCons++;
         }
-        Architecture arch =new Architecture("arch-"+Integer.toString(counter),constellations, groundNetworks);
-        File mainPath = new File(System.getProperty("tatc.output"));
-        File archPatch = new File(mainPath,"arch-"+Integer.toString(counter));
-        archPatch.mkdirs();
-        File file = new File (archPatch,"arch.json");
-        JSONIO.writeJSON(file,arch);
-//        try {
-//            JSONIO.replaceTypeFieldUnderscore(file);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+
+        // Get mission information from ProblemProperties
+        MissionConcept mission = null;
+        if (properties != null && properties.getTradespaceSearch() != null) {
+            mission = properties.getTradespaceSearch().getMission();
+            System.out.println("Found mission: " + (mission != null ? "yes" : "no"));
+            if (mission != null) {
+                System.out.println("Mission start: " + mission.getStart());
+                System.out.println("Mission duration: " + mission.getDuration());
+            }
+        }
+
+        // Create architecture with mission info
+        Architecture arch = new Architecture("arch-"+Integer.toString(counter), constellations, groundNetworks);
+        
+        // Add mission info to the architecture JSON
+        if (mission != null) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            String archJsonStr = gson.toJson(arch);
+            JSONObject archJson = new JSONObject(archJsonStr);
+            
+            // Create mission JSON object
+            JSONObject missionJson = new JSONObject();
+            missionJson.put("start", mission.getStart());
+            missionJson.put("duration", mission.getDuration());
+            archJson.put("mission", missionJson);
+            
+            // Convert back to Architecture object
+            arch = gson.fromJson(archJson.toString(), Architecture.class);
+            System.out.println("Mission info added to architecture");
+        }
+
+        // Get the project root from system property
+        String projectRoot = System.getProperty("tatc.root");
+        if (projectRoot == null) {
+            projectRoot = System.getProperty("user.dir");
+        }
+        System.out.println("Project root: " + projectRoot);
+        
+        // Create timestamped results path only if it hasn't been created yet
+        if (timestampedResultsPath == null) {
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            File mainPath = new File(projectRoot, "TSE_Module/tse/results");
+            File timestampedPath = new File(mainPath, "results_" + timestamp);
+            timestampedResultsPath = timestampedPath.getAbsolutePath();
+            System.out.println("Created new results directory: " + timestampedResultsPath);
+            System.out.println("Results directory exists: " + timestampedPath.exists());
+            
+            // Set the output directory for summary.csv
+            System.setProperty("tatc.output", timestampedResultsPath);
+        }
+        
+        // Create architecture folder
+        File archPatch = new File(timestampedResultsPath, "arch-" + Integer.toString(counter));
+        System.out.println("Architecture directory: " + archPatch.getAbsolutePath());
+        boolean dirCreated = archPatch.mkdirs();
+        System.out.println("Directory created: " + dirCreated);
+        
+        File file = new File(archPatch, "arch.json");
+        System.out.println("JSON file path: " + file.getAbsolutePath());
+        System.out.println("JSON file exists before write: " + file.exists());
+        
+        // Write the architecture with mission info
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String archJsonStr = gson.toJson(arch);
+        JSONObject archJson = new JSONObject(archJsonStr);
+        
+        if (mission != null) {
+            JSONObject missionJson = new JSONObject();
+            missionJson.put("start", mission.getStart());
+            missionJson.put("duration", mission.getDuration());
+            archJson.put("mission", missionJson);
+        }
+        
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write(archJson.toString(4)); // Pretty print with 4 spaces
+            System.out.println("JSON write success");
+        } catch (IOException e) {
+            System.out.println("Error writing JSON file: " + e.getMessage());
+            return null;
+        }
+        
+        System.out.println("JSON file exists after write: " + file.exists());
+        
+        if (file.exists()) {
+            System.out.println("File size: " + file.length() + " bytes");
+        }
+        
         return file;
     }
 }

@@ -88,7 +88,7 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
             for (GroundNetwork gn : decisionGroundNetwork.getAllowedValues()) {
                 for (Map<Object, Set<Object>> archParameters : fullArchitectures) {
                     // Create a new architecture JSON object
-                    ArchitectureCreatorNew creator = new ArchitectureCreatorNew();
+                    ArchitectureCreatorNew creator = new ArchitectureCreatorNew(properties);
                     // Initialize the spaceSegment JSONArray
                     Map<String, Object> architecture = new HashMap<>();
                     // Extract architecture parameters from assignment keys
@@ -153,7 +153,7 @@ public class TradespaceSearchStrategyFFNew implements TradespaceSearchStrategy {
         for (GroundNetwork gn : decisionGroundNetwork.getAllowedValues()) {
             int k= 0;
             for (Map<String,Object> archParameters: fullArchitectures){
-                ArchitectureCreatorNew creator = new ArchitectureCreatorNew();
+                ArchitectureCreatorNew creator = new ArchitectureCreatorNew(properties);
                 for(int i=0; i<constellationsJSON.length(); i++){
                     JSONObject constJson = constellationsJSON.getJSONObject(i);
                     creator.addHomogeneousWalkerOld(constJson, archParameters);

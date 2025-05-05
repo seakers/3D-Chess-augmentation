@@ -183,4 +183,55 @@ public abstract class Decision {
         this.resultType = resultType;
     }
     public abstract void applyEncoding(int[] encoding);
+
+    /**
+     * Gets the list of variable names for this decision.
+     * For combining decisions, these are the sub-decision names.
+     * For assigning decisions, these are the source-target pairs.
+     * For other decisions, these are generic names based on the decision type.
+     */
+    public List<String> getVariableNames() {
+        List<String> names = new ArrayList<>();
+        if (this instanceof Combining) {
+            Combining comb = (Combining) this;
+            names.addAll(comb.getSubDecisions());
+        } else if (this instanceof tatc.decisions.Assigning) {
+            tatc.decisions.Assigning assign = (tatc.decisions.Assigning) this;
+            List<String> sources = assign.getSourceEntities();
+            List<String> targets = assign.getTargetEntities();
+            
+            // For assigning decisions, we need n*m variables where n=|sources| and m=|targets|
+            int n = sources.size();
+            int m = targets.size();
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < m; j++) {
+                    names.add(sources.get(i) + "-" + targets.get(j));
+                }
+            }
+        } else {
+            // Generic names for other decision types
+            for (int i = 0; i < getNumberOfVariables(); i++) {
+                names.add(decisionName + "_var" + i);
+            }
+        }
+        return names;
+    }
+
+    /**
+     * Gets the source entities for assigning decisions.
+     * Returns empty list for non-assigning decisions.
+     */
+    public List<String> getSourceEntities() {
+        // Base implementation returns empty list
+        return new ArrayList<>();
+    }
+
+    /**
+     * Gets the target entities for assigning decisions.
+     * Returns empty list for non-assigning decisions.
+     */
+    public List<String> getTargetEntities() {
+        // Base implementation returns empty list
+        return new ArrayList<>();
+    }
 }

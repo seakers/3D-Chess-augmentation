@@ -81,6 +81,14 @@ public class Combining extends Decision {
     }
 
     /**
+     * Gets the list of sub-decisions that form this combining decision.
+     * @return the list of sub-decision names
+     */
+    public List<String> getSubDecisions() {
+        return new ArrayList<>(this.subDecisions);
+    }
+
+    /**
      * Sets the alternatives for each sub-decision.
      * @param alternatives a list (for each sub-decision) of the sub-decision's possible values
      */

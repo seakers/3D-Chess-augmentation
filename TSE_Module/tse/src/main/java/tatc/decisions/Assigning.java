@@ -377,6 +377,46 @@ public Object extractEncodingFromSolution(Solution solution, int offset) {
         return childChrom;
     }
     
+    @Override
+    public List<String> getSourceEntities() {
+        List<String> sources = new ArrayList<>();
+        for (Object entity : Lset) {
+            if (entity instanceof JSONObject) {
+                JSONObject json = (JSONObject) entity;
+                if (lSource.equals("orbit")) {
+                    sources.add(json.getString("orbitType"));
+                } else if (lSource.equals("payload")) {
+                    sources.add(json.getString("name"));
+                } else {
+                    sources.add(entity.toString());
+                }
+            } else {
+                sources.add(entity.toString());
+            }
+        }
+        return sources;
+    }
+
+    @Override
+    public List<String> getTargetEntities() {
+        List<String> targets = new ArrayList<>();
+        for (Object entity : Rset) {
+            if (entity instanceof JSONObject) {
+                JSONObject json = (JSONObject) entity;
+                if (rSource.equals("orbit")) {
+                    targets.add(json.getString("orbitType"));
+                } else if (rSource.equals("payload")) {
+                    targets.add(json.getString("name"));
+                } else {
+                    targets.add(entity.toString());
+                }
+            } else {
+                targets.add(entity.toString());
+            }
+        }
+        return targets;
+    }
+    
     
     
 }

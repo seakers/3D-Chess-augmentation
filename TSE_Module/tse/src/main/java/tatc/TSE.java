@@ -48,7 +48,7 @@ public class TSE {
             // String requestFile = "TSERequests/TSERequestClimateCentricGADSPA.json";
             //String requestFile = "TSERequests/TSERequestClimateCentricDSPAC_test.json";
            // String requestFile = "TSERequests/TSERequestFFFireSat2_test.json";
-            String requestFile = "TSERequests/TSERequestAssigning.json";
+            String requestFile = "TSERequests/assigning.json";
 
             String outputDir = String.format("TSE_Module/tse/results/results_%s_%d", timestamp, threadId);
 

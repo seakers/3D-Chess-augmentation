@@ -8,9 +8,6 @@ import java.io.IOException;
 import java.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.net.URI;
 
 import tatc.decisions.Combining;
@@ -25,6 +22,12 @@ import tatc.architecture.ArchitectureCreatorNew;
 import tatc.tradespaceiterator.TradespaceSearchExecutive;
 import tatc.util.Summary;
 import java.lang.InterruptedException;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+
 public class GAnew extends AbstractProblem {
 
     private ProblemProperties properties;
@@ -70,7 +73,7 @@ public class GAnew extends AbstractProblem {
     public void evaluate(Solution solution) {
         // Decode the solution into architecture parameters
         List<Map<String, Object>> archParams = decodeSolution(solution);
-        ArchitectureCreatorNew creator = new ArchitectureCreatorNew();
+        ArchitectureCreatorNew creator = new ArchitectureCreatorNew(properties);
         JSONObject tseRequestJson = properties.getTsrObject();
         JSONArray constellationsJSON = tseRequestJson.getJSONObject("designSpace").getJSONArray("spaceSegment");
         JSONObject constJson = constellationsJSON.getJSONObject(0);
@@ -172,18 +175,7 @@ public class GAnew extends AbstractProblem {
             }
             // (d) Store the result inside the decision for later reference
         }
-    
-        // // 2) Find the ConstructionNode, call its decodeArchitecture again.
-        // //    This time, the node can gather all partial results from each parent's getResult().
-        // for (Decision d : decisions) {
-        //     if (d instanceof ConstructionNode) {
-        //         // ConstructionNode typically ignores 'encoded',
-        //         // but we can pass null or an empty array if needed.
-        //         return d.decodeArchitecture(null, solution, graph);
-        //     }
-        // }
-    
-        // 3) If no construction node was found, return an empty list
+
         return new ArrayList<>();
     }
     
@@ -216,12 +208,48 @@ public class GAnew extends AbstractProblem {
             // Create JSON payload
             JSONObject payload = new JSONObject();
             
-            // Add design variables
+            // Add design variables with meaningful names
             JSONObject designVariables = new JSONObject();
-            for (int i = 0; i < solution.getNumberOfVariables(); i++) {
-                RealVariable var = (RealVariable) solution.getVariable(i);
-                designVariables.put("var" + i, var.getValue());
+            int varOffset = 0;
+            
+            for (Decision d : decisions) {
+                // Skip construction nodes as they don't have direct variables
+                if (d instanceof ConstructionNode) {
+                    continue;
+                }
+                
+                // Get the encoded values for this decision
+                int[] encoded = (int[]) d.extractEncodingFromSolution(solution, varOffset);
+                
+                // Get the variable names for this decision
+                List<String> varNames = d.getVariableNames();
+                
+                // Map encoded values to their corresponding names
+                for (int i = 0; i < encoded.length; i++) {
+                    String varName;
+                    RealVariable var = (RealVariable) solution.getVariable(varOffset + i);
+                    
+                    // For assigning decisions, create a more descriptive name
+                    if (d instanceof tatc.decisions.Assigning) {
+                        tatc.decisions.Assigning assign = (tatc.decisions.Assigning) d;
+                        List<String> sources = assign.getSourceEntities();
+                        List<String> targets = assign.getTargetEntities();
+                        
+                        if (i < sources.size() && i < targets.size()) {
+                            varName = sources.get(i) + "-" + targets.get(i);
+                        } else {
+                            varName = varNames.get(i);
+                        }
+                    } else {
+                        varName = varNames.get(i);
+                    }
+                    
+                    designVariables.put(varName, var.getValue());
+                }
+                
+                varOffset += encoded.length;
             }
+            
             payload.put("designVariables", designVariables);
             
             // Add objectives
@@ -238,27 +266,22 @@ public class GAnew extends AbstractProblem {
             System.out.println("Objectives: " + objectives.toString(2));
             System.out.println("Design Variables: " + designVariables.toString(2));
 
-            // Send HTTP POST request
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(callbackUrl))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
-                .build();
+            // Send HTTP POST request using Apache HttpClient
+            try (CloseableHttpClient client = HttpClients.createDefault()) {
+                HttpPost httpPost = new HttpPost(callbackUrl);
+                httpPost.setHeader("Content-Type", "application/json");
+                httpPost.setEntity(new StringEntity(payload.toString(), "UTF-8"));
 
-            // Send request asynchronously to not block the GA
-            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenAccept(response -> {
-                    if (response.statusCode() != 200) {
-                        System.err.println("Failed to send solution: " + response.statusCode());
+                // Execute the request
+                try (CloseableHttpResponse response = client.execute(httpPost)) {
+                    int statusCode = response.getStatusLine().getStatusCode();
+                    if (statusCode != 200) {
+                        System.err.println("Failed to send solution: " + statusCode);
                     } else {
                         System.out.println("Successfully sent solution #" + (solutionCounter-1));
                     }
-                })
-                .exceptionally(e -> {
-                    System.err.println("Error sending solution: " + e.getMessage());
-                    return null;
-                });
+                }
+            }
 
         } catch (Exception e) {
             System.err.println("Error preparing solution for HTTP: " + e.getMessage());

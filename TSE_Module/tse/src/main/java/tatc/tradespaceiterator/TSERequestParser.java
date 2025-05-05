@@ -45,7 +45,10 @@ public class TSERequestParser {
     }
 
     public static void loadDotEnv(String envFilePath) throws IOException {
+        System.out.println("Attempting to load .env file from: " + envFilePath);
         List<String> lines = Files.readAllLines(Paths.get(envFilePath));
+        System.out.println("Found " + lines.size() + " lines in .env file");
+        
         for (String line : lines) {
             // Skip comments and empty lines
             if (line.trim().isEmpty() || line.trim().startsWith("#")) {
@@ -56,9 +59,14 @@ public class TSERequestParser {
             if (parts.length == 2) {
                 String key = parts[0].trim();
                 String value = parts[1].trim();
+                System.out.println("Loading env var: " + key + " = " + value);
                 envVars.put(key, value);
             }
         }
+        
+        // Print all loaded variables
+        System.out.println("Loaded environment variables:");
+        envVars.forEach((key, value) -> System.out.println(key + " = " + value));
     }
 
     /**
@@ -83,7 +91,8 @@ public class TSERequestParser {
     public Map<String, JSONObject> getWorkflow(JSONObject tseRequest) {
     // 1) Load environment variables (e.g., from your .env file)
     try {
-        loadDotEnv("C:\\Users\\dfornos\\Desktop\\3D-CHESS-aumentation-MQTT\\3D-Chess-augmentation\\.env");
+        String envPath = System.getProperty("user.dir") + "/../../.env";
+        loadDotEnv(envPath);
     } catch (IOException e) {
         System.err.println("Error loading .env file: " + e.getMessage());
     }

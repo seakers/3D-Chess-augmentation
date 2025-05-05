@@ -736,7 +736,7 @@ public class TradespaceSearch implements Serializable {
         for (MissionObjective objParent : this.gEvaluation().getTSE().getObjectives()){
             if (objParent.getParent()==null){
                 CompoundObjective compoundObjective = new CompoundObjective(objParent);
-                for (MissionObjective objChild : this.getMission().getObjectives()){
+                for (MissionObjective objChild : this.gEvaluation().getTSE().getObjectives()){
                     if (objParent.getName().equalsIgnoreCase(objChild.getParent())){
                         compoundObjective.addChild(objChild);
                     }
