@@ -34,7 +34,8 @@ def loadJSONCostEstimation(jsonPath):
                     trl=instrument['trl'],
                     mass=instrument['mass'],
                     avgPower=instrument['avgPower'],
-                    dataRate=instrument['dataRate']
+                    dataRate=instrument['dataRate'],
+                    **{k: v for k, v in instrument.items() if k not in ['trl', 'mass', 'avgPower', 'dataRate']}
                 ) for instrument in const['instruments']
             ],
             launchVehicle=LaunchVehicle(
@@ -77,7 +78,8 @@ def loadJSONCostEstimationSingle(jsonPath):
                 trl=instrument['trl'],
                 mass=instrument['mass'],
                 avgPower=instrument['avgPower'],
-                dataRate=instrument['dataRate']
+                dataRate=instrument['dataRate'],
+                **{k: v for k, v in instrument.items() if k not in ['trl', 'mass', 'avgPower', 'dataRate']}
             ) for instrument in data['instruments']
         ],
         launchVehicle=LaunchVehicle(

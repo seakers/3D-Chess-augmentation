@@ -7,6 +7,7 @@ from OrbitCalculations import *
 from DeltaVBudget import *
 from EPSDesign import *
 from SCDesignClasses import *
+from CostEstimation import EARTH_RADIUS
 import os
 import logging
 
@@ -109,7 +110,15 @@ def loadJSONConst(jsonDict): # work in progress -- need to make some decisions o
                     FOV=payload['fieldOfView']['fullConeAngle'],
                     specRange=payload['operatingWavelength'],
                     dataRate=payload['dataRate'],
-                    FOR=payload['fieldOfView']['crossTrackFieldOfView']
+                    FOR=payload['fieldOfView']['crossTrackFieldOfView'],
+                    crossTrackFieldOfView=payload['fieldOfView']['crossTrackFieldOfView'],
+                    f=payload['focalLength'],
+                    Nv=payload['Ns'],
+                    Ns=payload['Nv'],
+                    D=payload['apertureDia'],
+                    ps=payload['ps'],
+                    pv=payload['pv'],
+                    detectorWidth=payload['detectorWidth'],
                     # swathWidth=payload['swathWidth']
                     )
                 payloads.append(payloadComp)
@@ -219,8 +228,22 @@ def costEstimationJSON(constPayloads, constMissions, scMasses, subsMasses, const
                 "trl": 9, # all components currently are in a database for sale, so I am assuming they are at TRL 9
                 "mass": payload.mass,
                 "avgPower": payload.avgPower,
-                "dataRate": payload.dataRate
+                "dataRate": payload.dataRate,
+                "height": mission.h,  # Convert to km
+                "inclination": mission.i
             }
+            
+            # Add optional parameters only if they exist in the payload object
+            optional_params = [
+                "name", "dimensions", "peakPower", "tempRange", "resolution",
+                "FOV", "specRange", "FOR", "crossTrackFieldOfView",
+                "f", "Nv", "Ns", "D", "ps","pv", "detectorWidth"
+            ]
+            
+            for param in optional_params:
+                if hasattr(payload, param):
+                    instrument_data[param] = getattr(payload, param)
+            
             data["instruments"].append(instrument_data)
 
         costCallDict['constellations'].append(data)

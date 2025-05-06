@@ -1,9 +1,33 @@
 import numpy as np
 
+# Earth's radius in meters
+EARTH_RADIUS = 6378137.0  # meters
+
+def calculate_ground_velocity(mission):
+    """Calculate ground velocity based on orbital parameters
+    
+    Args:
+        mission: Mission object containing orbital parameters
+        
+    Returns:
+        float: Ground velocity in m/s
+    """
+    # Get orbital period from semi-major axis using Kepler's Third Law
+    # T = 2π * sqrt(a³/μ) where μ = GM = 3.986004418e14 m³/s²
+    mu = 3.986004418e14  # Earth's gravitational parameter
+    a = mission.semiMajorAxis * 1000  # convert km to m
+    T = 2 * np.pi * np.sqrt(a**3 / mu)  # orbital period in seconds
+    
+    # Calculate ground velocity
+    # vg = 2πRe/T * cos(i) where Re is Earth's radius and i is inclination
+    vg = (2 * np.pi * EARTH_RADIUS / T) * np.cos(np.radians(mission.inclination))
+    
+    return vg
+
 class Mission:
     def __init__(self, satelliteDryMass, structureMass, propulsionMass, ADCSMass, avionicsMass, 
                  thermalMass, EPSMass, satelliteBOLPower, satDataRatePerOrbit, lifetime, numPlanes, 
-                 numSats, instruments, launchVehicle, **kwargs):
+                 numSats, instruments, launchVehicle, semiMajorAxis=None, inclination=None, **kwargs):
         self.satelliteDryMass = satelliteDryMass
         self.structureMass = structureMass
         self.propulsionMass = propulsionMass
@@ -18,16 +42,74 @@ class Mission:
         self.numSats = numSats
         self.instruments = instruments
         self.launchVehicle = launchVehicle
+        self.semiMajorAxis = semiMajorAxis  # in km
+        self.inclination = inclination     
+        self.has_all_paper_params = False
 
         for k in kwargs.keys():
             self.__setattr__(k,kwargs[k])
 
 class Instrument:
-    def __init__(self, trl, mass, avgPower, dataRate, **kwargs):
+    def __init__(self, trl, mass=None, avgPower=None, dataRate=None, 
+                 FOV=None, f=None, Nv=None, Ns=None, pv=None, ps=None, detectorWidth=None,T=None, D=None, 
+                 b=16, height=None, inclination=None, **kwargs):
+        """Initialize an instrument with either direct parameters or parameters to calculate them
+        
+        Args:
+            trl: Technology Readiness Level
+            mass: Direct mass input (kg)
+            avgPower: Direct power input (W)
+            dataRate: Direct data rate input (kbps)
+            FOV: Field of view (degrees)
+            f: Focal length (m)
+            Nv: Number of VNIR spectral pixels
+            Ns: Number of SWIR spectral pixels
+            T: TIR presence (1 or 0)
+            D: Aperture size (m)
+            b: Bits per pixel (default 16)
+            height: Satellite altitude in km
+            inclination: Orbital inclination in degrees
+        """
         self.trl = trl
-        self.mass = mass
-        self.avgPower = avgPower
-        self.dataRate = dataRate
+        
+        # Check if we have all parameters for the paper's methodology
+        paper_params = [FOV, f, Nv, Ns, D, height, inclination, pv, ps, detectorWidth]
+        self.has_all_paper_params = all(x is not None and x != 0 for x in paper_params)
+        
+        if self.has_all_paper_params:
+            T = 0
+            # Convert FOV from degrees to radians for calculations
+            theta_p = np.radians(FOV)
+            
+            # Calculate spatial pixels
+            Nx = calculate_spatial_pixels(ps, f, detectorWidth)
+            
+            # Calculate masses
+            m_vnir = calculate_vnir_mass(Nx, Nv)
+            m_swir = calculate_swir_mass(Nx, Ns)
+            m_tir = calculate_tir_mass(T)
+            m_lens = calculate_lens_mass(f, D)
+            
+            # Calculate total mass
+            self.mass = calculate_total_mass(m_vnir, m_swir, m_tir, m_lens)
+            
+            # Calculate power
+            self.avgPower = calculate_power(Nx, Nv, Ns, T)
+            
+            # Calculate ground velocity from orbital parameters
+            vg = calculate_ground_velocity_from_height(height, inclination)
+            delta_x = compute_delta_x(height_m=height*1000, pixel_size_m=ps, focal_length_m=f, aperture_m=D, has_SWIR=True)
+
+
+            # Calculate data rate
+            self.dataRate = calculate_data_rate(Nx, Nv, Ns, b, vg, delta_x)
+        # Fall back to direct parameters if paper's methodology can't be used
+        elif all(x is not None for x in [mass, avgPower, dataRate]):
+            self.mass = mass
+            self.avgPower = avgPower
+            self.dataRate = dataRate
+        else:
+            raise ValueError("Must provide either all paper methodology parameters (FOV, f, Nv, Ns, D, height, inclination) or direct parameters (mass, avgPower, dataRate)")
 
         for k in kwargs.keys():
             self.__setattr__(k,kwargs[k])
@@ -41,21 +123,127 @@ class LaunchVehicle:
         for k in kwargs.keys():
             self.__setattr__(k,kwargs[k])
 
+def calculate_spatial_pixels(pixelSize, focalLength, detectorWidth):
+    """Calculate number of spatial pixels using Eq. (8)"""
+    N_x = math.floor(detectorWidth * focalLength / pixelSize)
+    return N_x
+
+def calculate_vnir_mass(Nx, Nv):
+    """Calculate VNIR imager mass using Eq. (9)"""
+    return 0.363 + (1.40e-6) * Nx * Nv
+
+def calculate_swir_mass(Nx, Ns):
+    """Calculate SWIR imager mass using Eq. (10)"""
+    return 0.618 + (2.26e-5) * Nx * Ns
+
+def calculate_tir_mass(T):
+    """Calculate TIR sensor mass based on TIR presence"""
+    return 13.1 if T == 1 else 0
+
+def calculate_lens_mass(f, D):
+    """Calculate lens mass using Eq. (11)"""
+    return np.exp(4.365 * f + 2.009 * D - 2.447)
+
+def calculate_total_mass(m_vnir, m_swir, m_tir, m_lens):
+    """Calculate total instrument mass using Eq. (12)"""
+    return m_vnir + m_swir + m_tir + m_lens
+
+def calculate_power(Nx, Nv, Ns, T):
+    """Calculate instrument power using Eq. (13)"""
+    base_power = (2.69e-5) * (Nv + Ns) * Nx + 1.14
+    return base_power + (200 if T == 1 else 0)
+
+def calculate_data_rate(Nx, Nv, Ns, b, vg, delta_x):
+    """Calculate data rate using Eq. (14)"""
+    return (Nv + Ns) * Nx * b * vg / delta_x
+
 def apply_NICM(m, p, rb):
+    """Apply original NASA Instrument Cost Model"""
     cost = 25600 * ((p / 61.5) ** 0.32) * ((m / 53.8) ** 0.26) * ((1000 * rb / 40.4) ** 0.11)
     cost = cost / 1.097  # correct for inflation and transform to $M
     return cost
 
+def apply_NICM_paper(m, p, rb):
+    """Apply NASA Instrument Cost Model from the paper using Eq. (15)"""
+    cost = 979.9 * (m ** 0.328) * (p ** 0.357) * (rb ** 0.092)  # Cost in FY04$K
+    return cost/1000  # to $M
+import math
+
+def compute_delta_x(height_m, pixel_size_m, focal_length_m, aperture_m, has_SWIR=True):
+    """
+    Compute spatial resolution delta x (in meters), considering both sampling and diffraction limits.
+
+    Parameters:
+    - height_m: satellite orbit height (h), in meters
+    - pixel_size_m: pixel size (p), in meters
+    - focal_length_m: focal length (f), in meters
+    - aperture_m: aperture diameter (D), in meters
+    - has_SWIR: if True, lambda = 2500nm; else 1000nm
+
+    Returns:
+    - delta_x (spatial resolution) in meters
+    """
+    wavelength = 2.5e-6 if has_SWIR else 1.0e-6
+
+    # Sampling-limited resolution
+    sampling_term = (height_m * pixel_size_m) / focal_length_m
+
+    # Diffraction-limited resolution
+    diffraction_term = (1.22 * height_m * wavelength) / aperture_m
+
+    return max(sampling_term, diffraction_term)
+
+
+def calculate_ground_velocity_from_height(height, inclination):
+    """Calculate ground velocity based on height and inclination
+    
+    Args:
+        height: Satellite altitude in km
+        inclination: Orbital inclination in degrees
+        
+    Returns:
+        float: Ground velocity in m/s
+    """
+    # Get orbital period from height using Kepler's Third Law
+    # T = 2π * sqrt(a³/μ) where μ = GM = 3.986004418e14 m³/s²
+    mu = 3.986004418e14  # Earth's gravitational parameter
+    a = (height + EARTH_RADIUS/1000) * 1000  # convert km to m
+    T = 2 * np.pi * np.sqrt(a**3 / mu)  # orbital period in seconds
+    
+    # Calculate ground velocity
+    # vg = 2πRe/T * cos(i) where Re is Earth's radius and i is inclination
+    vg = (2 * np.pi * EARTH_RADIUS / T) * np.cos(np.radians(inclination))
+    
+    return vg
+
+# Example usage:
+
+
 def estimate_instrument_cost(instrument):
+    """Estimate cost for a single instrument
+    
+    Args:
+        instrument: Instrument object containing mass, power, and data rate
+        use_paper_model: If True, use the paper's NICM model, otherwise use the original model
+    """
     m = instrument.mass
     p = instrument.avgPower
     rb = instrument.dataRate
     
-    cost = apply_NICM(m, p, rb)
+    if instrument.has_all_paper_params:
+        cost = apply_NICM_paper(m, p, rb)
+    else:
+        cost = apply_NICM(m, p, rb)
     
     instrument.cost = cost
 
 def estimate_payload_cost(mission):
+    """Estimate total payload cost for all instruments
+    
+    Args:
+        mission: Mission object containing instruments
+        use_paper_model: If True, use the paper's NICM model, otherwise use the original model
+    """
     instruments = mission.instruments
     
     costs = 0
@@ -64,7 +252,6 @@ def estimate_payload_cost(mission):
         costs += instrument.cost
     
     total_cost = costs
-    total_cost = total_cost / 1000  # to $M
     
     mission.payloadCost = total_cost
     mission.payloadNonRecurringCost = total_cost * 0.8
