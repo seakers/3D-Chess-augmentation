@@ -22,7 +22,6 @@ public class Combining extends Decision {
      * The names of the sub-decisions that make up this combining decision.
      * For example: ["altitude", "inclination"].
      */
-    private List<String> subDecisions;
 
     /**
      * For each sub-decision, a list of possible discrete alternatives.
@@ -45,7 +44,6 @@ public class Combining extends Decision {
      */
     public Combining(ProblemProperties properties, String decisionName) {
         super(properties, decisionName);
-        this.subDecisions = new ArrayList<>();
         this.alternatives = new ArrayList<>();
         this.parentDecisions = new ArrayList<Decision>();
     }
@@ -67,25 +65,13 @@ public class Combining extends Decision {
 
     /**
      * Sets the sub-decisions that form this combining decision.
-     * @param subDecisions a list of sub-decision names
      */
-    public void setSubDecisions(List<String> subDecisions) {
-        this.subDecisions = new ArrayList<>(subDecisions);
-    }
     // For the alternatives
     public void setAlternativesSource(List<String> altKeys) {
         this.alternativesSource = altKeys;
     }
     public List<String> getAlternativesSource() {
         return this.alternativesSource;
-    }
-
-    /**
-     * Gets the list of sub-decisions that form this combining decision.
-     * @return the list of sub-decision names
-     */
-    public List<String> getSubDecisions() {
-        return new ArrayList<>(this.subDecisions);
     }
 
     /**
@@ -114,9 +100,9 @@ public class Combining extends Decision {
         if (index == alternatives.size()) {
             // Build an architecture from 'current'
             Map<String,Object> arch = new LinkedHashMap<>();
-            for (int i=0; i<subDecisions.size(); i++) {
+            for (int i=0; i<subDecisionsSource.size(); i++) {
                 Object chosenVal = alternatives.get(i).get(current.get(i));
-                arch.put(subDecisions.get(i), chosenVal);
+                arch.put(subDecisionsSource.get(i), chosenVal);
             }
             result.add(arch);
             return;

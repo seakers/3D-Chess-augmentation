@@ -14,6 +14,7 @@ import java.util.Set;
 import org.moeaframework.core.Solution;
 
 import tatc.decisions.Decision;
+import tatc.decisions.ConstructionNode;
 
 public class Summary {
     public static void writeSummaryFile(Map<String, Double> objectives, Map<String, Object> archVariables, int archIndex) throws IOException {
@@ -81,84 +82,85 @@ public class Summary {
         Solution solution,
         int archIndex,
         List<Decision> decisions) throws IOException {
-    File file_dir = new File(System.getProperty("tatc.output"));
-    if (!file_dir.exists()) {
-        file_dir.mkdirs();
-    }
+        File file_dir = new File(System.getProperty("tatc.output"));
+        if (!file_dir.exists()) {
+            file_dir.mkdirs();
+        }
 
-    String csvFile = System.getProperty("tatc.output") + File.separator + "summary.csv";
-    File file = new File(csvFile);
-    boolean fileExists = file.exists();
+        String csvFile = System.getProperty("tatc.output") + File.separator + "summary.csv";
+        File file = new File(csvFile);
+        boolean fileExists = file.exists();
 
-    // --- 1) Identify the number of variables in this solution ---
-    int nVars = solution.getNumberOfVariables();
+        // --- 1) Identify the number of variables in this solution ---
+        int nVars = solution.getNumberOfVariables();
 
-    // --- 2) Collect objective names ---
-    List<String> objectiveNames = new ArrayList<>(objectives.keySet());
+        // --- 2) Collect objective names ---
+        List<String> objectiveNames = new ArrayList<>(objectives.keySet());
 
-    // --- 3) If this is the first time (file doesn't exist), write the header ---
-    // archIndex, var0, var1, ..., var(nVars-1), objective1, objective2, ...
-    try (FileWriter csvWriter = new FileWriter(file, true)) {
-
-        if (!fileExists) {
-            List<String> header = new ArrayList<>();
-            header.add("archIndex");
-            for (int i = 0; i < nVars; i++) {
-                header.add("var" + i);
+        // --- 3) If this is the first time (file doesn't exist), write the header ---
+        try (FileWriter csvWriter = new FileWriter(file, true)) {
+            if (!fileExists) {
+                List<String> header = new ArrayList<>();
+                header.add("archIndex");
+                
+                // Add decision variable names from decisions
+                for (Decision d : decisions) {
+                    if (d instanceof ConstructionNode) {
+                        continue;
+                    }
+                    List<String> varNames = d.getVariableNames();
+                    header.addAll(varNames);
+                }
+                
+                header.addAll(objectiveNames);
+                csvWriter.append(String.join(",", header)).append("\n");
             }
-            header.addAll(objectiveNames);
-            csvWriter.append(String.join(",", header)).append("\n");
-        }
 
-        // --- 4) Prepare the row for this solution ---
-        List<String> rowValues = new ArrayList<>();
-        rowValues.add(Integer.toString(archIndex));  // archIndex
+            // --- 4) Prepare the row for this solution ---
+            List<String> rowValues = new ArrayList<>();
+            rowValues.add(Integer.toString(archIndex));  // archIndex
 
-        // 4A) Add the solution's variable values
-        for (int i = 0; i < nVars; i++) {
-            // Attempt to interpret the variable as a double or int, depending on your representation
-            double value = 0.0;
-            try {
-                // If you're using RealVariable or EncodingUtils.newInt(...) => can interpret as double
-                value = ((org.moeaframework.core.variable.RealVariable) solution.getVariable(i)).getValue();
-            } catch (ClassCastException e) {
-                // If using a different variable type, handle accordingly.
-                // E.g., if it's a BinaryIntegerVariable or an IntegerVariable
-                // ...
-                throw new IllegalStateException("Unexpected variable type at index " + i, e);
+            // 4A) Add the solution's variable values
+            int varOffset = 0;
+            for (Decision d : decisions) {
+                if (d instanceof ConstructionNode) {
+                    continue;
+                }
+                int numVars = d.getNumberOfVariables();
+                // Ensure we don't exceed solution bounds
+                for (int i = 0; i < numVars && (varOffset + i) < nVars; i++) {
+                    double value = ((org.moeaframework.core.variable.RealVariable) solution.getVariable(varOffset + i)).getValue();
+                    String valueStr = String.valueOf(value);
+                    valueStr = safeForCSV(valueStr);
+                    rowValues.add(valueStr);
+                }
+                varOffset += numVars;
             }
-            // Convert to string safely
-            String valueStr = String.valueOf(value);
-            // Escape quotes, commas, etc. if needed
-            valueStr = safeForCSV(valueStr);
-            rowValues.add(valueStr);
+
+            // 4B) Add the objective values
+            for (String objName : objectiveNames) {
+                Double val = objectives.getOrDefault(objName, Double.NaN);
+                String valStr = safeForCSV(val.toString());
+                rowValues.add(valStr);
+            }
+
+            // --- 5) Write the row to CSV ---
+            csvWriter.append(String.join(",", rowValues)).append("\n");
         }
+    }
 
-        // 4B) Add the objective values
-        for (String objName : objectiveNames) {
-            Double val = objectives.getOrDefault(objName, Double.NaN);
-            String valStr = safeForCSV(val.toString());
-            rowValues.add(valStr);
+    /**
+     * Utility function to escape any commas, quotes, or newlines in a CSV field.
+     * Adjust as needed for your data format.
+     */
+    private static String safeForCSV(String field) {
+        if (field == null) {
+            return "";
         }
-
-        // --- 5) Write the row to CSV ---
-        csvWriter.append(String.join(",", rowValues)).append("\n");
+        field = field.replace("\"", "\"\"");
+        if (field.contains(",") || field.contains("\"") || field.contains("\n")) {
+            field = "\"" + field + "\"";
+        }
+        return field;
     }
-}
-
-/**
- * Utility function to escape any commas, quotes, or newlines in a CSV field.
- * Adjust as needed for your data format.
- */
-private static String safeForCSV(String field) {
-    if (field == null) {
-        return "";
-    }
-    field = field.replace("\"", "\"\"");
-    if (field.contains(",") || field.contains("\"") || field.contains("\n")) {
-        field = "\"" + field + "\"";
-    }
-    return field;
-}
-
 }

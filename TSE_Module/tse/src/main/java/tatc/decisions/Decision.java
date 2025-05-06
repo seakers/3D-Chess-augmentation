@@ -194,7 +194,7 @@ public abstract class Decision {
         List<String> names = new ArrayList<>();
         if (this instanceof Combining) {
             Combining comb = (Combining) this;
-            names.addAll(comb.getSubDecisions());
+            names.addAll(comb.getSubDecisionsSource());
         } else if (this instanceof tatc.decisions.Assigning) {
             tatc.decisions.Assigning assign = (tatc.decisions.Assigning) this;
             List<String> sources = assign.getSourceEntities();
