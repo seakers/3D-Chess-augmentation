@@ -203,9 +203,17 @@ class InstruPyEvaluator:
                     self.logger.error(f"Error requesting dependency {dependency_name}: {str(e)}")
                     self.logger.exception("Exception details:")
                     raise
-        mission_start = datetime(2024, 1, 1, tzinfo=timezone.utc)
-        mission_duration = timedelta(hours=2)
-
+        date_str = architecture.get("mission").get("start")
+        year = int(date_str[0:4])
+        month = int(date_str[5:7])
+        day = int(date_str[8:10])
+        mission_start=datetime(year, month, day, tzinfo=timezone.utc)
+            # Extract number of days (assumes format always includes 'D')
+        days_part = architecture.get("mission").get("duration").split('D')[0]  # 'P0Y0M01'
+        days_str = days_part.split('M')[-1]     # '01'
+        days = int(days_str)
+        hours = days * 24
+        mission_duration=timedelta(hours=hours)
         request = DataMetricsRequest(
             start=mission_start,
             duration=mission_duration,
