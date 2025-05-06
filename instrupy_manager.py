@@ -19,81 +19,78 @@ from eose.satellites import Satellite
 from instrupy.basic_sensor_model import BasicSensorModel as InstruPy_BasicSensorModel
 from instrupy.passive_optical_scanner_model import PassiveOpticalScannerModel
 
+import json
+
+import json
+
 def calculate_media_metrics(json_data):
-    # Parseamos el JSON si es un string, o usamos directamente el diccionario si ya está cargado
-    if isinstance(json_data, str):
-        data = json.loads(json_data)
-    else:
-        data = json_data
-    
-        # Initialize total metrics dictionary with keys for each performance metric
-    metrics_totals = {
-        "SNR": 0,  # Higher is better
-        "dynamic_range": 0,  # Higher is better
-        "along_track_resolution": 0,  # Lower is better
-        "cross_track_resolution": 0,  # Lower is better
-        "noise_equivalent_delta_T": 0  # Lower is better
+    extrema = {
+        "SNR_min": 0.0,
+        "SNR_max": 3429538.805,
+        "dynamic_range_min": 0.0,
+        "dynamic_range_max": 3023402653.5,
+        "along_track_resolution_min": 0.0,
+        "along_track_resolution_max": 48712.125,
+        "cross_track_resolution_min": 0.0,
+        "cross_track_resolution_max": 50950.3,
+        "noise_equivalent_delta_T_min": 0.0,
+        "noise_equivalent_delta_T_max": 0.00014
+
     }
-    count = 0  # Counter for the total number of metric samples
 
-    # Iterate over target_records and accumulate each metric for all samples
-    for target_record in data.get("target_records", []):
-        for sample in target_record.get("samples", []):
-            metrics_list = sample.get("instantaneous_metrics", {})
-            for metrics in metrics_list:
-                # Accumulate each metric if it exists in the data
-                if metrics.get("signal_to_noise_ratio", 1) == 0:
-                    metrics_totals["SNR"] += 1
-                else:
-                    metrics_totals["SNR"] += metrics.get("signal_to_noise_ratio", 1)
+    data = json.loads(json_data) if isinstance(json_data, str) else json_data
 
-                metrics_totals["along_track_resolution"] += metrics.get("along_track_resolution", 0)
-                metrics_totals["cross_track_resolution"] += metrics.get("cross_track_resolution", 0)
-                metrics_totals["noise_equivalent_delta_T"] += metrics.get("noise_equivalent_delta_T", 0)
+    totals = {
+        "SNR": 0.0,
+        "dynamic_range": 0.0,
+        "along_track_resolution": 0.0,
+        "cross_track_resolution": 0.0,
+        "noise_equivalent_delta_T": 0.0
+    }
+    count = 0
+
+    def norm_maximize(val, min_val, max_val):
+        return (val - min_val) / (max_val - min_val) if max_val > min_val else 0.0
+
+    def norm_minimize(val, min_val, max_val):
+        return (max_val - val) / (max_val - min_val) if max_val > min_val else 0.0
+
+    for target in data.get("target_records", []):
+        for sample in target.get("samples", []):
+            for m in sample.get("instantaneous_metrics", []):
+                snr = m.get("signal_to_noise_ratio", 0.0)
+                dr = m.get("dynamic_range", 0.0)
+                atr = m.get("along_track_resolution", 0.0)
+                ctr = m.get("cross_track_resolution", 0.0)
+                netd = m.get("noise_equivalent_delta_T", 0.0)
+
+                totals["SNR"] += norm_maximize(snr, extrema["SNR_min"], extrema["SNR_max"])
+                totals["dynamic_range"] += norm_maximize(dr, extrema["dynamic_range_min"], extrema["dynamic_range_max"])
+                totals["along_track_resolution"] += norm_minimize(atr, extrema["along_track_resolution_min"], extrema["along_track_resolution_max"])
+                totals["cross_track_resolution"] += norm_minimize(ctr, extrema["cross_track_resolution_min"], extrema["cross_track_resolution_max"])
+                totals["noise_equivalent_delta_T"] += norm_minimize(netd, extrema["noise_equivalent_delta_T_min"], extrema["noise_equivalent_delta_T_max"])
+
                 count += 1
 
-    # Calculate the average for each metric if there are samples available
-    if count > 0:
-        metrics_averages = {key: (value / count) for key, value in metrics_totals.items()}
-    else:
-        metrics_averages = {key: None for key in metrics_totals}  # Handle case with no samples
+    averages = {k: (v / count) if count else 0.0 for k, v in totals.items()}
 
-    # Define weights for each metric, assigning higher or lower influence based on mission priorities
     weights = {
-        "SNR": 0.5,  # High weight, as SNR is critical for image clarity
-        "dynamic_range": 0.1,  # Important for range of detectable values
-        "along_track_resolution": 0.10,  # Lower is better, inversely related, so weight adjusted accordingly
-        "cross_track_resolution": 0.20,  # Similar to above
-        "noise_equivalent_delta_T": 0.1  # Lower is better, critical for thermal sensitivity
+        "SNR": 0.5,
+        "dynamic_range": 0,
+        "along_track_resolution": 0.2,
+        "cross_track_resolution": 0.2,
+        "noise_equivalent_delta_T": 0.1
     }
 
-    # Calculate weighted InstrumentScore based on whether higher or lower values are desirable
-    if count > 0:
-        instrument_score = (
-            weights["SNR"] * 10*math.log10(metrics_averages["SNR"]if metrics_averages["SNR"] else 1) +
-            weights["dynamic_range"] * 10*math.log10(metrics_averages["dynamic_range"]if metrics_averages["dynamic_range"] and metrics_averages["dynamic_range"]!=0 else 1)+
-            weights["along_track_resolution"] * (1 / metrics_averages["along_track_resolution"] if metrics_averages["along_track_resolution"] else 0) +
-            weights["cross_track_resolution"] * (1 / metrics_averages["cross_track_resolution"] if metrics_averages["cross_track_resolution"] else 0)+
-            weights["noise_equivalent_delta_T"] * (1 / metrics_averages["noise_equivalent_delta_T"] if metrics_averages["noise_equivalent_delta_T"] else 0)
-        )
-    else:
-        instrument_score = 0  # Handle division by zero if no samples
+    score = sum(weights[k] * averages[k] for k in weights)
+    averages["InstrumentScore"] = score
 
-    # Add the final InstrumentScore to the averages dictionary
-    metrics_averages["InstrumentScore"] = instrument_score
-    if metrics_averages["cross_track_resolution"] is None:
-        metrics_averages["cross_track_resolution"] = 0
-    if metrics_averages["SNR"] is None:
-        metrics_averages["SNR"] = 0
-    if metrics_averages["along_track_resolution"] is None:
-        metrics_averages["along_track_resolution"] = 0
-    if metrics_averages["noise_equivalent_delta_T"] is None:
-        metrics_averages["noise_equivalent_delta_T"] = 0
-    if metrics_averages["dynamic_range"] is None:
-        metrics_averages["dynamic_range"] = 0
-    if metrics_averages["InstrumentScore"] is None:
-        metrics_averages["InstrumentScore"] = 0
-    return metrics_averages
+    return averages
+
+
+
+
+
 
 
 def get_instantaneous_data_metrics_object(instru_type, time_instant, data_metrics):
