@@ -413,17 +413,14 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
             }
         }
     
-        // Payload
-        // JSONArray payloadJsonArray = satelliteJson.optJSONArray("payload");
-        // List<Instrument> payload = new ArrayList<>();
-        // if (payloadJsonArray != null) {
-        //     for (int i = 0; i < payloadJsonArray.length(); i++) {
-        //         JSONObject instrumentJson = payloadJsonArray.getJSONObject(i);
-        //         Instrument instrument = createInstrumentFromJson(instrumentJson, archParameters);
-        //         payload.add(instrument);
-        //     }
-        // }
-        List<Instrument> payload = getPayloadFromArchOrJson(satelliteJson, archParameters);
+        // Add orbit information to archParameters for instrument calculations
+        Map<String, Object> instrumentParams = new HashMap<>(archParameters);
+        instrumentParams.put("height", orbit.getAltitude());
+        instrumentParams.put("inclination", orbit.getInclination());
+        
+        // Get payload with orbit information
+        List<Instrument> payload = getPayloadFromArchOrJson(satelliteJson, instrumentParams);
+        
         int techReadinessLevel = satelliteJson.optInt("techReadinessLevel", 0);
         boolean isGroundCommand = satelliteJson.optBoolean("isGroundCommand", false);
         boolean isSpare = satelliteJson.optBoolean("isSpare", false);
@@ -484,24 +481,34 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
             
             if (instrumentCollection != null) {
                 for (Object payload_ : instrumentCollection) {
-
                     if(payload_ instanceof JSONObject){
-                        Instrument instrument_i = createInstrumentFromJson((JSONObject) payload_, archParameters);
+                        // Create a new map with orbit information for each instrument
+                        Map<String, Object> instrumentParams = new HashMap<>(archParameters);
+                        instrumentParams.put("height", archParameters.get("height"));
+                        instrumentParams.put("inclination", archParameters.get("inclination"));
+                        
+                        Instrument instrument_i = createInstrumentFromJson((JSONObject) payload_, instrumentParams);
                         payload.add(instrument_i);
                     }
                     else if (payload_ instanceof ArrayList) {
                         for(Object instrument : (ArrayList) payload_){
                             if(instrument instanceof JSONObject){
+                                // Create a new map with orbit information for each instrument
+                                Map<String, Object> instrumentParams = new HashMap<>(archParameters);
+                                instrumentParams.put("height", archParameters.get("height"));
+                                instrumentParams.put("inclination", archParameters.get("inclination"));
+                                
                                 // Create Instrument from JSON object
-                                Instrument instrument_i = createInstrumentFromJson((JSONObject) instrument, archParameters);
+                                Instrument instrument_i = createInstrumentFromJson((JSONObject) instrument, instrumentParams);
                                 payload.add(instrument_i);
                             }
-
                         }
-
                     } else if (payload_ instanceof Map) {
                         @SuppressWarnings("unchecked")
-                        Map<String, Object> instrumentParams = (Map<String, Object>) payload_;
+                        Map<String, Object> instrumentParams = new HashMap<>((Map<String, Object>) payload_);
+                        instrumentParams.put("height", archParameters.get("height"));
+                        instrumentParams.put("inclination", archParameters.get("inclination"));
+                        
                         // Create Instrument from parameter map
                         Instrument instrument = new Instrument(instrumentParams);
                         payload.add(instrument);
@@ -518,7 +525,12 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
             if (payloadJsonArray != null) {
                 for (int i = 0; i < payloadJsonArray.length(); i++) {
                     JSONObject instrumentJson = payloadJsonArray.getJSONObject(i);
-                    Instrument instrument = createInstrumentFromJson(instrumentJson, archParameters);
+                    // Create a new map with orbit information for each instrument
+                    Map<String, Object> instrumentParams = new HashMap<>(archParameters);
+                    instrumentParams.put("height", archParameters.get("height"));
+                    instrumentParams.put("inclination", archParameters.get("inclination"));
+                    
+                    Instrument instrument = createInstrumentFromJson(instrumentJson, instrumentParams);
                     payload.add(instrument);
                 }
             } else {
@@ -570,6 +582,8 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
     // Apply overrides from archParameters
     for (String key : archParameters.keySet()) {
         if (instrumentParams.containsKey(key) || instrumentJson.keySet().contains(key)) {
+            instrumentParams.put(key, archParameters.get(key));
+        }else if (key.equals("height") || key.equals("inclination")) {
             instrumentParams.put(key, archParameters.get(key));
         }
     }
