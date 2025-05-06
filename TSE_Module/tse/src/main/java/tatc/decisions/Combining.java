@@ -160,10 +160,10 @@ public class Combining extends Decision {
     @Override
     public Object encodeArchitecture(Map<String, Object> architecture) {
         // Encode as an integer array representing chosen indices
-        int n = subDecisions.size();
+        int n = subDecisionsSource.size();
         int[] encoding = new int[n];
         for (int i=0; i<n; i++) {
-            String var = subDecisions.get(i);
+            String var = subDecisionsSource.get(i);
             Object chosenVal = architecture.get(var);
             List<Object> vals = alternatives.get(i);
             int idx = vals.indexOf(chosenVal);
