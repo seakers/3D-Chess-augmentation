@@ -292,7 +292,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         double semimajorAxis = altitude + Utilities.EARTH_RADIUS_KM;
         
         // default: no LT constraint  → keep your old refRaan=0
-        Double ltanHours = null;
+        Double ltanHours = 0.0;
 
         // 1) explicit field in JSON wins
         if (orbitJson.has("localTimeAscendingNode")) {
@@ -325,7 +325,11 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         /* keep the rest exactly as you had, but replace refRaan */
         double refRaan = FastMath.toRadians(refRaanDeg);
         // Walker parameters
-        final int s = t / p; // Number of satellites per plane
+        int s = t / p; // Number of satellites per plane
+        if (s == 0){
+            p=t;
+            s=1;
+        }
         final double pu = 2 * FastMath.PI / t; // Pattern unit
         final double delAnom = pu * p; // In-plane spacing between satellites
         final double delRaan = pu * s; // Node spacing
@@ -548,7 +552,7 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
                         instrumentParams.put(key, orientation);
                         break;
                     case "fieldOfView":
-                        FieldOfView fov = createFieldOfViewFromJson(jsonObj);
+                        FieldOfView fov = createFieldOfViewFromJson(jsonObj, archParameters);
                         instrumentParams.put(key, fov);
                         break;
                     default:
@@ -594,9 +598,9 @@ private Orientation createOrientationFromJson(JSONObject orientationJson) {
     return new Orientation(convention, sideLookAngle, sideLookAngle, sideLookAngle, sideLookAngle);
 }
 
-private FieldOfView createFieldOfViewFromJson(JSONObject fovJson) {
+private FieldOfView createFieldOfViewFromJson(JSONObject fovJson, Map<String, Object> archParameters) {
     String sensorGeometry = fovJson.optString("sensorGeometry", "");
-    double fullConeAngle = fovJson.optDouble("fullConeAngle", 0.0);
+    double fullConeAngle = getDoubleFromArchOrJson("fullConeAngle", archParameters, fovJson);
     double alongTrackFieldOfView = fovJson.optDouble("alongTrackFieldOfView", 0.0);
     double crossTrackFieldOfView = fovJson.optDouble("crossTrackFieldOfView", 0.0);
     double fieldOfRegard = fovJson.optDouble("fieldOfRegard", 0.0);

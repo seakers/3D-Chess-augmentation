@@ -89,6 +89,10 @@ public class Instrument implements Serializable {
             private double resolution;
             private double FOV;
             private String specRange;
+            private double Nv;  // Number of vertical detectors
+            private double Ns;  // Number of horizontal detectors
+            private double pv;  // Pixel VNIR size
+            private double ps;  // Pixel SWIR size
         
             /**
              * Constructs an instrument object
@@ -118,7 +122,10 @@ public class Instrument implements Serializable {
                 this.techReadinessLevel = techReadinessLevel;
                 this.mountType = mountType;
                 this.bitsPerPixel = bitsPerPixel;
-                
+                this.Nv = 0.0;  // Initialize with default value
+                this.Ns = 0.0;  // Initialize with default value
+                this.pv = 0.0;  // Initialize with default value
+                this.ps = 0.0;  // Initialize with default value
             }
             // Instrument fields
             
@@ -139,6 +146,10 @@ public class Instrument implements Serializable {
                 this.techReadinessLevel = 0;
                 this.mountType = "";
                 this.scanTechnique = "";
+                this.Nv = 0.0;  // Initialize with default value
+                this.Ns = 0.0;  // Initialize with default value
+                this.pv = 0.0;  // Initialize with default value
+                this.ps = 0.0;  // Initialize with default value
                 // Overwrite with values from instrumentParams if present
                 if (instrumentParams.containsKey("id")) {
                     this.id = (String) instrumentParams.get("id");
@@ -319,6 +330,30 @@ public class Instrument implements Serializable {
     if (instrumentParams.containsKey("specRange")) {
         this.specRange = (String) instrumentParams.get("specRange");
     }
+    if (instrumentParams.containsKey("Nv")) {
+        Object value = instrumentParams.get("Nv");
+        if (value instanceof Number) {
+            this.Nv = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("Ns")) {
+        Object value = instrumentParams.get("Ns");
+        if (value instanceof Number) {
+            this.Ns = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("pv")) {
+        Object value = instrumentParams.get("pv");
+        if (value instanceof Number) {
+            this.pv = ((Number) value).doubleValue();
+        }
+    }
+    if (instrumentParams.containsKey("ps")) {
+        Object value = instrumentParams.get("ps");
+        if (value instanceof Number) {
+            this.ps = ((Number) value).doubleValue();
+        }
+    }
     // ... handle other fields similarly
 }
     
@@ -448,6 +483,38 @@ public String getId() {
  */
 public String getScanTechnique() {
     return scanTechnique;
+}
+
+/**
+ * Gets the number of vertical detectors
+ * @return the number of vertical detectors
+ */
+public double getNv() {
+    return Nv;
+}
+
+/**
+ * Gets the number of horizontal detectors
+ * @return the number of horizontal detectors
+ */
+public double getNs() {
+    return Ns;
+}
+
+/**
+ * Gets the pixel VNIR size
+ * @return the pixel VNIR size
+ */
+public double getPv() {
+    return pv;
+}
+
+/**
+ * Gets the pixel SWIR size
+ * @return the pixel SWIR size
+ */
+public double getPs() {
+    return ps;
 }
 
 }
