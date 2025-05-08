@@ -24,17 +24,30 @@ import json
 import json
 
 def calculate_media_metrics(json_data):
+    # extrema = {
+    #     "SNR_min": 0.0,
+    #     "SNR_max": 3429538.805,
+    #     "dynamic_range_min": 0.0,
+    #     "dynamic_range_max": 3023402653.5,
+    #     "along_track_resolution_min": 0.0,
+    #     "along_track_resolution_max": 48712.125,
+    #     "cross_track_resolution_min": 0.0,
+    #     "cross_track_resolution_max": 50950.3,
+    #     "noise_equivalent_delta_T_min": 0.0,
+    #     "noise_equivalent_delta_T_max": 0.005
+
+    # }
     extrema = {
         "SNR_min": 0.0,
-        "SNR_max": 3429538.805,
+        "SNR_max": 10000,
         "dynamic_range_min": 0.0,
-        "dynamic_range_max": 3023402653.5,
+        "dynamic_range_max": 1e8,
         "along_track_resolution_min": 0.0,
-        "along_track_resolution_max": 48712.125,
+        "along_track_resolution_max": 750,
         "cross_track_resolution_min": 0.0,
-        "cross_track_resolution_max": 50950.3,
+        "cross_track_resolution_max": 750,
         "noise_equivalent_delta_T_min": 0.0,
-        "noise_equivalent_delta_T_max": 0.00014
+        "noise_equivalent_delta_T_max": 0.2
 
     }
 
