@@ -167,10 +167,11 @@ public class GAnew extends AbstractProblem {
             offset += d.getNumberOfVariables();
 
             // (c) Decode
-            List<Map<String, Object>> partialDecoded = d.decodeArchitecture(encoded, solution, graph);
+            
             if (d instanceof ConstructionNode){
                 return d.decodeArchitecture(null, solution, graph);
             }else if(!(decisions.get(decisions.size()-1) instanceof ConstructionNode) && leafDecision.contains(d.getDecisionName())){
+                List<Map<String, Object>> partialDecoded = d.decodeArchitecture(encoded, solution, graph);
                 return partialDecoded;
             }
             // (d) Store the result inside the decision for later reference

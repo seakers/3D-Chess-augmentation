@@ -97,8 +97,8 @@ public class DecisionVariation implements Variation {
 
    /**
  * Safely reads an integer-encoded fragment from the solution, stopping if
- * the solution doesn’t have enough variables or the fragment is smaller than
- * the solution’s allocated region.
+ * the solution doesn't have enough variables or the fragment is smaller than
+ * the solution's allocated region.
  */
 private Object extractEncoded(Solution sol, int offset, int requestedLength) {
     // The final returned array must be exactly requestedLength in size
@@ -143,10 +143,10 @@ private void injectEncoded(Solution sol, int offset, Object encoded) {
         double newVal = arr[i];
         // If newVal is out of bounds, clamp it (or subtract epsilon so we stay strictly in range)
         if (newVal > var.getUpperBound()) {
-            newVal = var.getUpperBound() - epsilon;
+            newVal = var.getUpperBound();
         }
         if (newVal < var.getLowerBound()) {
-            newVal = var.getLowerBound() + epsilon;
+            newVal = var.getLowerBound();
         }
         var.setValue(newVal);
     }
@@ -159,6 +159,12 @@ private void injectEncoded(Solution sol, int offset, Object encoded) {
 
 
 public Solution createReducedSolution(Solution original, int offset, int length) {
+    // Ensure length is not negative
+    if (length <= 0) {
+        // If length is invalid, return the original solution
+        return original;
+    }
+
     // Create a new solution with reduced size
     Solution reduced = new Solution(length, original.getNumberOfObjectives(), original.getNumberOfConstraints());
 

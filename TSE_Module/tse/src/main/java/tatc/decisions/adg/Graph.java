@@ -156,7 +156,16 @@ public class Graph {
                 //     altKeys.add(altArr.getString(i));
                 // }
                 // Store the *keys*, so setInputs(...) can handle them
-                comb.setAlternativesSource(subDecisionNames);
+                if (decObj.has("alternatives")){
+                    JSONArray altArr = decObj.getJSONArray("alternatives");
+                    List<String> altKeys = new ArrayList<>();
+                    for (int i = 0; i < altArr.length(); i++) {
+                        altKeys.add(altArr.getString(i));
+                    }
+                    comb.setAlternativesSource(altKeys);
+                }else{
+                    comb.setAlternativesSource(subDecisionNames);
+                }
             
                 // If there are parents for this combining node, handle them
                 if (decObj.has("parents")) {

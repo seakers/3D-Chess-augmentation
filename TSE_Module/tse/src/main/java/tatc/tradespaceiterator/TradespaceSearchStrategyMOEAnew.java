@@ -52,7 +52,7 @@ public class TradespaceSearchStrategyMOEAnew extends TradespaceSearchStrategyGAn
         DecisionVariation crossoverOperator = new DecisionVariation(decisions);
         DecisionMutation mutationOperator = new DecisionMutation(decisions);
         operators.appendOperator(crossoverOperator);
-        //operators.appendOperator(mutationOperator);
+        operators.appendOperator(mutationOperator);
         Initialization initialization = new AdgInitialization(this.problem, populationSize);
         Population initialPopulation = new Population();
         NondominatedPopulation nondominatedPopulation = new NondominatedPopulation(comparator);

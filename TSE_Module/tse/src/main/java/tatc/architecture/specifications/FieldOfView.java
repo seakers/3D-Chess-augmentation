@@ -114,4 +114,5 @@ public class FieldOfView implements Serializable {
     public List<Double> getCustomClockAnglesVector() {
         return customClockAnglesVector;
     }
+
 }

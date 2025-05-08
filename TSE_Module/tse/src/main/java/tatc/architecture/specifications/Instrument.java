@@ -552,8 +552,8 @@ public double getPs() {
                pv != 0 && ps != 0 && detectorWidth != 0;
     }
 
-    private double calculateSpatialPixels(double pixelSize, double focalLength, double detectorWidth) {
-        return Math.floor(detectorWidth * focalLength / pixelSize);
+    private double calculateSpatialPixels(double pixelSize, double focalLength, double fov) {
+        return Math.floor(fov * focalLength / pixelSize);
     }
 
     private double calculateVNIRMass(double Nx, double Nv) {
@@ -583,13 +583,18 @@ public double getPs() {
 
     private double calculateGroundVelocity(double height, double inclination) {
         // Constants
-        double mu = 3.986004418e14; // Earth's gravitational parameter
-        double a = (height + EARTH_RADIUS) * 1000; // convert km to m
-        double T = 2 * Math.PI * Math.sqrt(Math.pow(a, 3) / mu); // orbital period in seconds
-        
-        // Calculate ground velocity
-        return (2 * Math.PI * EARTH_RADIUS * 1000 / T) * Math.cos(Math.toRadians(inclination));
+        final double mu = 3.986004418e14; // Earth's gravitational parameter [m^3/s^2]
+        final double R_E = EARTH_RADIUS * 1000; // Convert Earth radius to meters
+        final double a = (height + EARTH_RADIUS) * 1000; // Semimajor axis in meters
+    
+        // Orbital velocity (circular orbit)
+        double orbitalVelocity = Math.sqrt(mu / a); // [m/s]
+    
+        // Project orbital velocity onto the ground (avoid zero at 90 deg inclination)
+        double projected = orbitalVelocity * Math.cos(Math.toRadians(inclination));
+        return Math.max(projected, 1000.0);  // Clamp to a minimum reasonable value
     }
+    
 
     private double computeDeltaX(double height_m, double pixel_size_m, double focal_length_m, 
                                double aperture_m, boolean hasSWIR) {
@@ -612,10 +617,11 @@ public double getPs() {
     public void calculateAdvancedParameters(double height, double inclination) {
         if (hasAllPaperParameters()) {
             // Convert FOV from degrees to radians
-            double theta_p = Math.toRadians(fieldOfView.getFullConeAngle());
+            double theta_p = Math.toRadians(fieldOfView.getCrossTrackFieldOfView());
             
             // Calculate spatial pixels
-            double Nx = calculateSpatialPixels(ps, focalLength, detectorWidth);
+            double Nx = calculateSpatialPixels(ps, focalLength, theta_p);
+            this.numberOfDetectorsColsCrossTrack = (int) Nx;
             
             // Calculate masses
             double m_vnir = calculateVNIRMass(Nx, Nv);
@@ -636,7 +642,10 @@ public double getPs() {
             double delta_x = computeDeltaX(height * 1000, ps, focalLength, apertureDia, true);
             
             // Calculate data rate
-            this.dataRate = calculateDataRate(Nx, Nv, Ns, bitsPerPixel, vg, delta_x);
+            this.dataRate = calculateDataRate(Nx, Nv, Ns, bitsPerPixel, vg, delta_x)/1e6;
+            if (dataRate<1){
+                System.out.println("Data rate is less than 1 Mbps, setting to 1 Mbps");
+            }
         }
     }
 

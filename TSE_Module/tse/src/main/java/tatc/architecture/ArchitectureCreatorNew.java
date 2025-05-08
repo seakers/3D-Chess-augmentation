@@ -275,90 +275,77 @@ public class ArchitectureCreatorNew implements ArchitectureMethods{
         double altitude = getDoubleFromArchOrJson("altitude", archParameters, orbitJson);
         double inclination = getDoubleFromArchOrJson("inclination", archParameters, orbitJson);
         double eccentricity = getDoubleFromArchOrJson("eccentricity", archParameters, orbitJson, 0.0);
+    
         String epoch;
-        if (properties != null && 
-            properties.getTradespaceSearch() != null && 
-            properties.getTradespaceSearch().getMission() != null && 
+        if (properties != null && properties.getTradespaceSearch() != null &&
+            properties.getTradespaceSearch().getMission() != null &&
             properties.getTradespaceSearch().getMission().getStart() != null) {
             epoch = properties.getTradespaceSearch().getMission().getStart();
-            System.out.println("Epoch: " + epoch);
         } else {
-            epoch = "2020-01-01T00:00:00Z"; // Default epoch if mission start is not available
-            System.out.println("Warning: Using default epoch as mission start time is not available");
+            epoch = "2020-01-01T00:00:00Z";
         }
+    
         int p = orbitJson.getInt("numberPlanes");
         int f = orbitJson.getInt("relativeSpacing");
         int t = orbitJson.getInt("numberSatellites");
         double semimajorAxis = altitude + Utilities.EARTH_RADIUS_KM;
-        
-        // default: no LT constraint  → keep your old refRaan=0
-        Double ltanHours = 0.0;
-
-        // 1) explicit field in JSON wins
+    
+        // Determine LTAN (if applicable)
+        Double ltanHours = null;
         if (orbitJson.has("localTimeAscendingNode")) {
             ltanHours = orbitJson.getDouble("localTimeAscendingNode");
         } else {
-            // 2) otherwise look for keywords in orbitType
             String orbitTypeStr = orbitType.toUpperCase();
             if (orbitTypeStr.contains("SSO")) {
-                if (orbitTypeStr.contains("DD")) {        // Dawn‑Dusk
-                    ltanHours = 6.0;                      // ascending ≈ 06:00, descending ≈ 18:00
-                } else if (orbitTypeStr.contains("PM")) { // Afternoon crossing
-                    ltanHours = 13.5;                     // 13:30 LTAN, common for e.g. Aqua
-                } else if (orbitTypeStr.contains("AM")) { // Morning crossing
-                    ltanHours = 10.5;                     // 10:30 LTAN (MODIS/ Terra style)
-                }
+                if (orbitTypeStr.contains("DD"))      ltanHours = 6.0;
+                else if (orbitTypeStr.contains("PM")) ltanHours = 13.5;
+                else if (orbitTypeStr.contains("AM")) ltanHours = 10.5;
             }
         }
-        System.out.println("LTAN: " + ltanHours);
-
-        /*  ────── compute refRaan ────── */
-        double refRaanDeg = 0.0;
+    
+        // Compute refRAAN
+        double refRaan = 0.0;
         if (ltanHours != null) {
             ZonedDateTime epochUtc = ZonedDateTime.parse(epoch);
-            refRaanDeg = OrbitalTimeUtils.raanFromLTAN(ltanHours, epochUtc);
+            double refRaanDeg = OrbitalTimeUtils.raanFromLTAN(ltanHours, epochUtc);
+            refRaan = FastMath.toRadians(refRaanDeg);
         }
-        String localSolarTimeAscendingNode = ltanHours != null ? 
-            OrbitalTimeUtils.ltanToIsoTime(ltanHours) : 
-            "00:00:00"; // Default value when no LTAN is specified
-
-        /* keep the rest exactly as you had, but replace refRaan */
-        double refRaan = FastMath.toRadians(refRaanDeg);
+    
+        String localSolarTimeAscendingNode = (ltanHours != null)
+            ? OrbitalTimeUtils.ltanToIsoTime(ltanHours)
+            : "00:00:00";
+    
         // Walker parameters
-        int s = t / p; // Number of satellites per plane
-        if (s == 0){
-            p=t;
-            s=1;
-        }
-        final double pu = 2 * FastMath.PI / t; // Pattern unit
-        final double delAnom = pu * p; // In-plane spacing between satellites
-        final double delRaan = pu * s; // Node spacing
+        final double pu = 2 * FastMath.PI / t;  // pattern unit
+        final double delAnom = 2 * FastMath.PI / t;  // In-plane satellite spacing
+        final double delRaan = 2 * FastMath.PI / p;  // RAAN spacing between planes          // node spacing
         final double phasing = pu * f;
         final double refAnom = 0;
         final double refPerigee = 0;
         double delPerigee = eccentricity != 0.0 ? delRaan : 0.0;
-
-        // Create list of orbits
+    
         List<Orbit> listOrbits = new ArrayList<>();
         for (int planeNum = 0; planeNum < p; planeNum++) {
-            for (int satNum = 0; satNum < s; satNum++) {
+            for (int satNum = 0; satNum < t; satNum++) {
                 Orbit orbit = new Orbit(
                     orbitType,
                     altitude,
                     semimajorAxis,
                     inclination,
                     eccentricity,
-                    FastMath.toDegrees(refPerigee + planeNum * delPerigee),
-                    FastMath.toDegrees(refRaan + planeNum * delRaan),
-                    FastMath.toDegrees((refAnom + satNum * delAnom + phasing * planeNum) % (2. * FastMath.PI)),
+                    FastMath.toDegrees(refPerigee + planeNum * delPerigee) % 360,
+                    FastMath.toDegrees(refRaan + planeNum * delRaan) % 360,
+                    FastMath.toDegrees((refAnom + satNum * delAnom + phasing * planeNum) % (2.0 * FastMath.PI)) % 360,
                     epoch,
                     localSolarTimeAscendingNode
                 );
                 listOrbits.add(orbit);
-            }}
+            }
+        }
     
         return listOrbits;
     }
+    
     
     private String getStringFromArchOrJson(String key, Map<String, Object> archParameters, JSONObject jsonObject, String defaultValue) {
         if (archParameters.containsKey(key)) {
@@ -614,10 +601,10 @@ private Orientation createOrientationFromJson(JSONObject orientationJson) {
 
 private FieldOfView createFieldOfViewFromJson(JSONObject fovJson, Map<String, Object> archParameters) {
     String sensorGeometry = fovJson.optString("sensorGeometry", "");
-    double fullConeAngle = getDoubleFromArchOrJson("fullConeAngle", archParameters, fovJson);
-    double alongTrackFieldOfView = fovJson.optDouble("alongTrackFieldOfView", 0.0);
-    double crossTrackFieldOfView = fovJson.optDouble("crossTrackFieldOfView", 0.0);
-    double fieldOfRegard = fovJson.optDouble("fieldOfRegard", 0.0);
+    double fullConeAngle = getDoubleFromArchOrJson("fullConeAngle", archParameters, fovJson, 0.0);
+    double alongTrackFieldOfView = getDoubleFromArchOrJson("alongTrackFieldOfView", archParameters, fovJson, 0.0);
+    double crossTrackFieldOfView =getDoubleFromArchOrJson("crossTrackFieldOfView", archParameters, fovJson, 0.0);
+    double fieldOfRegard =crossTrackFieldOfView;
     List<Double> customConeAnglesVector = null;
     List<Double> customClockAnglesVector = null;
     // Add other FOV parameters as needed
