@@ -41,11 +41,11 @@ def calculate_media_metrics(json_data):
         "SNR_min": 0.0,
         "SNR_max": 10000,
         "dynamic_range_min": 0.0,
-        "dynamic_range_max": 1e8,
+        "dynamic_range_max": 1e6,
         "along_track_resolution_min": 0.0,
-        "along_track_resolution_max": 750,
+        "along_track_resolution_max": 500,
         "cross_track_resolution_min": 0.0,
-        "cross_track_resolution_max": 750,
+        "cross_track_resolution_max": 500,
         "noise_equivalent_delta_T_min": 0.0,
         "noise_equivalent_delta_T_max": 0.2
 
@@ -85,15 +85,18 @@ def calculate_media_metrics(json_data):
 
                 count += 1
 
-    averages = {k: (v / count) if count else 0.0 for k, v in totals.items()}
+    averages = {k: max(0.0, (v / count)) if count else 0.0 for k, v in totals.items()}
+
 
     weights = {
-        "SNR": 0.5,
-        "dynamic_range": 0,
+        "SNR": 0.4,
+        "dynamic_range": 0.1,
         "along_track_resolution": 0.2,
         "cross_track_resolution": 0.2,
         "noise_equivalent_delta_T": 0.1
     }
+
+
 
     score = sum(weights[k] * averages[k] for k in weights)
     averages["InstrumentScore"] = score

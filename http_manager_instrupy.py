@@ -97,7 +97,7 @@ class InstruPyEvaluator:
             self.logger.error(f"Failed to connect, return code {rc}")
 
     def on_message(self, client, userdata, msg):
-        self.logger.debug(f"Message received on topic {msg.topic}: {msg.payload.decode()}")
+        self.logger.debug(f"Message received on topic {msg.topic}")
         try:
             data = json.loads(msg.payload.decode())
             # Extract the function name from the topic
@@ -197,7 +197,7 @@ class InstruPyEvaluator:
                     result_data = response.json()
                     dependency_results[dependency_name] = json.loads(result_data['results'][0])
 
-                    self.logger.debug(f"Received result for dependency {dependency_name}: {result_data}")
+                    self.logger.debug(f"Received result for dependency {dependency_name}")
 
                 except requests.exceptions.RequestException as e:
                     self.logger.error(f"Error requesting dependency {dependency_name}: {str(e)}")
