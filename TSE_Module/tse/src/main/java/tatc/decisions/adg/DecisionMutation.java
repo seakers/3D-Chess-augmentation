@@ -4,8 +4,7 @@ import org.moeaframework.core.Variable;
 import org.moeaframework.core.Variation;
 import org.moeaframework.core.variable.EncodingUtils;
 import org.moeaframework.core.variable.RealVariable;
-
-import tatc.architecture.variable.IntegerVariable;
+import tatc.decisions.ConstructionNode;
 import tatc.decisions.Decision;
 
 import java.util.HashMap;
@@ -40,49 +39,44 @@ public class DecisionMutation implements Variation {
         Solution child = parent.copy();
     
         int offset = 0;
-    
+        int childId = 0;
         // We assume 'decisions' is in topological order (parents before children)
-        for (Decision d : decisions) {
-            int vars = d.getNumberOfVariables();
-    
-            // 1) Extract the child's partial encoding
-            Object encodedChild = extractEncoded(child, offset, vars);
-    
+        for (int nodeIndex = 0; nodeIndex < decisions.size(); nodeIndex++) {
+            Decision d = decisions.get(nodeIndex);
+            if(d instanceof ConstructionNode){
+                continue;
+            }
+            int maxId = d.getHighestId();
+            childId = maxId+1;            
+            // 1) Extract the child's encoding
+            Object encodedChild = d.getEncodingById(((AdgSolution)child).getId());
             // 2) Mutate child encoding
             d.mutate(encodedChild);
-    
-            // 3) Inject child's updated partial encoding back into solution
-            injectEncoded(child, offset, encodedChild);
-    
-            // 4) Store this updated fragment in childFragments so that dependent nodes can retrieve it
-            childFragments.put(d, encodedChild);
-    
-            // 5) If this decision depends on a parent, do the repair with the parent's partial encoding
+            
+            // 4) If this decision depends on a parent, do the repair with the parent's partial encoding
             if (!d.getParentDecisions().isEmpty()) {
-                // We assume a single parent for now
+                // Suppose d depends on exactly one decision "parentNode"
+                // The parent's new encoding is needed for feasibility checks
                 Decision parentNode = d.getParentDecisions().get(0);
     
-                // Retrieve the parent's updated partial encoding from childFragments
-                // which should have been put there in a previous iteration
-                Object parentEnc = childFragments.get(parentNode);
+                // We figure out offset / stored child fragment for parentNode from earlier
+                // OR we maintain a dictionary: decision -> childEncoded to look up by reference
+                Object childParentEncoded = childFragments.get(parentNode);
     
-                // Only do the repair if we actually have the parent's fragment
-                if (parentEnc != null) {
-                    encodedChild = d.repairWithDependency(encodedChild, parentEnc);
-    
-                    // Re-inject after repair
-                    injectEncoded(child, offset, encodedChild);
-    
-                    // Update childFragments again
-                    childFragments.put(d, encodedChild);
-                } else {
-                    // If it's still null, you might either skip repair or throw an error
-                    // throw new IllegalStateException("Parent encoding not found for " + parentNode);
-                }
+                // Then call a specialized "repairWithDependency"
+                encodedChild = d.repairWithDependency(encodedChild, childParentEncoded);
             }
+            int vars = ((int[])encodedChild).length;
+            // --- 5) Inject child's final fragment into the solution
+            injectEncoded(child, offset, encodedChild);
+    
+            // Store childEncoded so future decisions can reference it 
+            childFragments.put(d, encodedChild);
+            d.addEncodingById(childId, (int[]) encodedChild);
     
             offset += vars;
         }
+        ((AdgSolution)child).setId(childId);
     
         return new Solution[] { child };
     }
