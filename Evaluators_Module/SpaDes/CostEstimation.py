@@ -82,7 +82,7 @@ class Instrument:
             theta_p = np.radians(FOV)
             
             # Calculate spatial pixels
-            Nx = calculate_spatial_pixels(ps, f, detectorWidth)
+            Nx = calculate_spatial_pixels(ps, f, theta_p)
             
             # Calculate masses
             m_vnir = calculate_vnir_mass(Nx, Nv)
@@ -126,7 +126,8 @@ class LaunchVehicle:
 def calculate_spatial_pixels(pixelSize, focalLength, detectorWidth):
     """Calculate number of spatial pixels using Eq. (8)"""
     N_x = math.floor(detectorWidth * focalLength / pixelSize)
-    return N_x
+    max_Nx=8192
+    return min(N_x, max_Nx)
 
 def calculate_vnir_mass(Nx, Nv):
     """Calculate VNIR imager mass using Eq. (9)"""
@@ -214,7 +215,7 @@ def calculate_ground_velocity_from_height(height, inclination):
     # vg = 2πRe/T * cos(i) where Re is Earth's radius and i is inclination
     vg = (2 * np.pi * EARTH_RADIUS / T) * np.cos(np.radians(inclination))
     
-    return vg
+    return max(vg, 1000)
 
 # Example usage:
 

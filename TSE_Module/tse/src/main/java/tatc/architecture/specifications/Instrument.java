@@ -547,13 +547,14 @@ public double getPs() {
 }
 
     private boolean hasAllPaperParameters() {
-        return fieldOfView != null && fieldOfView.getFullConeAngle() != 0 &&
+        return fieldOfView != null && numberOfDetectorsColsCrossTrack != 0 &&
                focalLength != 0 && Nv != 0 && Ns != 0 && apertureDia != 0 && 
-               pv != 0 && ps != 0 && detectorWidth != 0;
+               ps != 0;
     }
 
     private double calculateSpatialPixels(double pixelSize, double focalLength, double fov) {
-        return Math.floor(fov * focalLength / pixelSize);
+        double maxPhysicalNx = 8192;
+        return Math.min(Math.floor(fov * focalLength / pixelSize), maxPhysicalNx);
     }
 
     private double calculateVNIRMass(double Nx, double Nv) {
@@ -579,6 +580,10 @@ public double getPs() {
     private double calculatePower(double Nx, double Nv, double Ns, boolean hasTIR) {
         double basePower = (2.69e-5) * (Nv + Ns) * Nx + 1.14;
         return basePower + (hasTIR ? 200 : 0);
+    }
+    private double calculateFOV(double focalLength, double p, int Nx) {
+        return (Nx * p) / focalLength;
+
     }
 
     private double calculateGroundVelocity(double height, double inclination) {
@@ -618,11 +623,12 @@ public double getPs() {
         if (hasAllPaperParameters()) {
             // Convert FOV from degrees to radians
             double theta_p = Math.toRadians(fieldOfView.getCrossTrackFieldOfView());
+            double Nx = this.numberOfDetectorsColsCrossTrack;
+
+            double fovRad = calculateFOV(focalLength, ps, numberOfDetectorsColsCrossTrack);
+            this.fieldOfView.setCrossTrackFieldOfView(Math.toDegrees(fovRad));
             
-            // Calculate spatial pixels
-            double Nx = calculateSpatialPixels(ps, focalLength, theta_p);
-            this.numberOfDetectorsColsCrossTrack = (int) Nx;
-            
+            // Calculate spatial pix
             // Calculate masses
             double m_vnir = calculateVNIRMass(Nx, Nv);
             double m_swir = calculateSWIRMass(Nx, Ns);

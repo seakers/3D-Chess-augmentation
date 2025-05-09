@@ -17,30 +17,30 @@ public class FieldOfView implements Serializable {
     /**
      * Specification of sensor geometry. Recongized values include: CONICAL, RECTANGULAR (default), CUSTOM
      */
-    private final String sensorGeometry;
+    private String sensorGeometry;
     /**
      * Angle (deg) of full FoV cone (for CONE geometry)
      */
-    private final Double fullConeAngle;
+    private Double fullConeAngle;
     /**
      * Angle (deg) in along-track direction
      */
-    private final Double alongTrackFieldOfView;
+    private Double alongTrackFieldOfView;
     /**
      * Angle (deg) in cross-track direction
      */
-    private final Double crossTrackFieldOfView;
+    private Double crossTrackFieldOfView;
     /**
      * List of numeric values explaining the field of view angles (deg) at various angular positions defined in
      * customClockAnglesVector
      */
-    private final List<Double> customConeAnglesVector;
+    private List<Double> customConeAnglesVector;
     /**
      * List of numeric values explaining the angular positions (deg) at which field of view angles in
      * customConeAnglesVector are defined
      */
     private final List<Double>  customClockAnglesVector;
-    private final Double  fieldOfRegard;
+    private Double  fieldOfRegard;
 
     /**
      * Constructs a field of view specifications object
@@ -113,6 +113,11 @@ public class FieldOfView implements Serializable {
      */
     public List<Double> getCustomClockAnglesVector() {
         return customClockAnglesVector;
+    }
+
+    public void setCrossTrackFieldOfView(Double crossTrackFieldOfView) {
+        this.crossTrackFieldOfView = crossTrackFieldOfView;
+        this.fieldOfRegard = crossTrackFieldOfView;
     }
 
 }
