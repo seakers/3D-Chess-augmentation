@@ -75,6 +75,7 @@ class Instrument:
         # Check if we have all parameters for the paper's methodology
         paper_params = [FOV, f, Nv, Ns, D, height, inclination, pv, ps, detectorWidth]
         self.has_all_paper_params = all(x is not None and x != 0 for x in paper_params)
+        self.has_all_paper_params=False
         
         if self.has_all_paper_params:
             T = 0
@@ -156,14 +157,17 @@ def calculate_power(Nx, Nv, Ns, T):
 
 def calculate_data_rate(Nx, Nv, Ns, b, vg, delta_x):
     """Calculate data rate using Eq. (14)"""
-    return (Nv + Ns) * Nx * b * vg / delta_x
+    return (Nv + Ns) * Nx * b * vg / delta_x/8
 
+# def apply_NICM(m, p, rb):
+#     """Apply original NASA Instrument Cost Model"""
+#     cost = 25600 * ((p / 61.5) ** 0.32) * ((m / 53.8) ** 0.26) * ((1000 * rb / 40.4) ** 0.11)
+#     cost = cost / 1.097  # correct for inflation and transform to $M
+#     return cost
 def apply_NICM(m, p, rb):
-    """Apply original NASA Instrument Cost Model"""
-    cost = 25600 * ((p / 61.5) ** 0.32) * ((m / 53.8) ** 0.26) * ((1000 * rb / 40.4) ** 0.11)
-    cost = cost / 1.097  # correct for inflation and transform to $M
-    return cost
-
+    """Apply NASA Instrument Cost Model from the paper using Eq. (15)"""
+    cost = 979.9 * (m ** 0.328) * (p ** 0.357) * (rb ** 0.092)  # Cost in FY04$K
+    return cost/1000  # to $M
 def apply_NICM_paper(m, p, rb):
     """Apply NASA Instrument Cost Model from the paper using Eq. (15)"""
     cost = 979.9 * (m ** 0.328) * (p ** 0.357) * (rb ** 0.092)  # Cost in FY04$K

@@ -616,7 +616,7 @@ public double getPs() {
 
     private double calculateDataRate(double Nx, double Nv, double Ns, double bitsPerPixel, 
                                    double vg, double delta_x) {
-        return (Nv + Ns) * Nx * bitsPerPixel * vg / delta_x;
+        return ((Nv + Ns) * Nx * bitsPerPixel * vg / delta_x)/8;
     }
 
     public void calculateAdvancedParameters(double height, double inclination) {
