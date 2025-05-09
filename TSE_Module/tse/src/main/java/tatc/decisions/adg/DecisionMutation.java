@@ -116,7 +116,6 @@ public class DecisionMutation implements Variation {
  */
 private void injectEncoded(Solution sol, int offset, Object encoded) {
     int[] arr = (int[]) encoded;
-    double epsilon = 1e-9;
 
     // If offset is near the end of the solution, we clamp writing to not exceed
     // the solution's variable range.
@@ -131,10 +130,10 @@ private void injectEncoded(Solution sol, int offset, Object encoded) {
         double newVal = arr[i];
         // If newVal is out of bounds, clamp it (or subtract epsilon so we stay strictly in range)
         if (newVal > var.getUpperBound()) {
-            newVal = var.getUpperBound() - epsilon;
+            newVal = var.getUpperBound();
         }
         if (newVal < var.getLowerBound()) {
-            newVal = var.getLowerBound() + epsilon;
+            newVal = var.getLowerBound();
         }
         var.setValue(newVal);
     }

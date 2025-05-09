@@ -275,13 +275,17 @@ public class Combining extends Decision {
         // Uniform mutation: With some probability, pick one gene and set it to another random alternative
         int[] chrom = (int[]) encoded;
         double mutationProbability = this.properties.getTradespaceSearch().getSettings().getSearchParameters().getpMutation(); // example value
-        for (int i=0; i<chrom.length; i++) {
+        for (int i = 0; i < chrom.length && i < alternatives.size(); i++) {
             if (rand.nextDouble() < mutationProbability) {
-                int dim = i;
-                int newVal = rand.nextInt(alternatives.get(dim).size());
+                int altSize = alternatives.get(i).size();
+                int newVal;
+                do {
+                    newVal = rand.nextInt(altSize);
+                } while (newVal == chrom[i]);
                 chrom[i] = newVal;
             }
         }
+        
     }
 
     @Override
