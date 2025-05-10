@@ -381,9 +381,10 @@ public class Combining extends Decision {
     @Override
     public int getMaxOptionForVariable(int i) {
         if (i < 0 || i >= alternatives.size()) {
-            throw new IndexOutOfBoundsException("Index out of range for sub-decision alternatives.");
+            System.err.println("Warning: Invalid index (" + i + ") requested in getMaxOptionForVariable. Returning -1.");
+            return -1; // Safe default indicating invalid option
         }   
-        return alternatives.get(i).size()-1;
+        return alternatives.get(i).size() - 1;
     }
     @Override
     public Object repairWithDependency(Object childEnc, Object parentEnc) {
