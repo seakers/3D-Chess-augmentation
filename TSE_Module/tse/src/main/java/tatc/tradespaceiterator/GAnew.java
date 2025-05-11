@@ -3,7 +3,10 @@ import org.moeaframework.core.*;
 import org.moeaframework.core.variable.RealVariable;  // We'll use RealVariables for integer encoding
 import org.moeaframework.problem.AbstractProblem;
 import tatc.decisions.adg.AdgSolution;
+
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 import org.json.JSONArray;
@@ -16,6 +19,7 @@ import tatc.decisions.Decision;
 import tatc.decisions.Partitioning;
 import tatc.decisions.adg.AdgSolution;
 import tatc.decisions.adg.Graph;
+import tatc.architecture.specifications.CompoundObjective;
 import tatc.architecture.specifications.GroundNetwork;
 import tatc.tradespaceiterator.ProblemProperties;
 import tatc.architecture.ArchitectureCreatorNew;
@@ -38,6 +42,10 @@ public class GAnew extends AbstractProblem {
     private int solutionCounter;
     private Graph graph;
     private String callbackUrl;
+    private boolean loadSolutions = false; // or false
+    private List<int[]> loadedChromosomes = new ArrayList<>();
+    private List<double[]> loadedObjectives = new ArrayList<>();
+    private int loadPointer = 0;
     /**
      * Constructs a GA problem from the given properties and a list of decisions.
      * 
@@ -54,6 +62,7 @@ public class GAnew extends AbstractProblem {
         this.counter = 0;
         this.graph = graph;
         this.solutionCounter = 0;
+       
         // Get callback URL from properties
         this.callbackUrl = properties.getTsrObject().optString("callbackUrl", null);
         System.out.println("GAnew initialized with callback URL: " + this.callbackUrl);
@@ -113,42 +122,80 @@ public class GAnew extends AbstractProblem {
 
         if (!creator.getConstellations().isEmpty()) {
             // Write architecture JSON and evaluate
-            File architectureJsonFile = creator.toJSON(this.counter);
-            this.counter++;
-            try{
-                HashMap<String, Double> objectivesResults = evaluateArchitecture(architectureJsonFile, properties);
-                Summary.writeSummaryFileGA(objectivesResults, solution, this.counter, decisions);
-                
-                // Set solution objectives
-                int objIndex = 0;
-                for (Map.Entry<String, Double> obj : objectivesResults.entrySet()){
-                    String type = properties.getObjectives().get(objIndex).getParent().getType();
-                    Double objective;
-                    if (type.equals("MAX")){
-                        objective = -obj.getValue();
-                    }else{
-                        objective = obj.getValue();
+             // Convert current solution into a chromosome int[]
+            int numVars = solution.getNumberOfVariables();
+            int[] chromosome = new int[numVars];
+            for (int i = 0; i < numVars; i++) {
+                chromosome[i] = (int) Math.round(((RealVariable) solution.getVariable(i)).getValue());
+            }
+
+            boolean matched = false;
+
+            if (loadSolutions && loadedChromosomes != null && loadedObjectives != null) {
+                for (int i = 0; i < loadedChromosomes.size(); i++) {
+                    int[] known = loadedChromosomes.get(i);
+                    if (Arrays.equals(known, chromosome)) {
+                        double[] objectives = loadedObjectives.get(i);
+                        for (int j = 0; j < objectives.length; j++) {
+                            String type = properties.getObjectives().get(j).getParent().getType();
+                            double value = type.equals("MAX") ? -objectives[j] : objectives[j];
+                            solution.setObjective(j, value);
+                        }
+                        System.out.println("Solution #" + (i + 1) + " already evaluated. Objectives: " + Arrays.toString(objectives));
+                        matched = true;
+                        
+                        // Write summary for loaded solution
+                        HashMap<String, Double> objectivesResults = new HashMap<>();
+                        properties.getObjectives();
+                        int j=0;
+                        for (CompoundObjective objective : properties.getObjectives()) {
+                            String objectiveName = objective.getParent().getName();
+                            objectivesResults.put(objectiveName, objectives[j]);
+                            j++;
+                        }
+                        try {
+                            File architectureJsonFile = creator.toJSON(this.counter);
+                            Summary.writeSummaryFileGA(objectivesResults, solution, this.counter, decisions);
+                        } catch (IOException e) {
+                            System.err.println("Error writing summary file: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                        break;
                     }
-                    solution.setObjective(objIndex++, objective);
-                    if (objIndex >= solution.getNumberOfObjectives()) break;
                 }
-
-                // If callback URL is set, send the solution via HTTP
-                if (callbackUrl != null) {
-                    sendSolution(solution, objectivesResults);
-                }
-
-            }catch (IOException e) {
-                System.out.println("Error reading the JSON file: " + e.getMessage());
-                e.printStackTrace();
             }
 
+            if (!matched) {
+                // Evaluate normally if no match found
+                File architectureJsonFile = creator.toJSON(this.counter);
+                this.counter++;
+                try {
+                    HashMap<String, Double> objectivesResults = evaluateArchitecture(architectureJsonFile, properties);
+                    Summary.writeSummaryFileGA(objectivesResults, solution, this.counter, decisions);
 
+                    int objIndex = 0;
+                    for (Map.Entry<String, Double> obj : objectivesResults.entrySet()) {
+                        String type = properties.getObjectives().get(objIndex).getParent().getType();
+                        Double objective = type.equals("MAX") ? -obj.getValue() : obj.getValue();
+                        solution.setObjective(objIndex++, objective);
+                        if (objIndex >= solution.getNumberOfObjectives()) break;
+                    }
+
+                    if (callbackUrl != null) {
+                        sendSolution(solution, objectivesResults);
+                    }
+
+                } catch (IOException e) {
+                    System.out.println("Error reading the JSON file: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
         } else {
-            // No architecture created
-            for(int i=0; i<solution.getNumberOfObjectives(); i++){
-                solution.setObjective(i, Double.POSITIVE_INFINITY);
-            }
+                // If no constellations were created, set objectives to infinity
+                System.out.println("No constellations created.");
+                for (int i = 0; i < solution.getNumberOfObjectives(); i++) {
+                    solution.setObjective(i, Double.POSITIVE_INFINITY);
+                }
         }
     }
 
@@ -289,57 +336,105 @@ public class GAnew extends AbstractProblem {
         }
     }
 
+    private List<int[]> loadChromosomesFromCSV(String filename, int totalObjectives) {
+        List<int[]> chromosomes = new ArrayList<>();
+        loadedObjectives = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+            // Skip header row
+            reader.readLine();
+            
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] tokens = line.trim().split(",");
+                // Skip first column, adjust length calculation
+                int len = tokens.length - totalObjectives - 1;
+                int[] chrom = new int[len];
+                double[] objectives = new double[totalObjectives];
+                
+                // Load chromosome (starting from index 1 to skip first column)
+                for (int i = 0; i < len; i++) {
+                    chrom[i] = (int) Double.parseDouble(tokens[i + 1].trim());
+                }
+                
+                // Load objectives from last totalObjectives columns
+                for (int i = 0; i < totalObjectives; i++) {
+                    objectives[i] = Double.parseDouble(tokens[tokens.length - totalObjectives + i].trim());
+                }
+                
+                chromosomes.add(chrom);
+                loadedObjectives.add(objectives);
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading chromosome file: " + filename);
+            e.printStackTrace();
+        }
+        return chromosomes;
+    }
+
+    
     @Override
     public Solution newSolution() {
-        // Step 1: Generate encodings, but don't store them in the solution yet
+        // Check if we are loading solutions from a CSV file
+        loadedChromosomes = loadChromosomesFromCSV("C:/Users/dfornos/OneDrive - Texas A&M University/Desktop/3D-CHESS-aumentation-MQTT/3D-Chess-augmentation/summary_files/summary.csv", totalObjectives);
+
+        if (loadSolutions && loadPointer < loadedChromosomes.size()) {
+            for (Decision d : decisions) {
+                if(d instanceof ConstructionNode){
+                    break;
+                }
+
+                int[] chromosome = loadedChromosomes.get(loadPointer);
+                loadPointer++;
+
+                // Create solution with the appropriate number of variables
+                AdgSolution solution = new AdgSolution(graph, properties, totalObjectives, chromosome.length);
+                for (int i = 0; i < chromosome.length; i++) {
+                    RealVariable var = new RealVariable(0.0, 100.0);
+                    var.setValue(chromosome[i]);
+                    solution.setVariable(i, var);
+                }
+                d.addEncodingById(solutionCounter, chromosome);
+                solution.setId(solutionCounter++);
+                return solution;
+            }
+        }
+        
+        // If not loading solutions or no more solutions to load, generate new random solution
         List<int[]> allEncodings = new ArrayList<>();
         for (Decision d : decisions) {
             if(d instanceof ConstructionNode){
                 break;
             }
-            // Ensure inputs are set first (this might update entity sets, etc.)
             this.graph.setInputs(d);
-    
-            // Generate a random encoding for this decision
             Object encoded = d.randomEncoding();
             int[] arr = (int[]) encoded;
             allEncodings.add(arr);
         }
     
-        // Step 2: Compute total number of variables from concatenated encodings
         int totalVars = 0;
         for (int[] enc : allEncodings) {
             totalVars += enc.length;
         }
     
-        // Now we can create the Solution object with the correct number of variables
-        // Assuming we already know the number of objectives (e.g., totalObjectives)
         AdgSolution solution = new AdgSolution(graph, properties, totalObjectives, totalVars);    
-        // Step 3: Fill the solution with each decision's encoded representation
         int offset = 0;
         for (int i = 0; i < decisions.size(); i++) {
             Decision d = decisions.get(i);
-            // If construction node, stop
             if (d instanceof ConstructionNode) {
                 break;
             }
         
-            // Retrieve the integer array (already encoded) for this decision
             int[] arr = allEncodings.get(i);
         
-            // For each integer in arr, create a RealVariable
             for (int j = 0; j < arr.length; j++) {
                 int maxOption = d.getMaxOptionForVariable(j);
-                // Ensure maxOption is at least 1 to avoid negative or zero range
                 if (maxOption < 1) {
                     maxOption = 1;
                 }
         
-                // The valid range is [0, (maxOption - 1)]
                 double lowerBound = 0.0;
                 double upperBound = maxOption - 1;
         
-                // Clamp the encoded value into [0, maxOption - 1]
                 double clampedValue = arr[j];
                 if (clampedValue < lowerBound) {
                     clampedValue = lowerBound;
@@ -347,26 +442,17 @@ public class GAnew extends AbstractProblem {
                     clampedValue = upperBound;
                 }
         
-                // Create the variable with safe bounds
                 RealVariable var = new RealVariable(lowerBound, upperBound);
                 var.setValue(clampedValue);
-        
-                // Place the variable in the MOEA Framework solution
                 solution.setVariable(offset + j, var);
             }
         
-            // Optionally track this encoding in the decision's map
             d.addEncodingById(solutionCounter, arr);
-        
-            // Advance the offset
             offset += arr.length;
         }
         
-        // Mark the ID for the solution
         solution.setId(solutionCounter);
         solutionCounter++;
-        
-    
         return solution;
     }
     
