@@ -384,7 +384,7 @@ public Object extractEncodingFromSolution(Solution solution, int offset) {
             if (entity instanceof JSONObject) {
                 JSONObject json = (JSONObject) entity;
                 if (lSource.equals("orbit")) {
-                    sources.add(json.getString("orbitType"));
+                    sources.add(json.getString("orbitType")+"-"+json.getInt("altitude"));
                 } else if (lSource.equals("payload")) {
                     sources.add(json.getString("name"));
                 } else {
@@ -404,7 +404,7 @@ public Object extractEncodingFromSolution(Solution solution, int offset) {
             if (entity instanceof JSONObject) {
                 JSONObject json = (JSONObject) entity;
                 if (rSource.equals("orbit")) {
-                    targets.add(json.getString("orbitType"));
+                    targets.add(json.getString("orbitType")+"-"+json.getInt("altitude"));
                 } else if (rSource.equals("payload")) {
                     targets.add(json.getString("name"));
                 } else {
