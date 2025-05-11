@@ -375,9 +375,10 @@ public class GAnew extends AbstractProblem {
     @Override
     public Solution newSolution() {
         // Check if we are loading solutions from a CSV file
-        loadedChromosomes = loadChromosomesFromCSV("C:/Users/dfornos/OneDrive - Texas A&M University/Desktop/3D-CHESS-aumentation-MQTT/3D-Chess-augmentation/summary_files/summary.csv", totalObjectives);
-
-        if (loadSolutions && loadPointer < loadedChromosomes.size()) {
+        if(loadSolutions){
+            this.loadedChromosomes = loadChromosomesFromCSV("/home/ubuntu/3D-Chess-augmentation/summary_files/summary.csv", totalObjectives);
+        if(loadPointer < loadedChromosomes.size()) {
+            
             for (Decision d : decisions) {
                 if(d instanceof ConstructionNode){
                     break;
@@ -397,6 +398,7 @@ public class GAnew extends AbstractProblem {
                 solution.setId(solutionCounter++);
                 return solution;
             }
+        }
         }
         
         // If not loading solutions or no more solutions to load, generate new random solution
