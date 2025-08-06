@@ -106,7 +106,78 @@ cd TATC-Integration
 
 **Note**: Refer to the [TATC-Integration repository](https://github.com/seakers/TATC-Integration.git) for detailed setup instructions specific to that component.
 
-### 3. VASSAR Setup
+### 3. SpaDes (Spacecraft Design Tool)
+
+SpaDes is a comprehensive spacecraft design tool that takes payloads and orbit specifications as input and produces spacecraft designs with cost estimates.
+
+#### Installation
+
+```bash
+# Clone the SpaDes repository (use IntegrationDev branch for latest features)
+git clone https://github.com/seakers/SpaDes.git
+cd SpaDes
+git checkout IntegrationDev
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Note: SpaDes requires Python 3.9 or 3.10 for compatibility with tat-c
+```
+
+#### Testing SpaDes
+
+**Method 1: Basic Spacecraft Design**
+
+```bash
+# Run the main spacecraft design script
+python SpacecraftDesignMain.py
+
+# This will:
+# - Pick a random payload and orbit
+# - Generate a spacecraft design
+# - Output design specifications and cost estimates
+```
+
+**Method 2: Constellation Design**
+
+```bash
+# Run constellation design analysis
+python ConstellationDesignMain.py
+
+# This provides constellation-level analysis and optimization
+```
+
+**Method 3: Cost Estimation Testing**
+
+```bash
+# Test cost estimation functionality
+python testCostEstimation.py
+
+# This validates the cost estimation algorithms
+```
+
+#### SpaDes Features
+
+- **Spacecraft Design**: Automated generation of spacecraft configurations
+- **Cost Estimation**: Comprehensive cost analysis and budgeting
+- **Constellation Analysis**: Multi-satellite constellation optimization
+- **Performance Scoring**: Science and performance evaluation metrics
+- **MQTT Integration**: Real-time communication capabilities
+- **Configuration Optimization**: Automated component selection and sizing
+
+#### Available Modules
+
+- `SpacecraftDesignMain.py` - Main spacecraft design script
+- `ConstellationDesignMain.py` - Constellation design and analysis
+- `CostEstimation.py` - Cost analysis and budgeting
+- `PerformanceScore.py` - Performance evaluation and scoring
+- `ConfigurationOptimization.py` - Automated configuration optimization
+- `ADCSDesign.py` - Attitude determination and control system design
+- `CommsDesign.py` - Communications system design
+- `EPSDesign.py` - Electrical power system design
+- `PropulsionDesign.py` - Propulsion system design
+
+### 4. VASSAR Setup
 
 VASSAR provides science and cost evaluation capabilities for satellite missions.
 
