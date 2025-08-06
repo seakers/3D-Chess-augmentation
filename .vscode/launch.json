@@ -6,6 +6,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Neo4jTest",
+            "request": "launch",
+            "mainClass": "tatc.Neo4jTest",
+            "projectName": "tatc-ml-tse"
+        },
+        {
+            "type": "java",
+            "name": "App",
+            "request": "launch",
+            "mainClass": "tatc.app.App",
+            "projectName": "tatc-ml-tse"
+        },
+        {
+            "type": "java",
             "name": "TSERequestParser",
             "request": "launch",
             "mainClass": "tatc.tradespaceiterator.TSERequestParser",
@@ -41,6 +55,23 @@
                 "C:/Users/dfornos/Desktop/3D-CHESS augmentation/TSE_Module/tse/problems/CaseStudy1.json",
                 "C:/Users/dfornos/Desktop/3D-CHESS augmentation/TSE_Module/tse/results"
             ]
+        },
+        {
+            "type": "java",
+            "name": "Debug Spring Boot Application",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/TSE_Module/tse",
+            "mainClass": "tatc.TSEApplication",
+            "projectName": "tse",
+            "args": "",
+            "env": {
+                "NEO4J_URI": "neo4j+ssc://3272b738.databases.neo4j.io",
+                "NEO4J_USERNAME": "neo4j",
+                "NEO4J_PASSWORD": "0tNj_x2cJuGZFrIljmm-rqAmiOoZ02zj5T7x_AciVwg",
+                "AURA_INSTANCEID": "3272b738",
+                "AURA_INSTANCENAME": "Instance01"
+            },
+            "vmArgs": "-Dtatc.root=\"${workspaceFolder}\" -Dserver.port=7500"
         }
     ]
 }

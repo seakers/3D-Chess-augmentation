@@ -9,20 +9,27 @@ from pymoo.indicators.hv import HV
 # USER INPUT SECTION
 M = 11  # Expected number of decision variables
 L = 3  # Expected number of objectives
+# objectives_info = {
+#     'ScienceScore': 'max',
+#     'LifecycleCost': 'min',
+#     }
 objectives_info = {
-    'ScienceScore': 'max',
+    'InstrumentScore': 'max',
     'LifecycleCost': 'min',
-    'HarmonicMeanRevisitTime': 'min',
-}
-folder = "Mission Portofolio"
-#folder = "Standard Form"
+    "HarmonicMeanRevisitTime": "min",
+    }
+#folder = "Mission Portofolio/DSPACO"
+folder = r"C:\Users\dfornos\OneDrive - Texas A&M University\Desktop\Results paper\Standard Form"
 
 # Define base directory as the location of this script
 base_dir = os.path.dirname(os.path.abspath(__file__))
 results_dir = os.path.join(base_dir, folder)
-plots_dir = os.path.join(results_dir, "plots")
+plots_dir = os.path.join(results_dir, "plots2")
 if not os.path.exists(plots_dir):
     os.makedirs(plots_dir)
+#results_dir = r"C:\Users\dfornos\OneDrive - Texas A&M University\Desktop\3D-CHESS-aumentation-MQTT\3D-Chess-augmentation\result_analysis\Combining"
+#results_dir = r"C:\Users\dfornos\OneDrive - Texas A&M University\Desktop\3D-CHESS-aumentation-MQTT\3D-Chess-augmentation\result_analysis\Assigning"
+results_dir = r"C:\Users\dfornos\OneDrive - Texas A&M University\Desktop\Results paper\Standard Form"
 
 # Collect all result folders
 result_folders = [os.path.join(results_dir, f) for f in os.listdir(results_dir) if f.startswith("results")]
@@ -86,7 +93,7 @@ for folder in result_folders:
     objectives_for_hv = objectives_norm
 
     # Define a reference point slightly beyond [1,1,...,1]
-    ref_point = np.ones(L) + 0.05
+    ref_point = np.ones(L)
 
     # Compute hypervolume evolution
     hv = HV(ref_point=ref_point)
@@ -130,15 +137,16 @@ for i, hv in enumerate(all_hypervolumes):
 
 avg_hypervolume = np.mean(hv_matrix, axis=0)
 std_hypervolume = np.std(hv_matrix, axis=0)
-avg_hypervolume[490:] = [avg_hypervolume[490]]
-std_hypervolume[490:] = [std_hypervolume[490]]
+# avg_hypervolume[3000:] = [avg_hypervolume[490]]
+# std_hypervolume[490:] = [std_hypervolume[490]]
 # Define number of sigmas for shading
-n_sigmas = 2
+n_sigmas = 0
 
 # Plot average hypervolume evolution with shaded area
 plt.figure(figsize=(10, 6))
 
 x_range = range(1, len(avg_hypervolume) + 1)
+plt.plot(x_range[150:], avg_hypervolume[150:], label="Hypervolume", color="blue", linewidth=3)
 plt.plot(x_range, avg_hypervolume, label="Average Hypervolume", color="blue", linewidth=3)
 plt.fill_between(
     x_range,
@@ -151,9 +159,11 @@ plt.fill_between(
 
 plt.xlabel('NFE')
 plt.ylabel('Hypervolume')
-plt.title('Average Hypervolume Evolution Across Results')
+#plt.title('Average Hypervolume Evolution Across Results')
+plt.title('Hypervolume Evolution')
 plt.grid(True)
 plt.legend()
+plt.show()
 plt.savefig(os.path.join(plots_dir, 'average_hypervolume_evolution.png'), dpi=300)
 plt.close()
 # Combine Pareto fronts
@@ -219,3 +229,50 @@ plt.savefig(os.path.join(plots_dir, 'average_hypervolume_with_objectives.png'), 
 plt.close()
 
 print(f"All plots and average hypervolume saved in the '{plots_dir}' directory.")
+# Identify runs with highest, lowest, and average HV (final values)
+# Identify runs with highest, lowest, and average HV (final values)
+# Identify runs with highest, lowest, and average HV (final values)
+final_hvs = [hv[-1] for hv in all_hypervolumes]
+best_run_index = np.argmax(final_hvs)
+worst_run_index = np.argmin(final_hvs)
+avg_run_index = np.argmin(np.abs(final_hvs - np.mean(final_hvs)))
+
+# Function to plot with normalization, color by LifecycleCost, and unfilled markers
+def plot_pareto(front, label, marker, ax):
+    instrument_score = front[:, objectives_list.index('InstrumentScore')]
+    revisit_time = front[:, objectives_list.index('HarmonicMeanRevisitTime')]
+    lifecycle_cost = front[:, objectives_list.index('LifecycleCost')]
+
+    # Normalize InstrumentScore as requested
+    norm_instrument_score = instrument_score / (np.max(instrument_score) * 1.1)
+
+    # Use lifecycle_cost as color for edges only
+    sc = ax.scatter(norm_instrument_score, revisit_time, edgecolors=cm.viridis(
+        (lifecycle_cost - np.min(lifecycle_cost)) / (np.max(lifecycle_cost) - np.min(lifecycle_cost))),
+        facecolors='none', marker=marker, s=80, label=label)
+    
+    return sc
+
+fig, ax = plt.subplots(figsize=(10, 7))
+
+# Plot each selected Pareto front
+plot_pareto(all_pareto_fronts[best_run_index], 'Highest HV Run', '^', ax)
+plot_pareto(all_pareto_fronts[avg_run_index], 'Average HV Run', 'o', ax)
+plot_pareto(all_pareto_fronts[worst_run_index], 'Lowest HV Run', 'x', ax)  # 'x' remains as is
+
+# Create a colorbar with actual LifecycleCost values
+min_cost = min(np.min(front[:, objectives_list.index('LifecycleCost')]) for front in all_pareto_fronts)
+max_cost = max(np.max(front[:, objectives_list.index('LifecycleCost')]) for front in all_pareto_fronts)
+norm = plt.Normalize(min_cost, max_cost)
+cbar = plt.colorbar(cm.ScalarMappable(norm=norm, cmap=cm.viridis), ax=ax)
+cbar.set_label('LifecycleCost ($M)')
+
+ax.set_xlabel('Normalized InstrumentScore')
+ax.set_ylabel('HarmonicMeanRevisitTime')
+ax.set_title('InstrumentScore vs HarmonicMeanRevisitTime colored by LifecycleCost')
+
+ax.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.savefig(os.path.join(plots_dir, 'pareto_comparison_normalized_unfilled_fixed.png'), dpi=300)
+plt.show()

@@ -25,43 +25,58 @@ import tatc.tradespaceiterator.TradespaceSearchStrategyMOEAnew;
 import org.moeaframework.core.Solution;
 import org.moeaframework.core.NondominatedPopulation;
 
+/**
+ * REST controller for handling TSE (Tradespace Search Executive) requests.
+ * This controller receives JSON requests, processes them asynchronously,
+ * and returns responses with workflow execution results.
+ * 
+ * @author TSE Development Team
+ */
 @RestController
 @RequestMapping("/tse")
 public class DaphneRequestController {
     private static final Logger logger = LoggerFactory.getLogger(DaphneRequestController.class);
 
-    // single‐threaded executor
+    /** Single-threaded executor for processing TSE requests */
     private final ExecutorService executor = Executors.newFixedThreadPool(1);
 
+    /** Timestamp formatter for creating unique output directories */
     private static final DateTimeFormatter TS_FMT =
         DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
+    /**
+     * Receives and processes TSE requests asynchronously.
+     * 
+     * @param rawJson The raw JSON request string
+     * @return ResponseEntity containing the TSE response
+     */
     @PostMapping(consumes = "application/json", produces = "application/json")
     public ResponseEntity<TSEResponse> receiveTseRequest(@RequestBody String rawJson) {
-        // parse into JSONObject
+        // Parse the JSON request
         JSONObject tseRequest = new JSONObject(rawJson);
         
-        // Log callback URL
+        // Extract and log callback URL if present
         String callbackUrl = tseRequest.optString("callbackUrl", null);
         logger.info("Received TSERequest with callback URL: {}", callbackUrl);
 
-        // extract workflowId from the JSON
+        // Extract workflow ID and create topic
         String wfid = tseRequest.optString("workflowId", "unknown");
         String topic = "TSE" + wfid;
         logger.info("Received TSERequest for workflowId={} → scheduling on topic={}", wfid, topic);
 
+        // Submit the job for asynchronous processing
         Future<TSEResponse> job = executor.submit(() -> {
             try {
-                // 1) create a timestamped output folder
+                // Create timestamped output directory
                 String timestamp = LocalDateTime.now().format(TS_FMT);
                 Path outDir = Paths.get("TSE_Module/tse/results", "results_" + timestamp + "_" + wfid);
                 Files.createDirectories(outDir);
 
-                // 2) Save the TSERequest to a file in the output directory
+                // Save the TSERequest to a file in the output directory
                 Path requestFile = outDir.resolve("TSERequest.json");
                 Files.write(requestFile, rawJson.getBytes());
 
-                // 3) Execute Tradespace Search Executive (similar to TSE.java)
+                // Execute Tradespace Search Executive
                 long startTime = System.nanoTime();
                 String fullPathArg0 = requestFile.toAbsolutePath().toString();
                 String fullPathArg1 = outDir.toAbsolutePath().toString();

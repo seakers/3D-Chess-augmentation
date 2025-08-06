@@ -1,5 +1,0 @@
-arch_id,constellation_type,num_satellites,num_planes,sat_ids,num_stations,gs_ids,exec_time[s]
-arch-0,DELTA_HOMOGENEOUS,1,1,sat-0,1,gs-0,0.4315396
-arch-1,DELTA_HOMOGENEOUS,2,1,sat-0 sat-1,1,gs-0,0.4913391
-arch-2,DELTA_HOMOGENEOUS,2,2,sat-0 sat-1,1,gs-0,0.554546
-arch-3,DELTA_HOMOGENEOUS,2,2,sat-0 sat-1,1,gs-0,0.4545147

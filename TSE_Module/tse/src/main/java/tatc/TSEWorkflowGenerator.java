@@ -19,12 +19,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * A direct Java translation of the Python TSEWorkflowGenerator class.
- * It connects to a Neo4j database, parses a user request, and generates a workflow in JSON.
+ * A Java implementation of the TSEWorkflowGenerator class.
+ * Connects to a Neo4j database, parses user requests, and generates workflows in JSON format.
+ * This class manages the generation of evaluation workflows based on desired metrics and tool constraints.
+ * 
+ * @author TSE Development Team
  */
 public class TSEWorkflowGenerator implements AutoCloseable {
 
-    private  Driver driver;
+    private Driver driver;
     private final Set<String> requiredFunctions;        // Stores all functions required to calculate desired metrics
     private final Map<String, String> functionToolMap;  // Maps functions to the tools that implement them
     private final Map<String, List<String>> dependencyGraph; // Dependencies between functions
@@ -36,40 +39,49 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Constructs a TSEWorkflowGenerator with the given Neo4j connection parameters.
+     * 
+     * @param neo4jUri The Neo4j database URI
+     * @param neo4jUser The Neo4j username
+     * @param neo4jPassword The Neo4j password
+     * @throws RuntimeException if connection to Neo4j fails
      */
     public TSEWorkflowGenerator(String neo4jUri, String neo4jUser, String neo4jPassword) {
         System.out.println("Connecting to Neo4j:");
         System.out.println("URI: " + neo4jUri);
         System.out.println("USER: " + neo4jUser);
-        System.out.println("PASS: " + neo4jPassword);
+        System.out.println("PASS: [REDACTED]");
 
-        Driver driver = null;
         try {
             driver = GraphDatabase.driver(neo4jUri, AuthTokens.basic(neo4jUser, neo4jPassword));
-            System.out.println("Neo4j driver created.");
+            System.out.println("Neo4j driver created successfully.");
         } catch (Exception e) {
-            System.out.println("Failed to initialize Neo4j driver.");
-            e.printStackTrace();
+            System.err.println("Failed to initialize Neo4j driver: " + e.getMessage());
+            throw new RuntimeException("Neo4j connection failed", e);
         }
-        this.driver = driver; // Will be null if failed
         
-        this.requiredFunctions = new HashSet<String>();
-        this.functionToolMap = new HashMap<String, String>();
-        this.dependencyGraph = new HashMap<String, List<String>>();
-        this.metricFunctionMap = new HashMap<String, List<String>>();
-        this.functionLevels = new HashMap<String, Integer>();
+        this.requiredFunctions = new HashSet<>();
+        this.functionToolMap = new HashMap<>();
+        this.dependencyGraph = new HashMap<>();
+        this.metricFunctionMap = new HashMap<>();
+        this.functionLevels = new HashMap<>();
     }
 
     /**
-     * Closes the Neo4j driver.
+     * Closes the Neo4j driver connection.
      */
     @Override
     public void close() {
-        this.driver.close();
+        if (driver != null) {
+            driver.close();
+        }
     }
 
     /**
      * Executes a Cypher query with optional parameters and returns a list of map records.
+     * 
+     * @param query The Cypher query to execute
+     * @param parameters Optional parameters for the query
+     * @return List of map records containing the query results
      */
     private List<Map<String, Object>> executeQuery(String query, Map<String, Object> parameters) {
         try (Session session = driver.session()) {
@@ -81,11 +93,11 @@ public class TSEWorkflowGenerator implements AutoCloseable {
                     result = tx.run(query, parameters);
                 }
 
-                List<Map<String, Object>> output = new ArrayList<Map<String, Object>>();
+                List<Map<String, Object>> output = new ArrayList<>();
                 while (result.hasNext()) {
                     Record record = result.next();
                     // Convert each record to a Map<String,Object>
-                    Map<String, Object> row = new HashMap<String, Object>();
+                    Map<String, Object> row = new HashMap<>();
                     for (String key : record.keys()) {
                         row.put(key, record.get(key).asObject());
                     }
@@ -98,6 +110,10 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Retrieves the httpAddress property of a given tool from Neo4j.
+     * 
+     * @param toolName The name of the tool
+     * @return The HTTP address of the tool
+     * @throws IllegalArgumentException if tool is not found or has no httpAddress
      */
     private String getToolHttpAddress(String toolName) {
         String query = 
@@ -118,7 +134,10 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Retrieves the list of functions that can calculate the given metric.
-     * Also updates metricFunctionMap.
+     * Also updates metricFunctionMap for future reference.
+     * 
+     * @param metricName The name of the metric
+     * @return List of function names that can calculate the metric
      */
     private List<String> getFunctionsCalculatingMetric(String metricName) {
         String query = 
@@ -137,6 +156,9 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Recursively resolves dependencies for a function.
+     * Updates the dependencyGraph and requiredFunctions collections.
+     * 
+     * @param functionName The name of the function to resolve dependencies for
      */
     private void resolveDependencies(String functionName) {
         String query = 
@@ -146,7 +168,7 @@ public class TSEWorkflowGenerator implements AutoCloseable {
         Map<String, Object> params = Collections.singletonMap("function_name", functionName);
         List<Map<String, Object>> results = executeQuery(query, params);
 
-        List<String> dependencies = new ArrayList<String>();
+        List<String> dependencies = new ArrayList<>();
         for (Map<String, Object> record : results) {
             dependencies.add(record.get("dependency_name").toString());
         }
@@ -162,6 +184,10 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Assigns a tool to a function, optionally checking user-specified constraints.
+     * 
+     * @param functionName The name of the function
+     * @param userSpecifiedTool The user-specified tool (can be null)
+     * @throws IllegalArgumentException if the specified tool doesn't implement the function
      */
     private void assignToolToFunction(String functionName, String userSpecifiedTool) {
         if (userSpecifiedTool != null) {
@@ -170,7 +196,7 @@ public class TSEWorkflowGenerator implements AutoCloseable {
                 "MATCH (t:Tool {name: $tool_name})-[:IMPLEMENTS]->(f:Function {name: $function_name}) " +
                 "RETURN t.name AS tool_name";
 
-            Map<String, Object> params = new HashMap<String, Object>();
+            Map<String, Object> params = new HashMap<>();
             params.put("tool_name", userSpecifiedTool);
             params.put("function_name", functionName);
 
@@ -205,10 +231,11 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Computes levels of each function based on dependencyGraph.
+     * Functions with no dependencies are level 1, others are level of max dependency + 1.
      */
     private void computeLevels() {
-        functionLevels = new HashMap<String, Integer>();
-        Set<String> visited = new HashSet<String>();
+        functionLevels = new HashMap<>();
+        Set<String> visited = new HashSet<>();
 
         for (String function : requiredFunctions) {
             assignLevel(function, visited);
@@ -217,6 +244,10 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Recursively assigns a level to each function based on its dependencies.
+     * 
+     * @param functionName The name of the function
+     * @param visited Set of already visited functions to prevent cycles
+     * @return The assigned level for the function
      */
     private int assignLevel(String functionName, Set<String> visited) {
         if (visited.contains(functionName)) {
@@ -224,7 +255,7 @@ public class TSEWorkflowGenerator implements AutoCloseable {
             return functionLevels.getOrDefault(functionName, 1);
         }
         visited.add(functionName);
-        List<String> deps = dependencyGraph.getOrDefault(functionName, new ArrayList<String>());
+        List<String> deps = dependencyGraph.getOrDefault(functionName, new ArrayList<>());
         if (deps.isEmpty()) {
             functionLevels.put(functionName, 1);
         } else {
@@ -242,13 +273,16 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Infers dependencies among tools from the given workflow.
+     * 
+     * @param workflow The workflow containing evaluator information
+     * @return Map of tool dependencies
      */
     private Map<String, List<String>> inferToolDependenciesFromWorkflow(List<Map<String, Object>> workflow) {
-        Map<String, List<String>> tDepGraph = new HashMap<String, List<String>>();
+        Map<String, List<String>> tDepGraph = new HashMap<>();
         // Each evaluator block has: "evaluator", "implementedFunctions", etc.
         for (Map<String, Object> evaluator : workflow) {
             String toolName = evaluator.get("evaluator").toString();
-            tDepGraph.put(toolName, new ArrayList<String>());
+            tDepGraph.put(toolName, new ArrayList<>());
 
             // implementedFunctions => (functionName -> { dependencies: {...}, level: ... })
             Object implObj = evaluator.get("implementedFunctions");
@@ -282,14 +316,17 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Computes levels of each tool based on the inferred dependencies from the workflow.
+     * 
+     * @param workflow The workflow to analyze
+     * @return Map of tool levels
      */
     private Map<String, Integer> computeToolLevels(List<Map<String, Object>> workflow) {
         // 1) Infer tool dependencies from the workflow
         toolDependencyGraph = inferToolDependenciesFromWorkflow(workflow);
-        toolLevels = new HashMap<String, Integer>();
+        toolLevels = new HashMap<>();
 
         // 2) Recursively assign levels
-        Set<String> visited = new HashSet<String>();
+        Set<String> visited = new HashSet<>();
         // Collect all tools
         for (Map<String, Object> evaluator : workflow) {
             String toolName = evaluator.get("evaluator").toString();
@@ -300,6 +337,10 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Assigns a level to a given tool, based on its dependent tools.
+     * 
+     * @param toolName The name of the tool
+     * @param visited Set of already visited tools to prevent cycles
+     * @return The assigned level for the tool
      */
     private int assignToolLevel(String toolName, Set<String> visited) {
         if (visited.contains(toolName)) {
@@ -307,7 +348,7 @@ public class TSEWorkflowGenerator implements AutoCloseable {
         }
         visited.add(toolName);
 
-        List<String> deps = toolDependencyGraph.getOrDefault(toolName, new ArrayList<String>());
+        List<String> deps = toolDependencyGraph.getOrDefault(toolName, new ArrayList<>());
         if (deps.isEmpty()) {
             toolLevels.put(toolName, 1);
         } else {
@@ -325,19 +366,24 @@ public class TSEWorkflowGenerator implements AutoCloseable {
 
     /**
      * Main method to generate the workflow given the user_request.
+     * This method orchestrates the entire workflow generation process.
+     * 
+     * @param userRequest The JSON object containing the user's request
+     * @return A map representing the generated workflow
+     * @throws IllegalArgumentException if the request is invalid or cannot be processed
      */
     public Map<String, Object> generateWorkflow(JSONObject userRequest) {
         // 1) Parse the user request for desired metrics and tool constraints
         JSONObject evaluationObj = userRequest.optJSONObject("evaluation");
         JSONObject desiredMetricsObj = evaluationObj.optJSONObject("metrics");
-        Map<String, String> desiredMetrics = new HashMap<String, String>();
+        Map<String, String> desiredMetrics = new HashMap<>();
         if (desiredMetricsObj != null) {
             for (String key : desiredMetricsObj.keySet()) {
                 desiredMetrics.put(key, desiredMetricsObj.getString(key));
             }
         }
         JSONObject toolConstraintsObj = evaluationObj.optJSONObject("tool_constraints");
-        Map<String, String> toolConstraints = new HashMap<String, String>();
+        Map<String, String> toolConstraints = new HashMap<>();
         if (toolConstraintsObj != null) {
             for (String key : toolConstraintsObj.keySet()) {
                 toolConstraints.put(key, toolConstraintsObj.getString(key));
@@ -368,13 +414,13 @@ public class TSEWorkflowGenerator implements AutoCloseable {
         computeLevels();
 
         // 5) Prepare an "evaluator map": tool -> block with "metrics", "implementedFunctions", etc.
-        Map<String, Map<String, Object>> evaluatorMap = new LinkedHashMap<String, Map<String, Object>>();
+        Map<String, Map<String, Object>> evaluatorMap = new LinkedHashMap<>();
 
         // Each function belongs to one tool
         for (String fn : requiredFunctions) {
             String tool = functionToolMap.get(fn);
             if (!evaluatorMap.containsKey(tool)) {
-                Map<String, Object> block = new HashMap<String, Object>();
+                Map<String, Object> block = new HashMap<>();
                 block.put("evaluator", tool);
                 block.put("metrics", new HashMap<String, String>());  
                 block.put("implementedFunctions", new HashMap<String, Map<String, Object>>());
@@ -414,7 +460,7 @@ public class TSEWorkflowGenerator implements AutoCloseable {
             }
             @SuppressWarnings("unchecked")
             Map<String, String> depMap = (Map<String, String>) fnData.get("dependencies");
-            List<String> deps = dependencyGraph.getOrDefault(function, new ArrayList<String>());
+            List<String> deps = dependencyGraph.getOrDefault(function, new ArrayList<>());
 
             // Add each dependency as function_name -> "http://tool/function" or "self"
             for (String depFn : deps) {
@@ -439,21 +485,21 @@ public class TSEWorkflowGenerator implements AutoCloseable {
             @SuppressWarnings("unchecked")
             List<String> subList = (List<String>) block.get("subscribe");
             // Deduplicate
-            Set<String> uniqueSubs = new HashSet<String>(subList);
-            block.put("subscribe", new ArrayList<String>(uniqueSubs));
+            Set<String> uniqueSubs = new HashSet<>(subList);
+            block.put("subscribe", new ArrayList<>(uniqueSubs));
 
             // publish_metrics => "TSE" as in the original code
             block.put("publish_metrics", "TSE");
         }
 
         // Convert evaluatorMap to a list
-        List<Map<String, Object>> workflow = new ArrayList<Map<String, Object>>(evaluatorMap.values());
+        List<Map<String, Object>> workflow = new ArrayList<>(evaluatorMap.values());
 
         // 9) Compute tool levels
         Map<String, Integer> toolLvls = computeToolLevels(workflow);
 
         // 10) Publish map for each metric => "evaluators/{tool}/{function}"
-        Map<String, String> publishMap = new HashMap<String, String>();
+        Map<String, String> publishMap = new HashMap<>();
         for (Map.Entry<String, List<String>> entry : metricFunctionMap.entrySet()) {
             String metric = entry.getKey();
             List<String> fns = entry.getValue();
@@ -465,21 +511,21 @@ public class TSEWorkflowGenerator implements AutoCloseable {
         }
 
         // 11) Prepare objectives
-        List<Map<String, Object>> objectives = new ArrayList<Map<String, Object>>();
+        List<Map<String, Object>> objectives = new ArrayList<>();
         for (String metric : desiredMetrics.keySet()) {
             String objectiveType = desiredMetrics.get(metric);
-            Map<String, Object> obj = new HashMap<String, Object>();
+            Map<String, Object> obj = new HashMap<>();
             obj.put("objectiveName", metric);
             obj.put("objectiveType", objectiveType);
             objectives.add(obj);
         }
 
         // 12) Build final JSON object
-        Map<String, Object> root = new LinkedHashMap<String, Object>();
-        Map<String, Object> evaluation = new LinkedHashMap<String, Object>();
+        Map<String, Object> root = new LinkedHashMap<>();
+        Map<String, Object> evaluation = new LinkedHashMap<>();
 
         // TSE block
-        Map<String, Object> tseBlock = new LinkedHashMap<String, Object>();
+        Map<String, Object> tseBlock = new LinkedHashMap<>();
         tseBlock.put("objectives", objectives);
         tseBlock.put("subscribe", "TSE");
         tseBlock.put("publish_metric_requests", publishMap);
@@ -496,17 +542,30 @@ public class TSEWorkflowGenerator implements AutoCloseable {
     // UTILITY: read a user_request.json, build workflow, and write output to workflow_output.json
     //------------------------------------------------------------------------------------------
 
+    /**
+     * Main method for standalone execution of the workflow generator.
+     * Reads a user request file and generates a workflow output file.
+     * 
+     * @param args Command line arguments (not used)
+     */
     public static void main(String[] args) {
-        // Hard-coded or passed via command line
+        // Configuration: File paths
         String userRequestFile = "user_request.json";
         String outputFile = "workflow_output.json";
 
+        // Get Neo4j credentials from environment variables or use defaults
+        String neo4jUri = System.getenv("NEO4J_URI");
+        String neo4jUser = System.getenv("NEO4J_USER");
+        String neo4jPassword = System.getenv("NEO4J_PASSWORD");
+        
+        if (neo4jUri == null || neo4jUser == null || neo4jPassword == null) {
+            System.err.println("Error: Neo4j credentials not found in environment variables.");
+            System.err.println("Please set NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD environment variables.");
+            return;
+        }
+
         // Create the generator
-        try (TSEWorkflowGenerator generator = new TSEWorkflowGenerator(
-                "neo4j+s://00785431.databases.neo4j.io",
-                "neo4j",
-                "Akkxk1jF-figNYw_6Ca9bRuOadjZmxXHVKAFIvcqCLM"
-        )) {
+        try (TSEWorkflowGenerator generator = new TSEWorkflowGenerator(neo4jUri, neo4jUser, neo4jPassword)) {
             // Parse user_request.json
             JSONObject userRequest;
             try (FileReader fr = new FileReader(userRequestFile)) {
@@ -516,7 +575,7 @@ public class TSEWorkflowGenerator implements AutoCloseable {
                 return;
             }
 
-            // Attempt to generate workflow
+            // Generate workflow
             Map<String, Object> outputMap;
             try {
                 outputMap = generator.generateWorkflow(userRequest);

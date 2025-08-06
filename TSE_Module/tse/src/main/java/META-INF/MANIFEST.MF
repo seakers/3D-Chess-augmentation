@@ -1,3 +1,5 @@
 Manifest-Version: 1.0
+# Main class for the TSE application JAR file
+# This specifies the entry point when running the JAR directly
 Main-Class: tatc.TSE
 

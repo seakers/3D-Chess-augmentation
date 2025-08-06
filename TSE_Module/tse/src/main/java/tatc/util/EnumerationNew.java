@@ -9,7 +9,27 @@ import tatc.architecture.constellations.ConstellationParameters;
 import tatc.architecture.constellations.HomogeneousWalkerParameters;
 import tatc.architecture.specifications.Satellite;
 
+/**
+ * New implementation of constellation enumeration utilities.
+ * This class provides an alternative approach to generating full factorial designs
+ * for homogeneous Walker constellations using a more flexible parameter mapping approach.
+ * 
+ * @author TSE Development Team
+ */
 public class EnumerationNew {
+    
+    /**
+     * Enumerates all possible homogeneous Walker constellation parameters using a parameter map approach.
+     * This method provides a more flexible way to specify constellation parameters compared to the original
+     * Enumeration class.
+     *
+     * @param parameters Map containing parameter names and their possible values
+     * @param eccentricity The eccentricity of the orbits
+     * @param maxNumberOfArchitecturesFF Maximum number of architectures allowed
+     * @return List of constellation parameters containing all possible homogeneous Walker constellations
+     * @throws IllegalArgumentException if input parameters are invalid
+     * @throws Enumeration.DesignSpaceTooLargeException if the design space contains too many architectures
+     */
     public static ArrayList<ConstellationParameters> fullFactHomogeneousWalker(
             Map<String, List<Object>> parameters,
             double eccentricity,
@@ -28,8 +48,10 @@ public class EnumerationNew {
         for (Map<String, Object> params : parameterCombinations) {
             // Check for maximum number of architectures
             if (archCounter >= maxNumberOfArchitecturesFF) {
-                System.out.println("Aborting... Too many architectures to run a full factorial enumeration. Consider using other search strategies.");
-                System.exit(1);
+                throw new Enumeration.DesignSpaceTooLargeException(
+                    "Too many architectures (" + archCounter + ") to run a full factorial enumeration. " +
+                    "Consider using other search strategies."
+                );
             }
 
             // Parse parameters
@@ -76,13 +98,28 @@ public class EnumerationNew {
         return constellations;
     }
 
-    // Compute the cartesian product of options map
+    /**
+     * Computes the cartesian product of all parameter combinations.
+     * This method generates all possible combinations of the provided parameter values.
+     *
+     * @param optionsMap Map containing parameter names and their possible values
+     * @return List of maps, where each map represents one parameter combination
+     */
     public static List<Map<String, Object>> computeCartesianProduct(Map<String, List<Object>> optionsMap) {
         List<Map<String, Object>> combinations = new ArrayList<>();
         computeCartesianProductHelper(optionsMap, new LinkedHashMap<>(), combinations, new ArrayList<>(optionsMap.keySet()), 0);
         return combinations;
     }
 
+    /**
+     * Helper method for computing the cartesian product recursively.
+     *
+     * @param optionsMap Map containing parameter names and their possible values
+     * @param currentCombination Current combination being built
+     * @param combinations List to store all generated combinations
+     * @param keys List of parameter keys to process
+     * @param index Current index in the keys list
+     */
     private static void computeCartesianProductHelper(
             Map<String, List<Object>> optionsMap,
             Map<String, Object> currentCombination,
@@ -103,5 +140,4 @@ public class EnumerationNew {
             currentCombination.remove(key);
         }
     }
-    
 }

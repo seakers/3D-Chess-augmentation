@@ -14,13 +14,25 @@ import java.util.logging.Logger;
 
 import tatc.tradespaceiterator.TradespaceSearchExecutive;
 
+/**
+ * Main entry point for the Tradespace Search Executive (TSE) application.
+ * This class handles the execution of tradespace search operations with support
+ * for parallel processing and thread-local topic management.
+ * 
+ * @author TSE Development Team
+ */
 public class TSE {
 
-    // ThreadLocal for storing subscription topic per thread
+    /** ThreadLocal for storing subscription topic per thread */
     private static final ThreadLocal<String> threadLocalTopic = new ThreadLocal<>();
 
+    /**
+     * Main method that initializes and executes the TSE application.
+     * 
+     * @param args Command line arguments (currently not used)
+     */
     public static void main(String[] args) {
-        // Setup logger
+        // Setup logger with finest level for detailed debugging
         Logger logger = Logger.getGlobal();
         Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
             logger.log(Level.SEVERE, "Uncaught exception in thread " + thread.getName(), throwable);
@@ -31,25 +43,20 @@ public class TSE {
         handler.setLevel(level);
         logger.addHandler(handler);
 
-        // Configure parallel execution
-        int numThreads = 1; // Number of threads for parallel execution
+        // Configure parallel execution - currently set to single thread
+        int numThreads = 1;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
 
-        // Timestamp for unique output directories
+        // Generate timestamp for unique output directories
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
         // Submit tasks to executor
         for (int i = 0; i < numThreads; i++) {
-            int threadId = i + 1; // Unique ID for each thread
-            String topic = "TSE" + threadId; // Generate topic as TSE + thread ID
+            int threadId = i + 1;
+            String topic = "TSE" + threadId;
 
-            // Example: pick a TSERequest file
-            // Change these paths as needed for your environment.
-            // String requestFile = "TSERequests/TSERequestClimateCentricGADSPA.json";
-            //String requestFile = "TSERequests/TSERequestClimateCentricDSPAC_test.json";
-           // String requestFile = "TSERequests/TSERequestFFFireSat2_test.json";
+            // Configuration: Set the request file path
             String requestFile = "TSERequests/assigning.json";
-
             String outputDir = String.format("TSE_Module/tse/results/results_%s_%d", timestamp, threadId);
 
             executor.submit(() -> {
@@ -76,14 +83,12 @@ public class TSE {
                         (endTime - startTime) / Math.pow(10, 9)
                     ));
                 } catch (IOException e) {
-                    // Log full stack trace (including line number)
                     logger.log(
                         Level.SEVERE,
                         "Error creating directories: " + e.getMessage(),
                         e
                     );
                 } catch (Exception e) {
-                    // Log full stack trace (including line number)
                     logger.log(
                         Level.SEVERE,
                         "Error executing TSE: " + e.getMessage(),
@@ -93,7 +98,7 @@ public class TSE {
             });
         }
 
-        // Shutdown the executor
+        // Shutdown the executor and wait for completion
         executor.shutdown();
         while (!executor.isTerminated()) {
             // Wait for all threads to complete
@@ -102,7 +107,11 @@ public class TSE {
         logger.info("All tasks completed.");
     }
 
-    // Accessor method for retrieving the thread-specific topic
+    /**
+     * Retrieves the thread-specific subscription topic.
+     * 
+     * @return The subscription topic for the current thread
+     */
     public static String getSubscriptionTopic() {
         return threadLocalTopic.get();
     }

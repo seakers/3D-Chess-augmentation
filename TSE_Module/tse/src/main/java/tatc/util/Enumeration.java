@@ -1,6 +1,5 @@
 package tatc.util;
 
-
 import org.hipparchus.util.FastMath;
 import tatc.architecture.constellations.*;
 import tatc.architecture.specifications.PassiveOpticalScanner;
@@ -11,7 +10,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Class containing useful static methods involving enumeration of constellations
+ * Class containing useful static methods involving enumeration of constellations.
+ * Provides methods for generating full factorial designs of various constellation types
+ * including homogeneous Walker, heterogeneous Walker, train, and ad-hoc constellations.
+ * 
+ * @author TSE Development Team
  */
 public class Enumeration {
 
@@ -22,104 +25,116 @@ public class Enumeration {
     public static final int maxNumberOfArchitecturesFF = 100000;
 
     /**
+     * Custom exception for when the design space contains too many architectures.
+     */
+    public static class DesignSpaceTooLargeException extends RuntimeException {
+        public DesignSpaceTooLargeException(String message) {
+            super(message);
+        }
+    }
+
+    /**
      * Constructor of an enumeration class
      */
     public Enumeration() {
     }
 
-/**
- * Enumerates all the possible homogeneous Walker constellation parameters given the possible values of altitudes,
- * inclinations, number of satellites, number of planes, relative spacing parameters, payload decision variables,
- * and satellite objects.
- *
- * @param alts                    the possible values for altitude
- * @param incs                    the possible values for inclination
- * @param ts                      the possible values for number of satellites
- * @param ps                      the possible values for number of planes
- * @param fs                      the possible values for relative spacing
- * @param payloadFocalLengths     the possible values for payload focal length
- * @param payloadBitsPerPixel     the possible values for payload bits per pixel
- * @param payloadNumDetectorsRows the possible values for number of detectors rows along track
- * @param payloadApertureDias     the possible values for payload aperture diameter
- * @param eccentricity            the eccentricity of the orbits
- * @return an array list of constellation parameters containing all possible homogeneous Walker constellations
- * @throws IllegalArgumentException
- */
-public static ArrayList<ConstellationParameters> fullFactHomogeneousWalker(
-List<Double> alts, 
-List<Object> incs, 
-List<Integer> ts, 
-List<Integer> ps, 
-List<Integer> fs,
-List<Satellite> sats,
-List<Double> payloadFocalLengths,
-List<Integer> payloadBitsPerPixel,
-List<Integer> payloadNumDetectorsRows,
-List<Double> payloadApertureDias,
-double eccentricity
-) throws IllegalArgumentException {
-    ArrayList<ConstellationParameters> constels = new ArrayList<>();
+    /**
+     * Enumerates all the possible homogeneous Walker constellation parameters given the possible values of altitudes,
+     * inclinations, number of satellites, number of planes, relative spacing parameters, payload decision variables,
+     * and satellite objects.
+     *
+     * @param alts                    the possible values for altitude
+     * @param incs                    the possible values for inclination
+     * @param ts                      the possible values for number of satellites
+     * @param ps                      the possible values for number of planes
+     * @param fs                      the possible values for relative spacing
+     * @param payloadFocalLengths     the possible values for payload focal length
+     * @param payloadBitsPerPixel     the possible values for payload bits per pixel
+     * @param payloadNumDetectorsRows the possible values for number of detectors rows along track
+     * @param payloadApertureDias     the possible values for payload aperture diameter
+     * @param eccentricity            the eccentricity of the orbits
+     * @return an array list of constellation parameters containing all possible homogeneous Walker constellations
+     * @throws IllegalArgumentException if input parameters are invalid
+     * @throws DesignSpaceTooLargeException if the design space contains too many architectures
+     */
+    public static ArrayList<ConstellationParameters> fullFactHomogeneousWalker(
+            List<Double> alts, 
+            List<Object> incs, 
+            List<Integer> ts, 
+            List<Integer> ps, 
+            List<Integer> fs,
+            List<Satellite> sats,
+            List<Double> payloadFocalLengths,
+            List<Integer> payloadBitsPerPixel,
+            List<Integer> payloadNumDetectorsRows,
+            List<Double> payloadApertureDias,
+            double eccentricity
+    ) throws IllegalArgumentException {
+        ArrayList<ConstellationParameters> constels = new ArrayList<>();
 
-    ts.sort(Integer::compareTo);
-    if (ts.contains(0)) {
-        constels.add(new HomogeneousWalkerParameters(0, 0, 0, 0, 0, null,0,0,0,0.0));
-        ts.remove(0);
-    }
-    if (ps == null || ps.isEmpty()) {
-        ArrayList<Integer> allowedPlanes = new ArrayList<>();
-        for (int i = 1; i <= Collections.max(ts); i++) {
-            allowedPlanes.add(i);
+        ts.sort(Integer::compareTo);
+        if (ts.contains(0)) {
+            constels.add(new HomogeneousWalkerParameters(0, 0, 0, 0, 0, null,0,0,0,0.0));
+            ts.remove(0);
         }
-        ps = allowedPlanes;
-    }
-
-    if (fs == null || fs.isEmpty()) {
-        ArrayList<Integer> allowedRelativeSpacing = new ArrayList<>();
-        for (int f = 0; f <= Collections.max(ps) - 1; f++) {
-            allowedRelativeSpacing.add(f);
-        }
-        fs = allowedRelativeSpacing;
-    }
-
-    // Start the actual enumeration
-    int archCounter = 0;
-    for (Double altitude : alts) {
-        for (Object inclination : incs) {
-            double inclinationModified;
-            if ("SSO".equals(inclination)) {
-                inclinationModified = FastMath.toDegrees(Utilities.incSSO(altitude * 1000, eccentricity));
-            } else if (inclination instanceof Double) {
-                inclinationModified = (Double) inclination;
-            } else {
-                throw new IllegalArgumentException("Inclination not identified");
+        if (ps == null || ps.isEmpty()) {
+            ArrayList<Integer> allowedPlanes = new ArrayList<>();
+            for (int i = 1; i <= Collections.max(ts); i++) {
+                allowedPlanes.add(i);
             }
-            for (Integer t : ts) {
-                ArrayList<Integer> planes = allowedPlanes(t, ps);
-                for (Integer plane : planes) {
-                    for (int i_f = 0; i_f <= plane - 1; ++i_f) {
-                        for (Satellite sat : sats){
-                            if (fs.contains(i_f)) {
-                                // Iterate over payload decision variables
-                                for (Double payloadFocalLength : payloadFocalLengths) {
-                                    for (Integer payloadBits : payloadBitsPerPixel) {
-                                        for (Integer payloadNumDetRows : payloadNumDetectorsRows) {
-                                            for (Double payloadApertureDia : payloadApertureDias) {
-                                                // Create instrument with specific parameters
-                                                PassiveOpticalScanner instrument = new PassiveOpticalScanner(null, null, null, altitude, altitude, altitude, null, null, altitude, t, null, t, altitude, altitude, altitude, t, t);
-                                                instrument.setFocalLength(payloadFocalLength);
-                                                instrument.setBitsPerPixel(payloadBits);
-                                                instrument.setNumberOfDetectorsRowsAlongTrack(payloadNumDetRows);
-                                                instrument.setApertureDia(payloadApertureDia);
-                                                // Set other instrument parameters as needed
-                                                // Set other satellite parameters as needed
+            ps = allowedPlanes;
+        }
 
-                                                if (archCounter < maxNumberOfArchitecturesFF) {
-                                                    constels.add(new HomogeneousWalkerParameters(altitude, inclinationModified, t, plane, i_f, sat,payloadFocalLength,payloadBits,payloadNumDetRows,payloadApertureDia));
-                                                    archCounter++;
-                                                } else {
-                                                    System.out.println("Aborting TAT-C... This design space contains too many architectures" +
-                                                            " to run a full factorial enumeration. Consider using MOEA or KDO search strategies.");
-                                                    System.exit(1);
+        if (fs == null || fs.isEmpty()) {
+            ArrayList<Integer> allowedRelativeSpacing = new ArrayList<>();
+            for (int f = 0; f <= Collections.max(ps) - 1; f++) {
+                allowedRelativeSpacing.add(f);
+            }
+            fs = allowedRelativeSpacing;
+        }
+
+        // Start the actual enumeration
+        int archCounter = 0;
+        for (Double altitude : alts) {
+            for (Object inclination : incs) {
+                double inclinationModified;
+                if ("SSO".equals(inclination)) {
+                    inclinationModified = FastMath.toDegrees(Utilities.incSSO(altitude * 1000, eccentricity));
+                } else if (inclination instanceof Double) {
+                    inclinationModified = (Double) inclination;
+                } else {
+                    throw new IllegalArgumentException("Inclination not identified");
+                }
+                for (Integer t : ts) {
+                    ArrayList<Integer> planes = allowedPlanes(t, ps);
+                    for (Integer plane : planes) {
+                        for (int i_f = 0; i_f <= plane - 1; ++i_f) {
+                            for (Satellite sat : sats){
+                                if (fs.contains(i_f)) {
+                                    // Iterate over payload decision variables
+                                    for (Double payloadFocalLength : payloadFocalLengths) {
+                                        for (Integer payloadBits : payloadBitsPerPixel) {
+                                            for (Integer payloadNumDetRows : payloadNumDetectorsRows) {
+                                                for (Double payloadApertureDia : payloadApertureDias) {
+                                                    // Create instrument with specific parameters
+                                                    PassiveOpticalScanner instrument = new PassiveOpticalScanner(null, null, null, altitude, altitude, altitude, null, null, altitude, t, null, t, altitude, altitude, altitude, t, t);
+                                                    instrument.setFocalLength(payloadFocalLength);
+                                                    instrument.setBitsPerPixel(payloadBits);
+                                                    instrument.setNumberOfDetectorsRowsAlongTrack(payloadNumDetRows);
+                                                    instrument.setApertureDia(payloadApertureDia);
+                                                    // Set other instrument parameters as needed
+                                                    // Set other satellite parameters as needed
+
+                                                    if (archCounter < maxNumberOfArchitecturesFF) {
+                                                        constels.add(new HomogeneousWalkerParameters(altitude, inclinationModified, t, plane, i_f, sat,payloadFocalLength,payloadBits,payloadNumDetRows,payloadApertureDia));
+                                                        archCounter++;
+                                                    } else {
+                                                        throw new DesignSpaceTooLargeException(
+                                                            "This design space contains too many architectures (" + archCounter + 
+                                                            ") to run a full factorial enumeration. Consider using MOEA or KDO search strategies."
+                                                        );
+                                                    }
                                                 }
                                             }
                                         }
@@ -131,10 +146,9 @@ double eccentricity
                 }
             }
         }
-    }
 
-    return constels;
-}
+        return constels;
+    }
 
     /**
      * Enumerates all the possible homogeneous Walker constellation parameters given the possible values of altitudes,
@@ -196,9 +210,10 @@ double eccentricity
                                     constels.add(new HomogeneousWalkerParameters(0, 0, 0, 0, 0, null,0,0,0,0.0));
                                     archCounter++;
                                 }else{
-                                    System.out.println("Aborting TAT-C... This design space contains too many architectures" +
-                                            " to run a full factorial enumeration. Consider using MOEA or KDO search strategies.");
-                                    System.exit(1);
+                                    throw new DesignSpaceTooLargeException(
+                                        "This design space contains too many architectures (" + archCounter + 
+                                        ") to run a full factorial enumeration. Consider using MOEA or KDO search strategies."
+                                    );
                                 }
                             }
                         }
@@ -255,9 +270,10 @@ double eccentricity
                     }
                     archCounter = archCounter + Combinatorics.binomial(walkerPlanesTotal.size(),p).intValue();
                     if (archCounter > maxNumberOfArchitecturesFF){
-                        System.out.println("Aborting TAT-C... This design space contains too many architectures" +
-                                " to run a full factorial enumeration. Consider using MOEA or KDO search strategies.");
-                        System.exit(1);
+                        throw new DesignSpaceTooLargeException(
+                            "This design space contains too many architectures (" + archCounter + 
+                            ") to run a full factorial enumeration. Consider using MOEA or KDO search strategies."
+                        );
                     }
                     //For the values of t and p, compute all the possible Heterogeneous constellations with p planes from walkerPlanesTotal.
                     for (List<WalkerPlane> planeCombination : Combinatorics.combination(walkerPlanesTotal,p)){
@@ -383,9 +399,10 @@ double eccentricity
                                 constels.add(new TrainParameters(alt,t,LTAN,satInterval,sat));
                                 archCounter++;
                             }else{
-                                System.out.println("Aborting TAT-C... This design space contains too many architectures" +
-                                        " to run a full factorial enumeration. Consider using MOEA or KDO search strategies.");
-                                System.exit(1);
+                                throw new DesignSpaceTooLargeException(
+                                    "This design space contains too many architectures (" + archCounter + 
+                                    ") to run a full factorial enumeration. Consider using MOEA or KDO search strategies."
+                                );
                             }
                         }
                     }

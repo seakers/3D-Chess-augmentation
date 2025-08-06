@@ -44,8 +44,8 @@ if __name__ == '__main__':
     # Path to the local JSON file
     #json_path = "TSERequests/TSERequestAssigningSmall.json"
     #json_path = "TSERequests/TSERequestClimateCentricDSPAC_test.json"
-    #json_path = "TSERequests/TSERequestAssigning.json"
-    json_path = "TSERequests/combining.json"
+    json_path = "TSERequests/TSERequestAssigning.json"
+    #json_path = "TSERequests/combining.json"
     
     # Read and stringify the TSERequest JSON
     with open(json_path, "r") as f:

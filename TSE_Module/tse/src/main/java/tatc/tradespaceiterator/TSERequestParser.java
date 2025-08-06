@@ -199,46 +199,7 @@ public class TSERequestParser {
         return evaluatorFunctions;
     }
 
-    /**
-     * Prepares and prints requests to send to evaluators based on the parsed TSERequest.
-     *
-     * @param tseRequest The JSONObject representing the TSE request.
-     */
-    // public void createRequestsForEvaluators(JSONObject tseRequest) {
-    //     // Step 1: Get the objectives and their evaluators
-    //     Map<String, String> objectivesEvaluators = getEvaluatorsForObjectives(tseRequest);
 
-    //     // Step 2: Get the workflow and functions implemented by each evaluator
-    //     Map<String, JSONObject> evaluatorFunctions = getWorkflow(tseRequest);
-
-    //     // Step 3: Group metrics by evaluator
-    //     Map<String, List<String>> evaluatorMetrics = new HashMap<>();
-    //     for (Map.Entry<String, String> entry : objectivesEvaluators.entrySet()) {
-    //         String metric = entry.getKey();
-    //         String evaluator = entry.getValue();
-
-    //         evaluatorMetrics.computeIfAbsent(evaluator, k -> new ArrayList<>()).add(metric);
-    //     }
-
-    //     // Iterate through each evaluator to build and print requests
-    //     for (String evaluator : evaluatorFunctions.keySet()) {
-    //         List<String> functionsToCall = evaluatorFunctions.get(evaluator);
-    //         List<String> metricsToCalculate = evaluatorMetrics.getOrDefault(evaluator, Collections.emptyList());
-
-    //         // Build and print a request to the evaluator
-    //         System.out.println("Sending request to evaluator: " + evaluator);
-    //         System.out.println("Metrics to calculate: " + metricsToCalculate);
-    //         System.out.println("Functions to call: " + functionsToCall);
-    //         System.out.println("-----------------------------------------");
-
-    //         // TODO: Create and send actual requests to the evaluators
-    //         // Example:
-    //         // JSONObject evaluatorRequest = new JSONObject();
-    //         // evaluatorRequest.put("metrics", metricsToCalculate);
-    //         // evaluatorRequest.put("functions", functionsToCall);
-    //         // sendRequestToEvaluator(evaluator, evaluatorRequest);
-    //     }
-    // }
 
     /**
      * Loads the TSERequest JSON file from the specified file path.
@@ -252,24 +213,7 @@ public class TSERequestParser {
         return new JSONObject(content);
     }
 
-    /**
-     * Main method to test the TSERequestParser.
-     *
-     * @param args Command-line arguments (not used).
-     * @throws IOException If an I/O error occurs reading the TSE request file.
-     */
-    // public static void main(String[] args) throws IOException {
-    //     // Load the TSERequest JSON file
-    //     JSONObject tseRequest = loadTSERequest("workflow_output.json");
 
-    //     // Create the parser object
-    //     TSERequestParser parser = new TSERequestParser();
-
-    //     // Parse and process the request
-    //     parser.createRequestsForEvaluators(tseRequest);
-
-    //     // Optionally, you can perform additional operations here
-    // }
 
     /**
      * Example method to send a request to an evaluator.

@@ -103,16 +103,28 @@ def access_tatc(request: AccessRequest) -> AccessResponse:
 def perform_access_response(architecture):
     # Initialize an empty list to hold Satellite objects
     satellites = parse_architecture(architecture)
+    date_str = architecture.get("mission").get("start")
+    year = int(date_str[0:4])
+    month = int(date_str[5:7])
+    day = int(date_str[8:10])
+    start=datetime(year, month, day, tzinfo=timezone.utc)
+        # Extract number of days (assumes format always includes 'D')
+    days_part = architecture.get("mission").get("duration").split('D')[0]  # 'P0Y0M01'
+    days_str = days_part.split('M')[-1]     # '01'
+    days = int(days_str)
+    hours = days * 24
+    duration=timedelta(hours=hours)
+
     # Create the PropagationRequest
     targets = UniformAngularGrid(
-    delta_latitude=20, delta_longitude=20, region=mapping(box(-180, -50, 180, 50))
+    delta_latitude=20, delta_longitude=20, region=mapping(box(-180, -90, 180, 90))
 ).as_targets()
 
     request = AccessRequest(
         satellites=satellites,
         targets=targets,
-        start=datetime(2024, 1, 1, tzinfo=timezone.utc),
-        duration=timedelta(hours=1),
+        start=start,
+        duration=duration,
         propagator=Propagator.SGP4,
         payload_ids=["FireSat-Sensor"],
     )

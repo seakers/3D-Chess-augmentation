@@ -426,8 +426,12 @@ public class Combining extends Decision {
     }
     
 
+    /**
+     * Returns the source list of sub-decisions.
+     * 
+     * @return List of sub-decision source identifiers
+     */
     public List<String> getSubDecisionsSource() {
-        // TODO Auto-generated method stub
         return subDecisionsSource;
     }
     

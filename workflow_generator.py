@@ -1,6 +1,7 @@
 import json
 from neo4j import GraphDatabase
-
+from dotenv import load_dotenv
+import os
 class TSEWorkflowGenerator:
     
     def __init__(self, neo4j_uri, neo4j_user, neo4j_password):
@@ -253,14 +254,17 @@ class TSEWorkflowGenerator:
 def main():
     with open('user_request.json', 'r') as infile:
         user_request = json.load(infile)
+    load_dotenv(dotenv_path=".env")
 
+    print(os.getenv("NEO4J_URI"))
+    print(os.getenv("NEO4J_USERNAME"))
+    print(os.getenv("NEO4J_PASSWORD"))
     # Initialize the workflow generator
     generator = TSEWorkflowGenerator(
-        neo4j_uri="neo4j+s://00785431.databases.neo4j.io",
-        neo4j_user="neo4j",
-        neo4j_password="Akkxk1jF-figNYw_6Ca9bRuOadjZmxXHVKAFIvcqCLM"
+        neo4j_uri=os.getenv("NEO4J_URI"),
+        neo4j_user=os.getenv("NEO4J_USERNAME"),
+        neo4j_password=os.getenv("NEO4J_PASSWORD")
     )
-
     try:
         # Generate the workflow
         output = generator.generate_workflow(user_request)
@@ -277,7 +281,7 @@ def main():
         output = {
             "error": error_message
         }
-        with open('workflow_output.json', 'w') as outfile:
+        with open('workflow_output_test.json', 'w') as outfile:
             json.dump(output, outfile, indent=4)
 
         print(f"An error occurred: {error_message}")
