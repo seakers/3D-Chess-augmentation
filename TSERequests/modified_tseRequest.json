@@ -1,0 +1,847 @@
+{
+    "evaluation": {
+        "workflow": [
+            {
+                "implementedFunctions": {"RevisitAnalysis": {
+                    "level": 1,
+                    "dependencies": {}
+                }},
+                "metrics": {"HarmonicMeanRevisitTime": "RevisitAnalysis"},
+                "subscribe": ["evaluators/TATC"],
+                "publish_metrics": "TSE",
+                "evaluator": "TATC"
+            },
+            {
+                "implementedFunctions": {"CostModel": {
+                    "level": 1,
+                    "dependencies": {}
+                }},
+                "metrics": {"LifecycleCost": "CostModel"},
+                "subscribe": ["evaluators/SpaDes"],
+                "publish_metrics": "TSE",
+                "evaluator": "SpaDes"
+            },
+            {
+                "implementedFunctions": {"ScienceModel": {
+                    "level": 2,
+                    "dependencies": {"RevisitAnalysis": "http://localhost:5000/tatc/RevisitAnalysis"}
+                }},
+                "metrics": {"ScienceScore": "ScienceModel"},
+                "subscribe": ["evaluators/VASSAR"],
+                "publish_metrics": "TSE",
+                "evaluator": "VASSAR"
+            }
+        ],
+        "TSE": {
+            "publish_metric_requests": {
+                "ScienceScore": "evaluators/VASSAR/ScienceModel",
+                "LifecycleCost": "evaluators/SpaDes/CostModel",
+                "HarmonicMeanRevisitTime": "evaluators/TATC/RevisitAnalysis"
+            },
+            "objectives": [
+                {
+                    "objectiveName": "ScienceScore",
+                    "objectiveType": "MAX"
+                },
+                {
+                    "objectiveName": "LifecycleCost",
+                    "objectiveType": "MIN"
+                },
+                {
+                    "objectiveName": "HarmonicMeanRevisitTime",
+                    "objectiveType": "MAX"
+                }
+            ],
+            "tool_levels": {
+                "": 1,
+                "TATC": 1,
+                "SpaDes": 1,
+                "VASSAR": 2
+            },
+            "subscribe": "TSE"
+        }
+    },
+    "settings": {
+        "outputs": {
+            "orbits.global": true,
+            "orbits.local": true,
+            "orbits.instrumentAccess": true,
+            "obsTimeStep": true,
+            "@type": "AnalysisOutputs",
+            "keepLowLevelData": false,
+            "orbits.states": true,
+            "orbits.access": true
+        },
+        "searchStrategy": "MOEA",
+        "proxyOrbits": false,
+        "@type": "AnalysisSettings",
+        "includePropulsion": false,
+        "proxyLaunch": false,
+        "useThreading": true,
+        "proxyCostRisk": false,
+        "searchParameters": {
+            "epsilons": 0.05,
+            "@type": "SearchParameters",
+            "maxNFE": 500,
+            "iOperators": [
+                "TwoPointCrossover",
+                "IntegerUM"
+            ],
+            "pCrossover": 0.9,
+            "nOperRepl": 2,
+            "pmin": 0.03,
+            "dOperators": [],
+            "alpha": 0.8,
+            "pMutation": 0.2,
+            "populationSize": 4,
+            "sizeTournament": 2,
+            "NFEtriggerDM": 20,
+            "beta": 0.7
+        },
+        "proxyValue": true,
+        "proxyMaintenance": true,
+        "useCache": true,
+        "proxyInstrument": true
+    },
+    "mission": {
+        "duration": "P0Y0M07D",
+        "agency": {
+            "@type": "Agency",
+            "agencyType": "GOVERNMENT"
+        },
+        "acronym": "TROPICS",
+        "@type": "MissionConcept",
+        "name": "TROPICS",
+        "start": "2019-08-01T00:00:00Z",
+        "objectives": [
+            {
+                "objectiveName": "MeanRevisitTime",
+                "objectiveType": "MIN",
+                "evaluator": "science_score"
+            },
+            {
+                "objectiveName": "lifecycleCost",
+                "objectiveType": "MIN",
+                "evaluator": "lifecycle_cost"
+            },
+            {
+                "objectiveName": "Coverage",
+                "objectiveType": "MAX",
+                "evaluator": "science_score"
+            }
+        ],
+        "target": [{
+            "@type": "Region",
+            "latitude": {
+                "minValue": -90,
+                "maxValue": 90,
+                "@type": "QuantitativeValue"
+            },
+            "longitude": {
+                "minValue": -180,
+                "maxValue": 180,
+                "@type": "QuantitativeValue"
+            }
+        }]
+    },
+    "@type": "TradespaceSearch",
+    "designSpace": {
+        "@type": "DesignSpace",
+        "spaceSegment": [{
+            "satellites": [{
+                "techReadinessLevel": 9,
+                "acronym": "MicroMAS-2",
+                "commBand": ["X"],
+                "@type": "Satellite",
+                "mass": 4,
+                "stabilizationType": "AXIS_3",
+                "volume": 0.003,
+                "isGroundCommand": true,
+                "payload": [
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 137,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 12,
+                        "type": "basic",
+                        "quantumEff": null,
+                        "resolution": 0.1,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 132,
+                        "detectorWidth": null,
+                        "power": 132,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "ACE_ORCA",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 1,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 55,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "ACE_ORCA",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            1,
+                            1,
+                            1
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 132,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 15.5,
+                        "type": "basic",
+                        "quantumEff": null,
+                        "resolution": 0.01,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 152,
+                        "detectorWidth": null,
+                        "power": 152,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "ACE_POL",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 1,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 55,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "ACE_POL",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            1,
+                            1,
+                            1
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 515,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 11.1,
+                        "type": "basic",
+                        "quantumEff": null,
+                        "resolution": 10,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 658,
+                        "detectorWidth": null,
+                        "power": 658,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "ACE_LID",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 1,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 10,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "ACE_LID",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            1,
+                            1,
+                            1
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 238,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 160,
+                        "type": "basic",
+                        "quantumEff": null,
+                        "resolution": 10,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 387,
+                        "detectorWidth": null,
+                        "power": 387,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "CLAR_ERB",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 1.1199999999999999,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 55,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "CLAR_ERB",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            2,
+                            0.7,
+                            0.8
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 480,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 20,
+                        "quantumEff": null,
+                        "resolution": 10,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 700,
+                        "detectorWidth": null,
+                        "power": 700,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "ACE_CPR",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 25,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 55,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "ACE_CPR",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            5,
+                            5,
+                            1
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 400,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 60,
+                        "quantumEff": null,
+                        "resolution": 10,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 500,
+                        "detectorWidth": null,
+                        "power": 500,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "DESD_SAR",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 97.2,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 10,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "DESD_SAR",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            6,
+                            6,
+                            2.7
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 200,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 1,
+                        "quantumEff": null,
+                        "resolution": 10,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 500,
+                        "detectorWidth": null,
+                        "power": 500,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "DESD_LID",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 4.5,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 10,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "DESD_LID",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            1.5,
+                            1.5,
+                            2
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 46,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 0.77,
+                        "quantumEff": null,
+                        "resolution": 0.2,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 56,
+                        "detectorWidth": null,
+                        "power": 56,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "GACM_VIS",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 0.06999999999999999,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 55,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "GACM_VIS",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            0.5,
+                            0.4,
+                            0.35
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 250,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 40,
+                        "quantumEff": null,
+                        "resolution": 0.2,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 208,
+                        "detectorWidth": null,
+                        "power": 208,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "GACM_SWIR",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 1,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 55,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "GACM_SWIR",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            1,
+                            1,
+                            1
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 99,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 65,
+                        "quantumEff": null,
+                        "resolution": 0.0055,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 78,
+                        "detectorWidth": null,
+                        "power": 78,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "HYSP_TIR",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 0.24,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 10,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "HYSP_TIR",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            1.2,
+                            0.5,
+                            0.4
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 316,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 7.5,
+                        "quantumEff": null,
+                        "resolution": 0.1,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 457,
+                        "detectorWidth": null,
+                        "power": 457,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "POSTEPS_IRS",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 1,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 55,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "POSTEPS_IRS",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            1,
+                            1,
+                            1
+                        ]
+                    },
+                    {
+                        "temperatureRange": [
+                            -10,
+                            50
+                        ],
+                        "scanTechnique": "PUSHBROOM",
+                        "techReadinessLevel": null,
+                        "@type": "Passive Optical Scanner",
+                        "mass": 300,
+                        "numberOfDetectorsColsCrossTrack": null,
+                        "numberOfDetectorsRowsAlongTrack": null,
+                        "dataRate": 10,
+                        "quantumEff": null,
+                        "resolution": 10,
+                        "mountType": "BODY",
+                        "opticsSysEff": null,
+                        "peakPower": 300,
+                        "detectorWidth": null,
+                        "power": 300,
+                        "Fnum": null,
+                        "orientation": {
+                            "convention": "SIDE_LOOK",
+                            "sideLookAngle": null,
+                            "@type": "Orientation"
+                        },
+                        "numOfReadOutE": null,
+                        "bandwidth": null,
+                        "acronym": "CNES_KaRIN",
+                        "bitsPerPixel": null,
+                        "snrThreshold": null,
+                        "volume": 1,
+                        "apertureDia": null,
+                        "maxDetectorExposureTime": null,
+                        "specRange": "MW-Ku",
+                        "operatingWavelength": null,
+                        "fieldOfView": {
+                            "sensorGeometry": "RECTANGULAR",
+                            "@type": "FieldOfView",
+                            "fullConeAngle": null,
+                            "fieldOfRegard": 100,
+                            "crossTrackFieldOfView": 55,
+                            "alongTrackFieldOfView": null
+                        },
+                        "name": "CNES_KaRIN",
+                        "targetBlackBodyTemp": 20,
+                        "focalLength": null,
+                        "dimensions": [
+                            10,
+                            2.2,
+                            0.18
+                        ]
+                    }
+                ],
+                "propellantType": "MONO_PROP",
+                "name": "MicroMAS-2",
+                "dryMass": 2.5,
+                "power": 9.1,
+                "isSpare": false
+            }],
+            "numberPlanes": 1,
+            "numberSatellites": 1,
+            "@type": "Constellation",
+            "constellationType": "DELTA_HOMOGENEOUS",
+            "orbit": [
+                {
+                    "inclination": 98,
+                    "altitude": 600,
+                    "@type": "Orbit",
+                    "orbitType": "SSO",
+                    "eccentricity": 0
+                },
+                {
+                    "inclination": 98,
+                    "altitude": 800,
+                    "@type": "Orbit",
+                    "orbitType": "SSO",
+                    "eccentricity": 0
+                },
+                {
+                    "inclination": 90,
+                    "altitude": 600,
+                    "@type": "Orbit",
+                    "orbitType": "SSO",
+                    "eccentricity": 0
+                },
+                {
+                    "inclination": 90,
+                    "altitude": 800,
+                    "@type": "Orbit",
+                    "orbitType": "SSO",
+                    "eccentricity": 0
+                }
+            ]
+        }],
+        "decisionVariables": {"orbitAssignment": {
+            "R": "orbit",
+            "type": "Assigning",
+            "L": "payload",
+            "resultType": "payload_orbit",
+            "parents": []
+        }},
+        "groundSegment": [{
+            "acronym": "TROPICS GN",
+            "@type": "GroundNetwork",
+            "name": "TROPICS ground network",
+            "numberStations": 1,
+            "groundStations": [{
+                "elevation": 1570,
+                "agency": {
+                    "@type": "Agency",
+                    "agencyType": "GOVERNMENT"
+                },
+                "acronym": "Wallops",
+                "commBand": ["UHF"],
+                "@type": "GroundStation",
+                "latitude": 37.940194,
+                "name": "Wallops",
+                "longitude": -75.466389
+            }]
+        }]
+    }
+}

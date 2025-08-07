@@ -1,84 +1,215 @@
-# 3D-Chess Augmentation: Tradespace Search Executive (TSE) Module
+# TSE (Tradespace Search Executive) Module
 
 ## Overview
 
-The 3D-Chess Augmentation project is a comprehensive satellite constellation design and evaluation framework that integrates multiple specialized tools for tradespace exploration and architecture optimization. This project enables automated enumeration, evaluation, and optimization of satellite constellation architectures using advanced multi-objective optimization techniques.
+The TSE Module is the core orchestrator of the 3D-Chess Augmentation system, providing a Spring Boot-based REST API for tradespace exploration and satellite constellation optimization. It integrates multiple evaluation tools and manages the entire workflow from request processing to result delivery.
 
-### Key Components
+## Architecture
 
-- **TSE Module**: Core tradespace search executive that orchestrates the entire evaluation process
-- **TATC (Tradespace Analysis Toolkit for Constellations)**: Primary evaluation engine for constellation performance analysis
-- **VASSAR**: Science and cost evaluation framework for satellite missions
-- **instrupy**: Instrument modeling and analysis toolkit
-- **orbitpy**: Orbital mechanics and propagation analysis
+### Core Components
 
-### Architecture
+The TSE Module is built as a Spring Boot application with the following key components:
 
-The system follows a modular architecture where:
-1. **TSE Module** receives mission requirements and design space definitions
-2. **TATC** performs constellation-level analysis and optimization
-3. **VASSAR** evaluates science value and cost metrics
-4. **instrupy** and **orbitpy** provide specialized instrument and orbital analysis
-5. Results are aggregated and presented through REST APIs and MQTT messaging
+#### 1. **TSEApplication.java** - Main Application Entry Point
+- Spring Boot application launcher
+- Auto-configuration and component scanning
+- Runs on port 7500 by default
 
-## Installation and Setup
+#### 2. **DaphneRequestController.java** - REST API Controller
+- Handles incoming HTTP requests at `/tse` endpoint
+- Processes JSON requests for tradespace searches
+- Manages workflow execution and response handling
+
+#### 3. **TSE.java** - Core TSE Logic
+- Main tradespace search executive implementation
+- Orchestrates the evaluation workflow
+- Manages communication between different tools
+
+#### 4. **TSEWorkflowGenerator.java** - Workflow Management
+- Generates evaluation workflows based on user requests
+- Manages tool dependencies and execution order
+- Handles workflow optimization and validation
+
+#### 5. **TSEPublisher.java & TSESubscriber.java** - MQTT Communication
+- Publisher: Sends requests to evaluation tools
+- Subscriber: Receives results from evaluation tools
+- Real-time communication for distributed evaluation
+
+#### 6. **PythonServerManager.java** - Python Integration
+- Manages Python tool execution
+- Handles communication with Python-based evaluation tools
+- Coordinates Python script execution and result collection
+
+### Package Structure
+
+```
+src/main/java/tatc/
+├── TSEApplication.java              # Spring Boot main class
+├── DaphneRequestController.java     # REST API controller
+├── TSE.java                        # Core TSE implementation
+├── TSEWorkflowGenerator.java       # Workflow generation
+├── TSEPublisher.java               # MQTT publisher
+├── TSESubscriber.java              # MQTT subscriber
+├── PythonServerManager.java        # Python integration
+├── ReadOutputs.java                # Output processing
+├── ResultIO.java                   # Result I/O operations
+├── architecture/                   # Architecture definitions
+│   ├── ArchitectureCreator.java
+│   ├── ArchitectureMethods.java
+│   ├── constellations/             # Constellation types
+│   ├── outputspecifications/       # Output specifications
+│   ├── specifications/             # Core specifications
+│   └── variable/                   # Variable definitions
+├── decisions/                      # Decision-making components
+│   ├── adg/                       # ADG (Architecture Decision Graph)
+│   ├── search/                     # Search algorithms
+│   └── [various decision types]
+├── interfaces/                     # External interfaces
+│   ├── GUIInterface.java
+│   └── KnowledgeBaseInterface.java
+├── model/                         # Data models
+│   └── TSEResponse.java
+├── templates/                      # Evaluation templates
+├── tradespaceiterator/             # Tradespace iteration
+│   ├── search/                     # Search strategies
+│   └── [various iterator types]
+└── util/                          # Utility classes
+```
+
+## Installation
 
 ### Prerequisites
 
-- **Java 8** or higher
-- **Maven** 3.6+
-- **Python** 3.7+
-- **Git**
+- **Java 8** or higher (JDK required)
+- **Maven 3.6+**
+- **Python 3.7+** with pip
 
-### 1. TSE Module Setup
-
-The TSE Module is the core orchestrator of the system.
-
-#### Installation
+### Quick Installation
 
 ```bash
 cd TSE_Module/tse
 
-# Install dependencies and build
+# Install all dependencies and build
 make all
 ```
 
-This will:
-- Install required JAR dependencies (mopAOS and conMOP)
-- Install Python dependencies
-- Build the Java application with Maven
+This command performs:
+1. Installs JAR dependencies to local Maven repository
+2. Installs Python package in development mode
+3. Builds the Spring Boot application
 
-#### Testing the TSE Module
+### Manual Installation
 
-**Method 1: REST API (Recommended)**
+If `make all` fails, perform these steps manually:
 
 ```bash
-# Start the application
-mvn spring-boot:run
+cd TSE_Module/tse
 
-# Test with a sample request
+# 1. Install JAR dependencies
+mvn install:install-file -Dfile=./lib/mopAOS-1.0.jar -DgroupId=seakers -DartifactId=mopAOS -Dversion=1.0 -Dpackaging=jar
+mvn install:install-file -Dfile=./lib/conMOP-1.0.jar -DgroupId=seakers -DartifactId=conMOP -Dversion=1.0 -Dpackaging=jar
+
+# 2. Install Python package
+pip install -e .
+
+# 3. Build Java application
+mvn package
+```
+
+### Verification
+
+```bash
+# Check if JAR was created
+ls -la target/tatc-ml-tse-1.0.jar
+
+# Test Python package installation
+python -c "import tatc_tse; print('Success')"
+```
+
+## Usage
+
+### Starting the TSE Service
+
+```bash
+cd TSE_Module/tse
+
+# Start Spring Boot application
+mvn spring-boot:run
+```
+
+The service will start on `http://localhost:7500`
+
+### Testing the Service
+
+#### Method 1: REST API (Recommended)
+
+```bash
+# Test with sample request
 curl -X POST http://localhost:7500/tse \
   -H "Content-Type: application/json" \
   -d @problems/landsat8.json
 ```
 
-**Method 2: Python Script**
+#### Method 2: Python Script
 
 ```bash
-# Run using the Python script
+# Run using Python wrapper
 python bin/tse.py problems/landsat8.json problems
 ```
 
-**Method 3: Direct Java Execution**
+#### Method 3: Direct Java Execution
 
 ```bash
-# Run the JAR directly
+# Run JAR directly
 java -jar target/tatc-ml-tse-1.0.jar problems/landsat8.json problems
 ```
 
-#### Available Test Cases
+### Using with Python Tools
 
-The module includes several pre-configured test cases:
+Once the TSE service is running, you can use the Python tools:
+
+```bash
+cd Python
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Run dummy requester to test the system
+python dummyRequester.py
+```
+
+This will:
+1. Start a callback server on port 7000
+2. Send a test request to TSE on port 7500
+3. Display received solutions in real-time
+
+## Configuration
+
+### Application Properties
+
+The application uses Spring Boot configuration. Key properties:
+
+```properties
+# Server configuration
+server.port=7500
+
+# Logging
+logging.level.tatc=INFO
+logging.level.org.springframework.web=DEBUG
+
+# MQTT configuration
+mqtt.broker.url=tcp://localhost:1883
+mqtt.client.id=tse-client
+
+# Python integration
+python.executable=python
+python.scripts.path=../Python/
+```
+
+### Test Cases
+
+The `problems/` directory contains various test cases:
+
 - `landsat8.json` - Landsat 8 satellite mission
 - `CaseStudy1.json` - TROPICS mission (microsatellites)
 - `CaseStudy2.json` - Different constellation configuration
@@ -86,185 +217,15 @@ The module includes several pre-configured test cases:
 - `CaseStudy4.json` - Complex multi-objective optimization
 - `CaseStudy5.json` - Large-scale constellation design
 
-### 2. TATC (Tradespace Analysis Toolkit for Constellations)
-
-TATC is the primary evaluation engine for constellation performance analysis.
-
-#### Installation
-
-```bash
-# Clone the TATC repository
-git clone https://github.com/seakers/TATC-Integration.git
-cd TATC-Integration
-
-# Follow the instructions in the TATC repository README
-# This typically involves:
-# - Installing Python dependencies
-# - Setting up configuration files
-# - Running initial tests
-```
-
-**Note**: Refer to the [TATC-Integration repository](https://github.com/seakers/TATC-Integration.git) for detailed setup instructions specific to that component.
-
-### 3. SpaDes (Spacecraft Design Tool)
-
-SpaDes is a comprehensive spacecraft design tool that takes payloads and orbit specifications as input and produces spacecraft designs with cost estimates.
-
-#### Installation
-
-```bash
-# Clone the SpaDes repository (use IntegrationDev branch for latest features)
-git clone https://github.com/seakers/SpaDes.git
-cd SpaDes
-git checkout IntegrationDev
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Note: SpaDes requires Python 3.9 or 3.10 for compatibility with tat-c
-```
-
-#### Testing SpaDes
-
-**Method 1: Basic Spacecraft Design**
-
-```bash
-# Run the main spacecraft design script
-python SpacecraftDesignMain.py
-
-# This will:
-# - Pick a random payload and orbit
-# - Generate a spacecraft design
-# - Output design specifications and cost estimates
-```
-
-**Method 2: Constellation Design**
-
-```bash
-# Run constellation design analysis
-python ConstellationDesignMain.py
-
-# This provides constellation-level analysis and optimization
-```
-
-**Method 3: Cost Estimation Testing**
-
-```bash
-# Test cost estimation functionality
-python testCostEstimation.py
-
-# This validates the cost estimation algorithms
-```
-
-#### SpaDes Features
-
-- **Spacecraft Design**: Automated generation of spacecraft configurations
-- **Cost Estimation**: Comprehensive cost analysis and budgeting
-- **Constellation Analysis**: Multi-satellite constellation optimization
-- **Performance Scoring**: Science and performance evaluation metrics
-- **MQTT Integration**: Real-time communication capabilities
-- **Configuration Optimization**: Automated component selection and sizing
-
-#### Available Modules
-
-- `SpacecraftDesignMain.py` - Main spacecraft design script
-- `ConstellationDesignMain.py` - Constellation design and analysis
-- `CostEstimation.py` - Cost analysis and budgeting
-- `PerformanceScore.py` - Performance evaluation and scoring
-- `ConfigurationOptimization.py` - Automated configuration optimization
-- `ADCSDesign.py` - Attitude determination and control system design
-- `CommsDesign.py` - Communications system design
-- `EPSDesign.py` - Electrical power system design
-- `PropulsionDesign.py` - Propulsion system design
-
-### 4. VASSAR Setup
-
-VASSAR provides science and cost evaluation capabilities for satellite missions.
-
-#### Installation
-
-```bash
-# Clone VASSAR repositories (use Alex_Dev_TATC branches)
-git clone -b Alex_Dev_TATC https://github.com/seakers/VASSAR_exec.git
-git clone -b Alex_Dev_TATC https://github.com/seakers/VASSAR_lib.git
-
-# Clone VASSAR resources (use main branch)
-git clone https://github.com/seakers/VASSAR_resources.git
-
-# Set up VASSAR environment
-cd VASSAR_exec
-# Follow VASSAR-specific setup instructions
-```
-
-**Repository References:**
-- [VASSAR_exec](https://github.com/seakers/VASSAR_exec) - Execution scripts
-- [VASSAR_lib](https://github.com/seakers/VASSAR_lib.git) - Core VASSAR functions
-- [VASSAR_resources](https://github.com/seakers/VASSAR_resources.git) - Common resources
-
-### 4. instrupy and orbitpy Setup
-
-These tools provide instrument modeling and orbital mechanics analysis.
-
-#### Installation
-
-```bash
-# Navigate to the instrupy branch in this repository
-git checkout instrupy
-
-# Install instrupy dependencies
-pip install -r requirements.txt
-
-# Install orbitpy dependencies
-pip install orbitpy
-```
-
-## Usage Examples
-
-### Basic TSE Execution
-
-```bash
-# Start the TSE application
-cd TSE_Module/tse
-mvn spring-boot:run
-
-# Send a tradespace search request
-curl -X POST http://localhost:7500/tse \
-  -H "Content-Type: application/json" \
-  -d '{
-    "workflowId": "test-workflow-001",
-    "mission": {
-      "name": "Test Mission",
-      "duration": "P0Y0M90D"
-    },
-    "designSpace": {
-      "spaceSegment": [{
-        "constellationType": "DELTA_HOMOGENEOUS",
-        "numberSatellites": [1, 2],
-        "numberPlanes": [1, 2]
-      }]
-    }
-  }'
-```
-
-### Advanced Configuration
-
-The system supports complex mission configurations including:
-- Multi-objective optimization
-- Advanced constellation patterns
-- Instrument-specific analysis
-- Cost-risk evaluation
-
 ## API Documentation
 
-### TSE REST API
+### POST /tse
 
-**Endpoint**: `POST /tse`
-
-**Request Format**:
+**Request Format:**
 ```json
 {
   "workflowId": "unique-workflow-id",
-  "callbackUrl": "http://localhost:8080/callback",
+  "callbackUrl": "http://localhost:7000/callback",
   "mission": {
     "name": "Mission Name",
     "duration": "P0Y0M90D",
@@ -280,7 +241,7 @@ The system supports complex mission configurations including:
 }
 ```
 
-**Response Format**:
+**Response Format:**
 ```json
 {
   "workflowId": "unique-workflow-id",
@@ -290,21 +251,97 @@ The system supports complex mission configurations including:
 }
 ```
 
+## Development
+
+### Building from Source
+
+```bash
+# Clean and rebuild
+mvn clean package
+
+# Run tests
+mvn test
+
+# Install to local repository
+mvn install
+```
+
+### Adding New Features
+
+1. **New Evaluation Tools**: Add to `templates/` directory
+2. **New Constellation Types**: Extend `architecture/constellations/`
+3. **New Output Specifications**: Add to `architecture/outputspecifications/`
+4. **New Search Strategies**: Implement in `tradespaceiterator/search/`
+
+### Debug Mode
+
+Enable debug logging:
+
+```properties
+logging.level.tatc=DEBUG
+logging.level.org.springframework.web=DEBUG
+```
+
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Compilation Errors**: Ensure all dependencies are installed with `make all`
-2. **Port Conflicts**: The TSE application runs on port 7500 by default
-3. **Missing Dependencies**: Check that all required JAR files are in the `lib/` directory
-4. **Python Path Issues**: Ensure Python dependencies are installed correctly
+1. **Port 7500 already in use**
+   ```bash
+   # Find process using port
+   netstat -ano | findstr :7500
+   # Kill process or change port in application.properties
+   ```
 
-### Debug Mode
+2. **Missing JAR dependencies**
+   ```bash
+   # Reinstall JAR dependencies
+   mvn install:install-file -Dfile=./lib/mopAOS-1.0.jar -DgroupId=seakers -DartifactId=mopAOS -Dversion=1.0 -Dpackaging=jar
+   mvn install:install-file -Dfile=./lib/conMOP-1.0.jar -DgroupId=seakers -DartifactId=conMOP -Dversion=1.0 -Dpackaging=jar
+   ```
 
-Enable debug logging by modifying `application.properties`:
-```properties
-logging.level.tatc=DEBUG
+3. **Python integration issues**
+   ```bash
+   # Reinstall Python package
+   pip uninstall tatc-tse
+   pip install -e .
+   ```
+
+4. **Maven build failures**
+   ```bash
+   # Clean and rebuild
+   mvn clean package
+   ```
+
+### Logs
+
+Check application logs for detailed error information:
+
+```bash
+# View Spring Boot logs
+tail -f logs/spring-boot.log
+
+# Enable debug logging
+export LOGGING_LEVEL_TATC=DEBUG
+mvn spring-boot:run
 ```
+
+## Dependencies
+
+### Java Dependencies (Maven)
+
+- **Spring Boot 2.7.0** - Web framework
+- **Orekit 8.0** - Orbital mechanics
+- **Hipparchus 1.0** - Mathematical library
+- **MOEA Framework 2.12** - Multi-objective optimization
+- **Gson 2.8.0** - JSON processing
+- **Eclipse Paho 1.2.5** - MQTT client
+- **Neo4j Driver 4.4.0** - Graph database
+- **JEP 4.0.3** - Python integration
+
+### Python Dependencies
+
+See `../Python/requirements.txt` for complete list of Python dependencies.
 
 ## Contributing
 
@@ -316,11 +353,4 @@ logging.level.tatc=DEBUG
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For issues and questions:
-- Check the troubleshooting section above
-- Review the individual component repositories
-- Create an issue in the appropriate repository
+This project is licensed under the MIT License.

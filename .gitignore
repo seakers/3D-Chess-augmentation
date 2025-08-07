@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 #File extensions
 *.json
+!TSERequests/*.json
 *.xlsx
 *.csv
 *.xls

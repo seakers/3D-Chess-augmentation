@@ -25,14 +25,14 @@ The system follows a modular architecture where:
 
 ### Prerequisites
 
-- **Java 8** or higher
-- **Maven** 3.6+
-- **Python** 3.7+
+- **Java 8** or higher (JDK, not just JRE)
+- **Maven 3.6+**
+- **Python 3.7+** with pip
 - **Git**
 
 ### 1. TSE Module Setup
 
-The TSE Module is the core orchestrator of the system.
+The TSE Module is the core orchestrator of the system, built as a Spring Boot application with Maven.
 
 #### Installation
 
@@ -43,10 +43,40 @@ cd TSE_Module/tse
 make all
 ```
 
-This will:
-- Install required JAR dependencies (mopAOS and conMOP)
-- Install Python dependencies
-- Build the Java application with Maven
+This command will:
+1. **Install JAR Dependencies**: Install required JAR files (mopAOS-1.0.jar and conMOP-1.0.jar) into your local Maven repository
+2. **Install Python Package**: Install the TSE Python package in development mode
+3. **Build Java Application**: Compile and package the Spring Boot application using Maven
+
+#### Manual Installation Steps (if make fails)
+
+If the `make all` command fails, you can perform the installation manually:
+
+```bash
+cd TSE_Module/tse
+
+# 1. Install JAR dependencies to local Maven repository
+mvn install:install-file -Dfile=./lib/mopAOS-1.0.jar -DgroupId=seakers -DartifactId=mopAOS -Dversion=1.0 -Dpackaging=jar
+mvn install:install-file -Dfile=./lib/conMOP-1.0.jar -DgroupId=seakers -DartifactId=conMOP -Dversion=1.0 -Dpackaging=jar
+
+# 2. Install Python package
+pip install -e .
+
+# 3. Build the Java application
+mvn package
+```
+
+#### Verification
+
+After installation, verify the build was successful:
+
+```bash
+# Check if the JAR file was created
+ls -la target/tatc-ml-tse-1.0.jar
+
+# Check if Python package is installed
+python -c "import tatc_tse; print('TSE Python package installed successfully')"
+```
 
 #### Testing the TSE Module
 
@@ -76,17 +106,69 @@ python bin/tse.py problems/landsat8.json problems
 java -jar target/tatc-ml-tse-1.0.jar problems/landsat8.json problems
 ```
 
-#### Available Test Cases
+#### Available TSERequests
 
-The module includes several pre-configured test cases:
-- `landsat8.json` - Landsat 8 satellite mission
-- `CaseStudy1.json` - TROPICS mission (microsatellites)
-- `CaseStudy2.json` - Different constellation configuration
-- `CaseStudy3.json` - Advanced mission parameters
-- `CaseStudy4.json` - Complex multi-objective optimization
-- `CaseStudy5.json` - Large-scale constellation design
+The system includes several pre-configured TSERequest JSON files for testing different scenarios:
 
-### 2. TATC (Tradespace Analysis Toolkit for Constellations)
+**Core Decision-Making Requests:**
+- `TSERequestAssigning.json` - **Assigning Decision Type**: Assigns payloads to orbits for TROPICS mission with 7-day duration, optimizing ScienceScore (MAX) and LifecycleCost (MIN)
+- `TSERequestAssigningSmall.json` - **Simplified Assigning**: Reduced version with 1-day duration and fewer orbit options for quick testing
+- `assigning.json` - **Alternative Assigning**: Similar to Assigning but with RevisitAnalysis tool constraint
+
+**Complex Decision Requests:**
+- `combining.json` - **Combining Decision Type**: Combines multiple design variables (satellites, planes, altitude, inclination, etc.) for comprehensive constellation optimization with 3 objectives (InstrumentScore, LifecycleCost, HarmonicMeanRevisitTime)
+- `TSERequestClimateCentricDSPAC_test.json` - **Multi-Stage Decision Process**: Complex workflow with DownSelecting, Partitioning, Combining, and Construction decisions for climate-centric analysis
+
+**Specialized Test Requests:**
+- `TSERequestFFFireSat2_test.json` - **FireSat Mission**: Fire detection mission with OrbitPy tool constraints, optimizing InstrumentScore, LifecycleCost, and HarmonicMeanRevisitTime
+
+**Note**: The `modified_tseRequest.json` file is reserved for development and should not be used for testing.
+
+### 2. Python Tools Setup
+
+The Python folder contains various analysis and visualization tools for the 3D-Chess Augmentation project.
+
+#### Installation
+
+```bash
+cd Python
+
+# Install Python dependencies
+pip install -r requirements.txt
+```
+
+#### Using the Python Tools
+
+Once the TSE service is running with `mvn spring-boot:run` and all other tools are running on their respective ports, you can use the Python tools:
+
+**Testing with dummyRequester.py**
+
+```bash
+cd Python
+
+# Run the dummy requester to send test requests to TSE
+python dummyRequester.py
+```
+
+This script will:
+1. Start a Flask server on port 7000 to receive callbacks
+2. Send a TSERequest to the TSE server running on port 7500
+3. Display received solutions in real-time
+4. Continue running until interrupted (Ctrl+C)
+
+**Available Python Tools**
+
+- `dummyRequester.py` - Test client for sending requests to TSE
+- `workflow_generator.py` - Generate evaluation workflows
+- `plot_generator.py` - Generate visualization plots from results
+- `pareto_generator.py` - Generate Pareto front analysis
+- `hypervolume_calculator.py` - Calculate hypervolume metrics
+- `hv_evolution_generator.py` - Track hypervolume evolution
+- `graph_generator.py` - Generate workflow dependency graphs
+- `reconstruct_from_logs.py` - Reconstruct results from log files
+- `genetic_operators.py` - Genetic algorithm operators
+
+### 3. TATC (Tradespace Analysis Toolkit for Constellations)
 
 TATC is the primary evaluation engine for constellation performance analysis.
 
@@ -106,7 +188,7 @@ cd TATC-Integration
 
 **Note**: Refer to the [TATC-Integration repository](https://github.com/seakers/TATC-Integration.git) for detailed setup instructions specific to that component.
 
-### 3. SpaDes (Spacecraft Design Tool)
+### 4. SpaDes (Spacecraft Design Tool)
 
 SpaDes is a comprehensive spacecraft design tool that takes payloads and orbit specifications as input and produces spacecraft designs with cost estimates.
 
@@ -177,7 +259,7 @@ python testCostEstimation.py
 - `EPSDesign.py` - Electrical power system design
 - `PropulsionDesign.py` - Propulsion system design
 
-### 4. VASSAR Setup
+### 5. VASSAR Setup
 
 VASSAR provides science and cost evaluation capabilities for satellite missions.
 
@@ -201,7 +283,7 @@ cd VASSAR_exec
 - [VASSAR_lib](https://github.com/seakers/VASSAR_lib.git) - Core VASSAR functions
 - [VASSAR_resources](https://github.com/seakers/VASSAR_resources.git) - Common resources
 
-### 4. instrupy and orbitpy Setup
+### 6. instrupy and orbitpy Setup
 
 These tools provide instrument modeling and orbital mechanics analysis.
 
@@ -245,6 +327,27 @@ curl -X POST http://localhost:7500/tse \
     }
   }'
 ```
+
+### Testing with Python Tools
+
+Once all services are running:
+
+```bash
+# Navigate to Python tools directory
+cd Python
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the dummy requester to test the system
+python dummyRequester.py
+```
+
+This will:
+1. Start a callback server on port 7000
+2. Send a test request to TSE on port 7500
+3. Display received solutions in real-time
+4. Continue running until interrupted
 
 ### Advanced Configuration
 
