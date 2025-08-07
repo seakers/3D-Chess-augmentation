@@ -1,5 +1,0 @@
-Satellite states are in Earth-Centered-Inertial equatorial plane.,
-Epoch[JDUT1] is 2455863.062500,
-All time is referenced to the Epoch.,
-Mission Duration [Days] is 1.000000,
-EventNum,POI,AccessFrom[Days],Duration[s],Time[Days],X[km],Y[km],Z[km],VX[km/s],VY[km/s],VZ[km/s]
